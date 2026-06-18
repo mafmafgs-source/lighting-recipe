@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Lighting Recipe v1.6A</title>
+<script src="https://cdn.jsdelivr.net/npm/exifr/dist/lite.umd.js"></script>
+<style>
+body{margin:0;background:#f3f3f3;font-family:Arial,sans-serif}
+.wrap{max-width:430px;margin:auto;padding:10px}
+.card{background:#fff;border-radius:12px;padding:10px;margin-bottom:10px}
+.top{display:flex;gap:8px}
+.photo{flex:3;height:190px;background:#222;border-radius:10px;overflow:hidden;display:flex;align-items:center;justify-content:center}
+.photo img{width:100%;height:100%;object-fit:contain}
+.side{flex:1;display:flex;flex-direction:column;gap:8px}
+.box{border:1px solid #ddd;border-radius:8px;padding:6px;font-size:12px}
+.ex1,.ex2{display:flex;border:1px solid #ddd;border-radius:8px;margin-top:6px}
+.ex1 div,.ex2 div{flex:1;padding:6px;font-size:12px;text-align:center}
+#lighting{height:340px;border:1px solid #ddd;border-radius:10px;position:relative;background:#fafafa}
+.toolbox{display:flex;overflow:auto;gap:6px;margin-top:8px}
+.tool{border:1px solid #bbb;border-radius:8px;padding:6px;min-width:70px;font-size:11px;text-align:center;background:#fff}
+.node{position:absolute;width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;touch-action:none}
+#popup{display:none;position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);background:#fff;padding:15px;border-radius:12px;border:1px solid #ccc;z-index:99}
+#heightSlider{writing-mode:vertical-lr;height:160px}
+input,textarea{width:100%;box-sizing:border-box}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="card">
+<input type="file" id="file" hidden accept="image/*">
+<div class="top">
+<div class="photo" onclick="document.getElementById('file').click()"><img id="img"></div>
+<div class="side">
+<div class="box">📍ロケーション<br><input id="loc"><br>GoogleMap<br><input id="map"></div>
+<div class="box">📝メモ<br><textarea id="memo" rows="4"></textarea></div>
+</div>
+</div>
+
+<div class="ex1">
+<div id="camera">📷 カメラ名</div>
+<div id="lens">🔍 レンズ名</div>
+</div>
+
+<div class="ex2">
+<div id="fnum">F-</div>
+<div id="ss">SS-</div>
+<div id="iso">ISO-</div>
+<div id="focal">mm-</div>
+<div id="wb">WB-</div>
+</div>
+</div>
+
+<div class="card">
+<h3>ライティング図</h3>
+<div id="lighting">
+<div style="position:absolute;left:50%;top:45%;transform:translate(-50%,-50%)">👤</div>
+<div style="position:absolute;left:50%;bottom:10px;transform:translateX(-50%)">📷</div>
+</div>
+
+<div class="toolbox">
+<div class="tool" onclick="addNode('AD100')">AD100</div>
+<div class="tool" onclick="addNode('AD200')">AD200</div>
+<div class="tool" onclick="addNode('AD300')">AD300</div>
+<div class="tool" onclick="addNode('AD400')">AD400</div>
+<div class="tool" onclick="addNode('AD600')">AD600</div>
+<div class="tool" onclick="addNode('Octa')">Octa</div>
+<div class="tool" onclick="addNode('Soft')">Softbox</div>
+<div class="tool" onclick="addNode('Umb')">Umbrella</div>
+<div class="tool" onclick="addNode('Std')">Stand</div>
+<div class="tool" onclick="addNode('Vid')">Video</div>
+</div>
+</div>
+
+<div class="card">
+<h3>機材詳細（仮）</h3>
+出力
+<select>
+<option>1/256</option><option>1/128</option><option>1/64</option>
+<option>1/32</option><option>1/16</option><option>1/8</option>
+<option>1/4</option><option>1/2</option><option>1/1</option>
+</select>
+<br><br>
+メモ
+<textarea rows="3"></textarea>
+</div>
+
+<div id="popup">
+高さ
+<br><br>
+🔴<br>
+<input id="heightSlider" type="range" min="0" max="100" value="50">
+<br>🔵
+<br><br>
+<button onclick="closePop()">OK</button>
+</div>
+
+</div>
+
+<script>
+let current=null;
+
+file.onchange=async(e)=>{
+ const f=e.target.files[0];
+ if(!f)return;
+ img.src=URL.createObjectURL(f);
+
+ try{
+  const ex=await exifr.parse(f);
+  camera.textContent='📷 '+(ex.Model||'不明');
+  lens.textContent='🔍 '+(ex.LensModel||'不明');
+  fnum.textContent='F'+(ex.FNumber||'-');
+  ss.textContent='1/'+Math.round(1/(ex.ExposureTime||1));
+  iso.textContent='ISO'+(ex.ISO||'-');
+  focal.textContent=(ex.FocalLength||'-')+'mm';
+  wb.textContent=(ex.WhiteBalance||'-');
+ }catch(err){}
+}
+
+function color(v){
+ if(v>=50){
+   let t=(v-50)/50;
+   return `rgb(255,${128-(128*t)},${128-(128*t)})`;
+ }else{
+   let t=v/50;
+   let g=128*t;
+   return `rgb(${128*t},${128*t},255)`;
+ }
+}
+
+function addNode(label){
+ const d=document.createElement('div');
+ d.className='node';
+ d.textContent=label;
+ d.style.background='gray';
+ d.style.left='20px';
+ d.style.top='20px';
+ d.dataset.h=50;
+
+ lighting.appendChild(d);
+
+ d.onclick=(e)=>{
+  e.stopPropagation();
+  current=d;
+  heightSlider.value=d.dataset.h;
+  popup.style.display='block';
+ };
+
+ let sx,sy,ox,oy;
+ d.onpointerdown=(e)=>{
+  sx=e.clientX; sy=e.clientY;
+  ox=parseInt(d.style.left); oy=parseInt(d.style.top);
+
+  const mv=(ev)=>{
+   d.style.left=(ox+ev.clientX-sx)+'px';
+   d.style.top=(oy+ev.clientY-sy)+'px';
+  };
+
+  const up=()=>{
+   document.removeEventListener('pointermove',mv);
+   document.removeEventListener('pointerup',up);
+  };
+
+  document.addEventListener('pointermove',mv);
+  document.addEventListener('pointerup',up);
+ };
+}
+
+heightSlider.oninput=()=>{
+ if(!current)return;
+ current.dataset.h=heightSlider.value;
+ current.style.background=color(Number(heightSlider.value));
+}
+
+function closePop(){
+ popup.style.display='none';
+}
+</script>
+</body>
+</html>
