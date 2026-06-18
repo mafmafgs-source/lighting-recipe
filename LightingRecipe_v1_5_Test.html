@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Lighting Recipe v1.5</title>
+<style>
+body{font-family:sans-serif;background:#f3f3f3;margin:0}
+.wrap{max-width:430px;margin:auto;padding:10px}
+.card{background:#fff;border-radius:12px;padding:10px;margin-bottom:10px}
+.top{display:flex;gap:8px}
+.photo{flex:3;height:180px;background:#ddd;border-radius:10px;overflow:hidden;display:flex;align-items:center;justify-content:center}
+.photo img{width:100%;height:100%;object-fit:cover}
+.side{flex:1;display:flex;flex-direction:column;gap:8px}
+.box{border:1px solid #ddd;border-radius:8px;padding:6px;font-size:12px;min-height:70px}
+.ex1,.ex2{display:flex;border:1px solid #ddd;border-radius:8px;margin-top:6px}
+.ex1 div,.ex2 div{flex:1;padding:6px;font-size:12px}
+#lighting{height:320px;border:1px solid #ddd;border-radius:10px;position:relative;background:#fafafa}
+.toolbox{display:flex;gap:6px;overflow:auto;margin-top:8px}
+.tool{border:1px solid #ccc;border-radius:8px;padding:8px;min-width:60px;text-align:center}
+.node{position:absolute;width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;touch-action:none}
+textarea,input{width:100%;box-sizing:border-box}
+#popup{display:none;position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);background:#fff;padding:15px;border:1px solid #ccc;border-radius:12px;z-index:10}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="card">
+<input type="file" id="file" accept="image/*" hidden>
+<div class="top">
+<div class="photo" onclick="file.click()"><img id="img"></div>
+<div class="side">
+<div class="box">
+📍ロケーション<br>
+<input id="loc" value="非公開">
+GoogleMap URL
+<input id="mapurl">
+</div>
+<div class="box">
+📝メモ<br>
+<textarea id="memo">撮影メモ</textarea>
+</div>
+</div>
+</div>
+
+<div class="ex1">
+<div id="camera">📷 カメラ名</div>
+<div id="lens">🔍 レンズ名</div>
+</div>
+
+<div class="ex2">
+<div>F1.8</div>
+<div>1/160</div>
+<div>ISO100</div>
+<div>85mm</div>
+<div>5200K</div>
+</div>
+</div>
+
+<div class="card">
+<h3>ライティング図</h3>
+<div id="lighting">
+<div style="position:absolute;left:50%;top:45%;transform:translate(-50%,-50%)">👤</div>
+<div style="position:absolute;left:50%;bottom:10px;transform:translateX(-50%)">📷</div>
+</div>
+
+<div class="toolbox">
+<div class="tool" onclick="addNode('⚡')">⚡</div>
+<div class="tool" onclick="addNode('💡')">💡</div>
+<div class="tool" onclick="addNode('⬡')">⬡</div>
+<div class="tool" onclick="addNode('☂')">☂</div>
+<div class="tool" onclick="addNode('△')">△</div>
+</div>
+</div>
+
+<div class="card">
+<h3>機材詳細</h3>
+出力
+<select>
+<option>1/256</option><option>1/128</option><option>1/64</option>
+<option>1/32</option><option>1/16</option><option>1/8</option>
+</select>
+<br><br>
+メモ
+<textarea>顔左45°</textarea>
+</div>
+
+<div id="popup">
+高さ<br><br>
+<input id="slider" type="range" min="0" max="100" value="50">
+<br><br>
+<button onclick="closePop()">OK</button>
+</div>
+
+<script>
+let current=null;
+const lighting=document.getElementById('lighting');
+
+file.onchange=e=>{
+ let f=e.target.files[0];
+ if(!f)return;
+ let r=new FileReader();
+ r.onload=()=>img.src=r.result;
+ r.readAsDataURL(f);
+ camera.textContent='📷 EXIF読込予定';
+ lens.textContent='🔍 EXIF読込予定';
+}
+
+function color(v){
+ if(v<50){
+   let t=v/50;
+   return `rgb(${255*t},${255*t},255)`;
+ }
+ let t=(v-50)/50;
+ return `rgb(255,${255*(1-t)},${255*(1-t)})`;
+}
+
+function addNode(icon){
+ let d=document.createElement('div');
+ d.className='node';
+ d.textContent=icon;
+ d.dataset.h=50;
+ d.style.background=color(50);
+ d.style.left='20px';
+ d.style.top='20px';
+ lighting.appendChild(d);
+
+ d.onclick=(e)=>{
+   e.stopPropagation();
+   current=d;
+   slider.value=d.dataset.h;
+   popup.style.display='block';
+ };
+
+ let sx,sy,ox,oy;
+ d.onpointerdown=(e)=>{
+  sx=e.clientX; sy=e.clientY;
+  ox=parseInt(d.style.left); oy=parseInt(d.style.top);
+  const mv=(ev)=>{
+   d.style.left=(ox+ev.clientX-sx)+'px';
+   d.style.top=(oy+ev.clientY-sy)+'px';
+  };
+  const up=()=>{
+   document.removeEventListener('pointermove',mv);
+   document.removeEventListener('pointerup',up);
+  };
+  document.addEventListener('pointermove',mv);
+  document.addEventListener('pointerup',up);
+ };
+}
+
+slider.oninput=()=>{
+ if(!current)return;
+ current.dataset.h=slider.value;
+ current.style.background=color(slider.value);
+}
+
+function closePop(){popup.style.display='none';}
+</script>
+</body></html>
