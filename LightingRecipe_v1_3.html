@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Lighting Recipe v1.3</title>
+<script src="https://cdn.jsdelivr.net/npm/exif-js"></script>
+<style>
+body{font-family:Arial,sans-serif;background:#f3f3f3;margin:0;padding:10px}
+.wrap{max-width:430px;margin:auto}
+.card{background:#fff;border-radius:12px;padding:10px;margin-bottom:10px}
+.topArea{display:flex;gap:8px}
+.photo{flex:2;height:240px;border:2px dashed #bbb;border-radius:12px;display:flex;align-items:center;justify-content:center;background:#fafafa;overflow:hidden;cursor:pointer}
+.photo img{max-width:100%;max-height:100%;object-fit:contain}
+.side{flex:1;display:flex;flex-direction:column;gap:8px}
+.box{flex:1;border:1px solid #ddd;border-radius:10px;padding:8px;background:#fafafa}
+.exif{font-size:12px;display:flex;justify-content:space-between;margin-top:4px}
+#stage{height:700px;background:#fff;border:1px solid #ccc;border-radius:12px;position:relative;overflow:hidden}
+.subject{position:absolute;left:50%;top:45%;transform:translate(-50%,-50%);font-size:42px}
+.camera{position:absolute;left:50%;bottom:20px;transform:translateX(-50%);font-size:42px}
+.lightCard{position:absolute;width:155px;background:#fafafa;border:1px solid #999;border-radius:10px;padding:6px;font-size:10px;cursor:move;z-index:10}
+.inner{display:flex;justify-content:space-between}
+.sil{font-size:16px;text-align:center;min-width:40px}
+.label{text-align:center;font-weight:bold}
+.btn{width:100%;padding:12px;border:none;border-radius:10px;background:#0b57d0;color:#fff;margin-top:8px}
+.lightPart{position:absolute;width:220px;z-index:1}
+svg{overflow:visible;pointer-events:none}
+.beamCircle{fill:rgba(255,220,0,.25)}
+.beamArc{fill:rgba(255,220,0,.45)}
+.controlPanel{display:none;margin-top:6px;padding:8px;background:#fafafa;border:1px solid #ddd;border-radius:8px;font-size:12px}
+.controlPanel input{width:100%}
+</style>
+</head>
+<body>
+<div class="wrap">
+<div id="captureArea">
+
+<div class="card">
+<div class="topArea">
+<label class="photo" id="photoArea">
+<input hidden id="photoInput" type="file" accept="image/*">
+<div>写真を選択</div>
+</label>
+<div class="side">
+<div class="box" contenteditable="true"><b>📍Location</b></div>
+<div class="box" contenteditable="true"><b>📝Memo</b></div>
+</div>
+</div>
+
+<div class="exif"><div><b>Camera</b> <span id="cam">未読込</span></div><div><b>Lens</b> <span id="lens">未読込</span></div></div>
+<div class="exif"><div id="fv">F--</div><div id="ss">1/---</div><div id="iso">ISO---</div></div>
+</div>
+
+<div class="card">
+<h3>ライティング図</h3>
+<div id="stage">
+<div class="subject">👤</div>
+<div class="camera">📷</div>
+</div>
+<button class="btn" onclick="location.href='builder.html'">➕ Light追加</button>
+<button class="btn" onclick="addLightPart()">🟡 光パーツ追加</button>
+</div>
+
+</div>
+</div>
+
+<script>
+photoArea.onclick=()=>photoInput.click();
+photoInput.onchange=e=>{
+ const file=e.target.files[0]; if(!file) return;
+ const img=document.createElement('img');
+ img.src=URL.createObjectURL(file);
+ photoArea.innerHTML=''; photoArea.appendChild(img);
+ img.onload=()=>{
+   EXIF.getData(img,function(){
+     cam.textContent=EXIF.getTag(this,'Model')||'不明';
+     lens.textContent=EXIF.getTag(this,'LensModel')||'不明';
+     let f=EXIF.getTag(this,'FNumber'); if(f) fv.textContent='F'+f;
+     let isoV=EXIF.getTag(this,'ISOSpeedRatings'); if(isoV) iso.textContent='ISO'+isoV;
+     let exp=EXIF.getTag(this,'ExposureTime'); if(exp) ss.textContent='1/'+Math.round(1/exp);
+   });
+ };
+};
+
+const stage=document.getElementById('stage');
+
+function drag(el){
+ el.onpointerdown=(e)=>{
+  if(e.target.type==='range') return;
+  const sx=e.clientX, sy=e.clientY, ox=el.offsetLeft, oy=el.offsetTop;
+  const mv=(ev)=>{
+   el.style.left=(ox+ev.clientX-sx)+'px';
+   el.style.top=(oy+ev.clientY-sy)+'px';
+  };
+  const up=()=>{
+   document.removeEventListener('pointermove',mv);
+   document.removeEventListener('pointerup',up);
+  };
+  document.addEventListener('pointermove',mv);
+  document.addEventListener('pointerup',up);
+ };
+}
+
+const lights=JSON.parse(localStorage.getItem('lightingRecipeLights')||'[]');
+lights.forEach((l,i)=>{
+ if(!l.items||!l.items.length) return;
+ const c=document.createElement('div');
+ c.className='lightCard';
+ c.style.left=(10+i*35)+'px';
+ c.style.top=(280-i*25)+'px';
+ c.innerHTML='<div class="inner"><div>'+l.items.join('<br>')+'</div><div class="sil">⚡<br>△</div></div><div class="label">L'+(i+1)+'</div>';
+ drag(c);
+ stage.appendChild(c);
+});
+
+function addLightPart(){
+ const wrap=document.createElement('div');
+ wrap.className='lightPart';
+ wrap.style.left='120px';
+ wrap.style.top='120px';
+
+ wrap.innerHTML=`
+ <svg width="220" height="220" viewBox="0 0 220 220">
+  <circle class="beamCircle" cx="110" cy="110" r="95"></circle>
+  <path class="beamArc"></path>
+ </svg>
+ <div class="controlPanel">
+  <div>配光 <span class="beamLabel">100%</span></div>
+  <input class="beamSlider" type="range" min="5" max="100" value="100">
+  <div>回転 <span class="rotLabel">0°</span></div>
+  <input class="rotSlider" type="range" min="0" max="360" value="0">
+ </div>`;
+
+ stage.appendChild(wrap);
+
+ const circle=wrap.querySelector('.beamCircle');
+ const arc=wrap.querySelector('.beamArc');
+ const panel=wrap.querySelector('.controlPanel');
+ const beamSlider=wrap.querySelector('.beamSlider');
+ const rotSlider=wrap.querySelector('.rotSlider');
+ const beamLabel=wrap.querySelector('.beamLabel');
+ const rotLabel=wrap.querySelector('.rotLabel');
+
+ function render(){
+   const p=parseFloat(beamSlider.value);
+   const rot=parseFloat(rotSlider.value);
+   beamLabel.textContent=p+'%';
+   rotLabel.textContent=Math.round(rot)+'°';
+
+   if(p>=95){
+      circle.style.display='block';
+      arc.style.display='none';
+      return;
+   }
+
+   circle.style.display='none';
+   arc.style.display='block';
+
+   const angle=Math.max(5,p*3.6);
+   const start=(-angle/2+rot-90)*Math.PI/180;
+   const end=(angle/2+rot-90)*Math.PI/180;
+
+   const x1=110+95*Math.cos(start);
+   const y1=110+95*Math.sin(start);
+   const x2=110+95*Math.cos(end);
+   const y2=110+95*Math.sin(end);
+
+   const large=angle>180?1:0;
+   arc.setAttribute('d',`M110 110 L ${x1} ${y1} A 95 95 0 ${large} 1 ${x2} ${y2} Z`);
+ }
+
+ beamSlider.oninput=render;
+ rotSlider.oninput=render;
+
+ wrap.onclick=(e)=>{
+   e.stopPropagation();
+   document.querySelectorAll('.controlPanel').forEach(x=>x.style.display='none');
+   panel.style.display='block';
+ };
+
+ render();
+ drag(wrap);
+}
+
+document.body.addEventListener('click',()=>{
+ document.querySelectorAll('.controlPanel').forEach(x=>x.style.display='none');
+});
+</script>
+</body>
+</html>
