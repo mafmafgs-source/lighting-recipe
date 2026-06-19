@@ -303,6 +303,16 @@ document.getElementById('fileInput').addEventListener('change',function(e){
         const d=dt instanceof Date?dt:new Date(String(dt).replace(':','/',1).replace(':','/',1));
         if(!isNaN(d.getTime()))document.getElementById('exDate').textContent=d.getFullYear()+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+String(d.getDate()).padStart(2,'0');
       }
+      // EXIFをlocalStorageに独立保存
+      saveExif({
+        camera:document.getElementById('exCamera').textContent,
+        lens:  document.getElementById('exLens').textContent,
+        date:  document.getElementById('exDate').textContent,
+        f:     document.getElementById('exF').textContent,
+        ss:    document.getElementById('exSS').textContent,
+        iso:   document.getElementById('exISO').textContent,
+        fl:    document.getElementById('exFL').textContent,
+      });
     }catch(err){console.warn('EXIF error:',err);}
   };
   reader.readAsDataURL(file);
@@ -341,6 +351,29 @@ function loadLights(){
 // ══════════════════════════════════════
 const SS_KEY='lr_session';
 
+const EXIF_KEY='lr_exif';
+
+function saveExif(ex){
+  // EXIFを専用キーで保存（saveSessionとは独立）
+  try{ localStorage.setItem(EXIF_KEY, JSON.stringify(ex)); }catch(e){}
+}
+
+function restoreExif(){
+  try{
+    const raw=localStorage.getItem(EXIF_KEY);
+    if(!raw)return;
+    const ex=JSON.parse(raw);
+    const set=(id,v)=>{if(v&&v!=='–'){const e=document.getElementById(id);if(e)e.textContent=v;}};
+    set('exCamera',ex.camera);
+    set('exLens',  ex.lens);
+    set('exDate',  ex.date);
+    set('exF',     ex.f);
+    set('exSS',    ex.ss);
+    set('exISO',   ex.iso);
+    set('exFL',    ex.fl);
+  }catch(e){}
+}
+
 function saveSession(){
   try{
     const s={
@@ -348,15 +381,6 @@ function saveSession(){
       memo:document.getElementById('memoInput').value,
       bgOn:bgOn,
       bgColor:document.getElementById('bgColor').value,
-      exif:{
-        camera:document.getElementById('exCamera').textContent,
-        lens:document.getElementById('exLens').textContent,
-        date:document.getElementById('exDate').textContent,
-        f:document.getElementById('exF').textContent,
-        ss:document.getElementById('exSS').textContent,
-        iso:document.getElementById('exISO').textContent,
-        fl:document.getElementById('exFL').textContent,
-      }
     };
     localStorage.setItem(SS_KEY,JSON.stringify(s));
   }catch(e){}
@@ -415,19 +439,9 @@ function restoreSession(){
       document.getElementById('bgToggle').checked=true;
       document.getElementById('bgColor').style.display='inline-block';
     }
-    // EXIF復元
-    if(s.exif){
-      const ex=s.exif;
-      const set=(id,v)=>{if(v&&v!=='–'){const e=document.getElementById(id);if(e)e.textContent=v;}};
-      set('exCamera',ex.camera);
-      set('exLens',  ex.lens);
-      set('exDate',  ex.date);
-      set('exF',     ex.f);
-      set('exSS',    ex.ss);
-      set('exISO',   ex.iso);
-      set('exFL',    ex.fl);
-    }
   }
+  // EXIFは専用キーから独立して復元
+  restoreExif();
 
   // 写真（IndexedDB・非同期）
   loadPhotoFromIDB().then(dataUrl=>{
