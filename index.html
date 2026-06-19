@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Lighting Recipe v1.7</title>
+<script src="https://cdn.jsdelivr.net/npm/exifr/dist/lite.umd.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Helvetica Neue',Arial,sans-serif;background:#f0f0f2;color:#1a1a1a}
+.wrap{max-width:430px;margin:auto;padding:10px}
+
+.card{background:#fff;border-radius:14px;padding:12px;margin-bottom:10px;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.card-title{font-size:14px;font-weight:700;color:#555;margin-bottom:10px;letter-spacing:.04em;text-transform:uppercase;display:flex;justify-content:space-between;align-items:center}
+
+/* 写真 */
+.photo-box{width:100%;height:200px;background:#1a1a1a;border-radius:10px;overflow:hidden;display:flex;align-items:center;justify-content:center;cursor:pointer;margin-bottom:10px}
+.photo-box img{width:100%;height:100%;object-fit:contain}
+.photo-hint{color:#666;font-size:12px;text-align:center}
+
+/* ロケーション・メモ横並び */
+.meta-row{display:flex;gap:8px;align-items:stretch}
+.info-box{border:1px solid #e8e8e8;border-radius:8px;padding:8px;font-size:11px;color:#888;background:#fafafa}
+.info-box label{display:block;margin-bottom:3px;font-weight:600;white-space:nowrap}
+.info-box input,.info-box textarea{width:100%;border:none;background:transparent;font-size:12px;color:#1a1a1a;resize:none;outline:none;font-family:inherit}
+.info-loc{flex:1;min-width:0}
+.info-memo{flex:1.4;min-width:0;display:flex;flex-direction:column}
+.info-memo textarea{flex:1;min-height:56px}
+
+/* ロケーション */
+.loc-wrap{position:relative}
+.loc-input-row{display:flex;align-items:center;gap:3px}
+.loc-input-row input{flex:1;min-width:0}
+.loc-clear{background:none;border:none;font-size:13px;color:#ccc;cursor:pointer;padding:0 2px;flex-shrink:0;display:none}
+.loc-clear.visible{display:block}
+.loc-hint{font-size:10px;color:#f57c00;background:#fff8e8;border-radius:5px;padding:3px 5px;margin-top:4px;display:none;line-height:1.3}
+.loc-hint.show{display:block}
+.loc-suggestions{position:fixed;background:#fff;border:1px solid #e0e0e0;border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,.14);z-index:200;overflow:hidden;display:none}
+.loc-suggestions.open{display:block}
+.sug-list{display:flex;overflow-x:auto}
+.loc-sug-item{flex:0 0 auto;width:140px;padding:8px 10px;cursor:pointer;border-right:1px solid #f0f0f0;transition:background .1s}
+.loc-sug-item:last-child{border-right:none}
+.loc-sug-item:active,.loc-sug-item:hover{background:#f0f7ff}
+.sug-pin{font-size:12px;margin-bottom:2px;display:block}
+.sug-name{font-size:12px;font-weight:600;color:#1a1a1a;line-height:1.3;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sug-addr{font-size:10px;color:#999;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+.loc-powered{text-align:right;padding:3px 8px;font-size:9px;color:#bbb;border-top:1px solid #f0f0f0;background:#fafafa}
+
+/* EXIF */
+.exif-row{display:flex;margin-top:8px;border:1px solid #e8e8e8;border-radius:8px;overflow:hidden}
+.exif-row .cell{flex:1;padding:6px 4px;font-size:11px;text-align:center;border-right:1px solid #e8e8e8}
+.exif-row .cell:last-child{border-right:none}
+.exif-row .cell b{display:block;font-size:10px;color:#999;font-weight:500;margin-bottom:2px}
+.exif-names{display:flex;margin-top:4px;border:1px solid #e8e8e8;border-radius:8px;overflow:hidden}
+.exif-names .cell{flex:1;padding:6px 4px;font-size:11px;text-align:center}
+
+/* キャンバス */
+.lighting-wrap{position:relative}
+#canvas{width:100%;aspect-ratio:1;border:1px solid #e0e0e0;border-radius:12px;background:#fafafa;position:relative;overflow:hidden;touch-action:none}
+.subject{position:absolute;left:50%;top:42%;transform:translate(-50%,-50%);font-size:28px;pointer-events:none;user-select:none}
+.camera{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);font-size:22px;pointer-events:none;user-select:none}
+.height-legend{position:absolute;right:8px;top:8px;bottom:8px;width:16px;border-radius:8px;background:linear-gradient(to bottom,hsl(0,80%,55%),hsl(45,80%,55%),hsl(90,70%,45%),hsl(180,70%,45%),hsl(210,80%,55%));opacity:.7}
+.legend-label{position:absolute;right:28px;font-size:9px;color:#999}
+.legend-top{top:8px}.legend-btm{bottom:8px}
+
+/* SVGオーバーレイ（光パーツ用） */
+#lightSvg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}
+
+/* ライトノード */
+.light-node{position:absolute;width:48px;height:48px;border-radius:50%;border:6px solid #ccc;background:rgba(255,255,255,.95);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:grab;user-select:none;touch-action:none;font-size:10px;font-weight:700;transition:border-color .15s;box-shadow:0 2px 6px rgba(0,0,0,.15)}
+.light-node.selected{box-shadow:0 0 0 3px rgba(255,152,0,.5)}
+
+/* パネル（ライト選択時） */
+#panel{margin-top:10px}
+.panel-card{border:1px solid #e8e8e8;border-radius:10px;padding:10px;background:#fafafa}
+.panel-title{font-size:13px;font-weight:700;margin-bottom:10px;color:#333}
+.slider-row{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.slider-row label{font-size:12px;color:#555;min-width:36px}
+.slider-row input[type=range]{flex:1;accent-color:#1a73e8}
+.slider-val{font-size:11px;color:#1a73e8;font-weight:700;min-width:36px;text-align:right}
+.items-list{margin-top:8px}
+.item-tag{display:inline-block;background:#e8f0fe;color:#1a56c4;border-radius:6px;padding:3px 8px;font-size:11px;margin:2px}
+
+/* 光パーツパネル */
+.light-panel-card{border:1px solid #1a73e8;border-radius:10px;padding:10px;background:#e8f0fe;margin-bottom:10px}
+.light-panel-title{font-size:13px;font-weight:700;margin-bottom:10px;color:#1a56c4}
+
+/* 背景トグル */
+.bg-toggle input[type=checkbox]{display:none}
+.bg-toggle-btn{
+  display:inline-block;padding:5px 10px;
+  border:1px solid #ddd;border-radius:8px;
+  font-size:12px;font-weight:600;color:#555;
+  background:#f5f5f5;cursor:pointer;
+  transition:background .15s,color .15s,border-color .15s;
+  user-select:none;
+}
+.bg-toggle input:checked+.bg-toggle-btn{
+  background:#1a73e8;color:#fff;border-color:#1a73e8;
+}
+
+/* Builderボタン */
+.btn-builder{display:block;width:100%;padding:14px;border:none;border-radius:12px;background:#1a73e8;color:#fff;font-size:15px;font-weight:700;cursor:pointer;text-align:center;text-decoration:none}
+.btn-builder:active{background:#1558b0}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="card">
+    <input type="file" id="fileInput" hidden accept="image/*">
+    <div class="photo-box" onclick="document.getElementById('fileInput').click()">
+      <img id="photoImg" alt="">
+      <div class="photo-hint" id="photoHint">📷 タップして写真を追加</div>
+    </div>
+    <div class="meta-row">
+      <div class="info-box info-loc">
+        <label id="locLabel">📍 ロケーション</label>
+        <div class="loc-wrap">
+          <div class="loc-input-row">
+            <input id="locInput" placeholder="場所を検索" autocomplete="off">
+            <button class="loc-clear" id="locClear" title="クリア">✕</button>
+          </div>
+          <div class="loc-hint" id="locHint">APIキー設定後<br>候補が表示されます</div>
+        </div>
+      </div>
+      <div class="info-box info-memo">
+        <label id="memoLabel">📝 メモ</label>
+        <textarea id="memoInput" placeholder="撮影メモ"></textarea>
+      </div>
+    </div>
+    <div class="exif-names">
+      <div class="cell"><b>カメラ</b><span id="exCamera">–</span></div>
+      <div class="cell"><b>レンズ</b><span id="exLens">–</span></div>
+      <div class="cell"><b>撮影日</b><span id="exDate">–</span></div>
+    </div>
+    <div class="exif-row">
+      <div class="cell"><b>F値</b><span id="exF">–</span></div>
+      <div class="cell"><b>SS</b><span id="exSS">–</span></div>
+      <div class="cell"><b>ISO</b><span id="exISO">–</span></div>
+      <div class="cell"><b>焦点距離</b><span id="exFL">–</span></div>
+    </div>
+  </div>
+
+  <!-- ライティング図カード -->
+  <div class="card">
+    <div class="card-title">
+      <span id="lightingTitle">ライティング図</span>
+      <div style="display:flex;align-items:center;gap:6px">
+        <!-- 背景 ON/OFF + カラーピッカー -->
+        <label class="bg-toggle" id="bgToggleLabel" title="背景">
+          <input type="checkbox" id="bgToggle" onchange="toggleBg()">
+          <span class="bg-toggle-btn" id="bgToggleText">背景</span>
+        </label>
+        <input type="color" id="bgColor" value="#ffffff" title="背景色"
+          style="width:28px;height:28px;border:1px solid #ddd;border-radius:6px;cursor:pointer;padding:2px;background:none;display:none"
+          oninput="renderBg()">
+        <a class="btn-builder" href="builder.html" style="width:auto;padding:6px 14px;font-size:13px"><span id="editBtnText">＋ 機材編集</span></a>
+      </div>
+    </div>
+    <div class="lighting-wrap">
+      <div id="canvas">
+        <svg id="lightSvg" xmlns="http://www.w3.org/2000/svg">
+          <g id="bgGroup"></g>
+        </svg>
+        <div class="subject">👤</div>
+        <div class="camera">📷</div>
+        <div class="height-legend"></div>
+        <span class="legend-label legend-top" id="legendTop">高い</span>
+        <span class="legend-label legend-btm" id="legendBtm">低い</span>
+      </div>
+    </div>
+    <div id="panel"></div>
+  </div>
+
+  <!-- 光パーツパネル（常時表示） -->
+  <div class="card" id="beamPanelCard">
+    <div class="light-panel-card">
+      <div class="light-panel-title" id="beamTitle">💡 光パーツ（選択中のライト）</div>
+      <div class="slider-row">
+        <label id="beamLabel">配光</label>
+        <input type="range" id="beamSlider" min="5" max="100" value="40" step="1">
+        <span class="slider-val" id="beamVal">40%</span>
+      </div>
+      <div class="slider-row">
+        <label id="angleLabel">角度</label>
+        <input type="range" id="angleSlider" min="0" max="360" value="270" step="1">
+        <span class="slider-val" id="angleVal">270°</span>
+      </div>
+      <div style="font-size:11px;color:#888;margin-top:4px" id="beamHint">ライトを選択すると光パーツが表示されます</div>
+    </div>
+    <a class="btn-builder" href="builder.html"><span id="builderBtnText">機材を設定する (Builder)</span></a>
+  </div>
+
+</div>
+
+<div class="loc-suggestions" id="locSuggestions">
+  <div class="sug-list" id="sugList"></div>
+  <div class="loc-powered">Powered by Google</div>
+</div>
+
+<script>
+
+// ══════════════════════════════════════
+//  i18n：ブラウザ言語自動検出
+// ══════════════════════════════════════
+const I18N = {
+  ja: {
+    photoHint:      '📷 タップして写真を追加',
+    locLabel:       '📍 ロケーション',
+    locPlaceholder: '場所を検索',
+    locClearTitle:  'クリア',
+    locHint:        'APIキー設定後
+候補が表示されます',
+    memoLabel:      '📝 メモ',
+    memoPlaceholder:'撮影メモ',
+    exCamera:       'カメラ', exLens:'レンズ', exDate:'撮影日',
+    exF:'F値', exSS:'SS', exISO:'ISO', exFL:'焦点距離',
+    lightingTitle:  'ライティング図',
+    bgBtn:          '背景',
+    editBtn:        '＋ 機材編集',
+    legendHigh:     '高い', legendLow:'低い',
+    beamTitle:      '💡 光パーツ（選択中のライト）',
+    beamLabel:      '配光', angleLabel:'角度',
+    beamHint:       'ライトを選択すると光パーツが表示されます',
+    builderBtn:     '機材を設定する (Builder)',
+    heightLabel:    '高さ', outputLabel:'出力',
+    noItems:        '機材なし（Builderで追加）',
+    panelTitle:     (lbl)=>`${lbl} の設定`,
+  },
+  en: {
+    photoHint:      '📷 Tap to add photo',
+    locLabel:       '📍 Location',
+    locPlaceholder: 'Search location',
+    locClearTitle:  'Clear',
+    locHint:        'Suggestions appear
+after API key is set',
+    memoLabel:      '📝 Memo',
+    memoPlaceholder:'Shooting notes',
+    exCamera:       'Camera', exLens:'Lens', exDate:'Date',
+    exF:'F', exSS:'SS', exISO:'ISO', exFL:'FL',
+    lightingTitle:  'Lighting Diagram',
+    bgBtn:          'BG',
+    editBtn:        '＋ Edit Gear',
+    legendHigh:     'High', legendLow:'Low',
+    beamTitle:      '💡 Light Beam (select a light)',
+    beamLabel:      'Spread', angleLabel:'Angle',
+    beamHint:       'Select a light to edit beam',
+    builderBtn:     'Set up gear (Builder)',
+    heightLabel:    'Height', outputLabel:'Output',
+    noItems:        'No gear (add in Builder)',
+    panelTitle:     (lbl)=>`${lbl} Settings`,
+  },
+  zh: {
+    photoHint:      '📷 点击添加照片',
+    locLabel:       '📍 拍摄地点',
+    locPlaceholder: '搜索地点',
+    locClearTitle:  '清除',
+    locHint:        '设置API密钥后
+将显示候选地点',
+    memoLabel:      '📝 备注',
+    memoPlaceholder:'拍摄备注',
+    exCamera:       '相机', exLens:'镜头', exDate:'日期',
+    exF:'光圈', exSS:'快门', exISO:'ISO', exFL:'焦距',
+    lightingTitle:  '布光图',
+    bgBtn:          '背景',
+    editBtn:        '＋ 编辑器材',
+    legendHigh:     '高', legendLow:'低',
+    beamTitle:      '💡 光束（选择灯光）',
+    beamLabel:      '光束角', angleLabel:'角度',
+    beamHint:       '选择灯光以编辑光束',
+    builderBtn:     '设置器材 (Builder)',
+    heightLabel:    '高度', outputLabel:'输出',
+    noItems:        '无器材（在Builder中添加）',
+    panelTitle:     (lbl)=>`${lbl} 设置`,
+  },
+  ko: {
+    photoHint:      '📷 탭하여 사진 추가',
+    locLabel:       '📍 촬영 장소',
+    locPlaceholder: '장소 검색',
+    locClearTitle:  '지우기',
+    locHint:        'API 키 설정 후
+후보가 표시됩니다',
+    memoLabel:      '📝 메모',
+    memoPlaceholder:'촬영 메모',
+    exCamera:       '카메라', exLens:'렌즈', exDate:'날짜',
+    exF:'조리개', exSS:'셔터', exISO:'ISO', exFL:'초점거리',
+    lightingTitle:  '조명 다이어그램',
+    bgBtn:          '배경',
+    editBtn:        '＋ 장비 편집',
+    legendHigh:     '높음', legendLow:'낮음',
+    beamTitle:      '💡 광원 (조명 선택)',
+    beamLabel:      '광각', angleLabel:'각도',
+    beamHint:       '조명을 선택하면 광원이 표시됩니다',
+    builderBtn:     '장비 설정 (Builder)',
+    heightLabel:    '높이', outputLabel:'출력',
+    noItems:        '장비 없음 (Builder에서 추가)',
+    panelTitle:     (lbl)=>`${lbl} 설정`,
+  },
+};
+
+// ブラウザ言語を検出（ja/en/zh/ko、デフォルトen）
+function detectLang(){
+  const nav=(navigator.language||navigator.userLanguage||'en').toLowerCase();
+  if(nav.startsWith('ja')) return 'ja';
+  if(nav.startsWith('zh')) return 'zh';
+  if(nav.startsWith('ko')) return 'ko';
+  return 'en';
+}
+const LANG = detectLang();
+const T = I18N[LANG];
+
+// DOM テキストを言語に合わせて適用
+function applyI18n(){
+  document.documentElement.lang = LANG;
+  setText('photoHint',    T.photoHint);
+  setLabel('locLabel',    T.locLabel);
+  setAttr('locInput',     'placeholder', T.locPlaceholder);
+  setAttr('locClear',     'title',       T.locClearTitle);
+  document.getElementById('locHint').innerHTML = T.locHint.replace('\n','<br>');
+  setLabel('memoLabel',   T.memoLabel);
+  setAttr('memoInput',    'placeholder', T.memoPlaceholder);
+  setText('lightingTitle',T.lightingTitle);
+  setText('bgToggleText', T.bgBtn);
+  setText('editBtnText',  T.editBtn);
+  setText('legendTop',    T.legendHigh);
+  setText('legendBtm',    T.legendLow);
+  setText('beamTitle',    T.beamTitle);
+  setLabel('beamLabel',   T.beamLabel);
+  setLabel('angleLabel',  T.angleLabel);
+  setText('beamHint',     T.beamHint);
+  setText('builderBtnText',T.builderBtn);
+  // EXIFヘッダー
+  ['exCamera','exLens','exDate','exF','exSS','exISO','exFL'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el){const b=el.previousElementSibling;if(b&&b.tagName==='B')b.textContent=T[id];}
+  });
+}
+function setText(id,v){const e=document.getElementById(id);if(e)e.textContent=v;}
+function setLabel(id,v){const e=document.getElementById(id);if(e)e.textContent=v;}
+function setAttr(id,attr,v){const e=document.getElementById(id);if(e)e.setAttribute(attr,v);}
+
+// ══════════════════════════════════════
+//  Google Places APIキー
+// ══════════════════════════════════════
+const GOOGLE_PLACES_API_KEY = '';
+
+// ── ロケーション ──────────────────────
+const locInput=document.getElementById('locInput');
+const locClear=document.getElementById('locClear');
+const locSuggestions=document.getElementById('locSuggestions');
+const sugList=document.getElementById('sugList');
+const locHint=document.getElementById('locHint');
+if(!GOOGLE_PLACES_API_KEY)locHint.classList.add('show');
+const DUMMY=[{name:'ハコアム東京',addr:'東京都渋谷区'},{name:'スタジオBMB新宿',addr:'東京都新宿区'},{name:'Photo Studio HAL',addr:'東京都港区'}];
+let debounceTimer=null;
+locInput.addEventListener('input',()=>{
+  const q=locInput.value.trim();
+  locClear.classList.toggle('visible',q.length>0);
+  clearTimeout(debounceTimer);
+  if(!q){closeSuggestions();return;}
+  debounceTimer=setTimeout(()=>fetchSuggestions(q),300);
+});
+locInput.addEventListener('focus',()=>{if(locInput.value.trim())fetchSuggestions(locInput.value.trim());});
+locClear.addEventListener('click',()=>{locInput.value='';locClear.classList.remove('visible');closeSuggestions();locInput.focus();});
+async function fetchSuggestions(q){
+  const items=DUMMY.filter(s=>s.name.includes(q)||s.addr.includes(q)).concat(DUMMY.filter(s=>!s.name.includes(q))).slice(0,3);
+  showSuggestions(items.length?items:DUMMY);
+}
+function showSuggestions(items){
+  if(!items.length){closeSuggestions();return;}
+  const rect=locInput.getBoundingClientRect();
+  locSuggestions.style.top=(rect.bottom+window.scrollY+4)+'px';
+  locSuggestions.style.left=rect.left+'px';
+  locSuggestions.style.width=Math.max(rect.width,300)+'px';
+  sugList.innerHTML=items.map(s=>`<div class="loc-sug-item" data-name="${s.name}"><span class="sug-pin">📍</span><span class="sug-name">${s.name}</span><span class="sug-addr">${s.addr}</span></div>`).join('');
+  sugList.querySelectorAll('.loc-sug-item').forEach(el=>{
+    const sel=()=>{locInput.value=el.dataset.name;locClear.classList.add('visible');closeSuggestions();};
+    el.addEventListener('mousedown',e=>{e.preventDefault();sel();});
+    el.addEventListener('touchstart',sel,{passive:true});
+  });
+  locSuggestions.classList.add('open');
+}
+function closeSuggestions(){locSuggestions.classList.remove('open');}
+document.addEventListener('click',e=>{if(!locInput.contains(e.target)&&!locSuggestions.contains(e.target))closeSuggestions();});
+window.addEventListener('scroll',()=>{
+  if(!locSuggestions.classList.contains('open'))return;
+  const r=locInput.getBoundingClientRect();
+  locSuggestions.style.top=(r.bottom+window.scrollY+4)+'px';
+  locSuggestions.style.left=r.left+'px';
+},{passive:true});
+
+// ── EXIF ──────────────────────────────
+document.getElementById('fileInput').onchange=async(e)=>{
+  const file=e.target.files[0];if(!file)return;
+  document.getElementById('photoImg').src=URL.createObjectURL(file);
+  document.getElementById('photoHint').style.display='none';
+  try{
+    const ex=await exifr.parse(file);if(!ex)return;
+    document.getElementById('exCamera').textContent=ex.Model||'–';
+    document.getElementById('exLens').textContent=ex.LensModel||'–';
+    document.getElementById('exF').textContent=ex.FNumber?'F'+ex.FNumber:'–';
+    document.getElementById('exSS').textContent=ex.ExposureTime?'1/'+Math.round(1/ex.ExposureTime)+'s':'–';
+    document.getElementById('exISO').textContent=ex.ISO?'ISO'+ex.ISO:'–';
+    document.getElementById('exFL').textContent=ex.FocalLength?ex.FocalLength+'mm':'–';
+    const dt=ex.DateTimeOriginal||ex.DateTime||ex.CreateDate;
+    if(dt){const d=dt instanceof Date?dt:new Date(dt);if(!isNaN(d))document.getElementById('exDate').textContent=d.getFullYear()+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+String(d.getDate()).padStart(2,'0');}
+  }catch(err){}
+};
+
+// ══════════════════════════════════════
+//  ライティング図 + 光パーツ
+// ══════════════════════════════════════
+const HEIGHT_MIN=0,HEIGHT_MAX=300,HEIGHT_DEFAULT=150;
+
+function heightToColor(h){
+  const stops=[[0,[41,98,255]],[75,[0,188,255]],[150,[0,200,83]],[225,[255,196,0]],[300,[255,50,30]]];
+  for(let i=0;i<stops.length-1;i++){
+    const[h0,c0]=stops[i],[h1,c1]=stops[i+1];
+    if(h>=h0&&h<=h1){const t=(h-h0)/(h1-h0);return`rgb(${Math.round(c0[0]+(c1[0]-c0[0])*t)},${Math.round(c0[1]+(c1[1]-c0[1])*t)},${Math.round(c0[2]+(c1[2]-c0[2])*t)})`;}
+  }
+  return'#ccc';
+}
+
+let lights=[],selected=null;
+let bgOn=false, bgColor='#ffffff';
+
+function toggleBg(){
+  bgOn=document.getElementById('bgToggle').checked;
+  const picker=document.getElementById('bgColor');
+  picker.style.display=bgOn?'inline-block':'none';
+  renderBg();
+}
+
+function renderBg(){
+  bgColor=document.getElementById('bgColor').value;
+  const canvas=document.getElementById('canvas');
+  const W=canvas.offsetWidth||canvas.getBoundingClientRect().width||300;
+  const H=W;
+  const svg=document.getElementById('lightSvg');
+  svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
+  const g=document.getElementById('bgGroup');
+  g.innerHTML='';
+  if(!bgOn)return;
+
+  // シームレス背景：垂直面（上部の長方形）＋床面へのカーブ（下端）
+  // 被写体は中央42%付近なので、背景は上端〜被写体後方まで
+  const subjectCX=W*0.5;
+  const subjectCY=H*0.42;
+
+  // 背景の幅・高さ（被写体より広め）
+  const bgW=W*0.55;
+  const bgTop=H*0.04;
+  const bgBottom=subjectCY+H*0.38; // 30%下に伸ばす
+
+  // カーブの深さ（壁面→床面の折れ曲がり）
+  const curveDepth=H*0.10;
+  const curveY=subjectCY+H*0.08; // カーブが始まる高さ（旧底面付近）
+
+  // 背景SVGパス
+  // 上辺（直線）→右辺→カーブで床面へ→床面（水平）→左カーブ→左辺
+  const left  = subjectCX - bgW/2;
+  const right = subjectCX + bgW/2;
+  const top   = bgTop;
+  const bottom= bgBottom; // 水平な下端
+
+  const pathD = [
+    `M${left},${top}`,
+    `L${right},${top}`,
+    `L${right},${curveY}`,
+    // 右の壁→床カーブ
+    `Q${right},${curveY+curveDepth} ${right-curveDepth},${curveY+curveDepth}`,
+    // 床面（水平・右→左）
+    `L${left+curveDepth},${curveY+curveDepth}`,
+    // 左の床→壁カーブ
+    `Q${left},${curveY+curveDepth} ${left},${curveY}`,
+    `L${left},${top}`,
+    'Z'
+  ].join(' ');
+
+  // グラデーション：中央明るめ→端暗め（立体感）
+  const gradId='bgGrad';
+  const defs=document.createElementNS('http://www.w3.org/2000/svg','defs');
+  defs.id='bgDefs';
+  const grad=document.createElementNS('http://www.w3.org/2000/svg','radialGradient');
+  grad.setAttribute('id',gradId);
+  grad.setAttribute('cx','50%');grad.setAttribute('cy','40%');
+  grad.setAttribute('r','60%');grad.setAttribute('gradientUnits','objectBoundingBox');
+
+  // 選択色を明暗に変換
+  const hex=bgColor.replace('#','');
+  const r=parseInt(hex.slice(0,2),16),gg=parseInt(hex.slice(2,4),16),b=parseInt(hex.slice(4,6),16);
+  const lighter=`rgb(${Math.min(255,r+40)},${Math.min(255,gg+40)},${Math.min(255,b+40)})`;
+  const darker =`rgb(${Math.max(0,r-40)},${Math.max(0,gg-40)},${Math.max(0,b-40)})`;
+
+  const s0=document.createElementNS('http://www.w3.org/2000/svg','stop');
+  s0.setAttribute('offset','0%');s0.setAttribute('stop-color',lighter);s0.setAttribute('stop-opacity','1');
+  const s1=document.createElementNS('http://www.w3.org/2000/svg','stop');
+  s1.setAttribute('offset','100%');s1.setAttribute('stop-color',darker);s1.setAttribute('stop-opacity','1');
+  grad.appendChild(s0);grad.appendChild(s1);
+  defs.appendChild(grad);
+  g.appendChild(defs);
+
+  // 枠線付きパス
+  const path=document.createElementNS('http://www.w3.org/2000/svg','path');
+  path.setAttribute('d',pathD);
+  path.setAttribute('fill',`url(#${gradId})`);
+  path.setAttribute('stroke','rgba(0,0,0,0.12)');
+  path.setAttribute('stroke-width','1');
+  g.appendChild(path);
+
+  // ロール紙感のラベル（上辺）
+  const label=document.createElementNS('http://www.w3.org/2000/svg','rect');
+  label.setAttribute('x',left);label.setAttribute('y',top-4);
+  label.setAttribute('width',bgW);label.setAttribute('height',8);
+  label.setAttribute('rx',4);
+  label.setAttribute('fill','rgba(0,0,0,0.15)');
+  g.appendChild(label);
+}
+
+function loadLights(){
+  try{const s=JSON.parse(localStorage.getItem('lightingRecipeLights'));if(Array.isArray(s))return s;}catch(e){}
+  return Array.from({length:5},(_,i)=>({
+    id:['A','B','C','D','E'][i],items:[],height:HEIGHT_DEFAULT,
+    x:20+i*15,y:30,
+    beam:40,   // 配光 5〜100%
+    angle:270, // 角度 0〜360°
+    output:null // 出力（ストロボ:0-7段階 / 他:0-100）
+  }));
+}
+
+// ── ストロボ判定 ──────────────────────
+// itemsにストロボ系機材が含まれるか
+function isStrobe(items){
+  return items.some(n=>/AD\d|strobe/i.test(n));
+}
+// ストロボ段階ラベル
+const STROBE_STEPS=['1/256','1/128','1/64','1/32','1/16','1/8','1/4','1/2','1/1'];
+function strobeLabel(v){ return STROBE_STEPS[Math.round(v)]||'1/1'; }
+// 出力表示文字列
+function outputLabel(l){
+  if(!l.items||l.items.length===0) return '';
+  const v=l.output??null;
+  if(isStrobe(l.items)){
+    const idx=v!==null?Math.round(v):8;
+    return STROBE_STEPS[idx]??'1/1';
+  } else {
+    return (v!==null?Math.round(v):100)+'%';
+  }
+}
+
+// ── SVG 光パーツ描画 ──────────────────
+function renderBeams(){
+  const svg=document.getElementById('lightSvg');
+  const canvas=document.getElementById('canvas');
+  const W=canvas.offsetWidth||canvas.getBoundingClientRect().width||300;
+  const H=W; // aspect-ratio:1
+  svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
+
+  // defs（グラデーション定義）
+  let defs=document.getElementById('beamDefs');
+  if(!defs){defs=document.createElementNS('http://www.w3.org/2000/svg','defs');defs.id='beamDefs';svg.appendChild(defs);}
+  defs.innerHTML='';
+
+  // 既存の光パーツをクリア
+  svg.querySelectorAll('.beam-group').forEach(el=>el.remove());
+
+  lights.forEach((l,i)=>{
+    if(!l.items||l.items.length===0)return;
+
+    const cx=(l.x??20)/100*W;
+    const cy=(l.y??30)/100*H;
+    const beam=l.beam??40;       // 配光 %
+    const angleDeg=l.angle??270; // 回転角度
+
+    // 扇の広がり角度: beam% → 5°〜360°（100%で完全な円）
+    const spreadDeg=beam/100*360;
+    const R=Math.min(W,H)*0.22;  // 扇の半径（約1/4）
+
+    // グラデーションID
+    const gid=`beam-grad-${i}`;
+    const grad=document.createElementNS('http://www.w3.org/2000/svg','radialGradient');
+    grad.setAttribute('id',gid);
+    grad.setAttribute('cx','0%');grad.setAttribute('cy','50%');
+    grad.setAttribute('r','100%');
+    grad.setAttribute('gradientUnits','userSpaceOnUse');
+    // 光源（ライトノード中心）→外側
+    grad.setAttribute('fx',cx);grad.setAttribute('fy',cy);
+    grad.setAttribute('cx',cx);grad.setAttribute('cy',cy);
+    grad.setAttribute('r',R);
+
+    // 中心：黄色、外側：透明
+    const s0=document.createElementNS('http://www.w3.org/2000/svg','stop');
+    s0.setAttribute('offset','0%');
+    s0.setAttribute('stop-color','#ffe566');
+    s0.setAttribute('stop-opacity','1.0');
+    const s1=document.createElementNS('http://www.w3.org/2000/svg','stop');
+    s1.setAttribute('offset','55%');
+    s1.setAttribute('stop-color','#ffcc00');
+    s1.setAttribute('stop-opacity','0.55');
+    const s2=document.createElementNS('http://www.w3.org/2000/svg','stop');
+    s2.setAttribute('offset','100%');
+    s2.setAttribute('stop-color','#ffaa00');
+    s2.setAttribute('stop-opacity','0.1');
+    grad.appendChild(s0);grad.appendChild(s1);grad.appendChild(s2);
+    defs.appendChild(grad);
+
+    const g=document.createElementNS('http://www.w3.org/2000/svg','g');
+    g.setAttribute('class','beam-group');
+
+    // 360°（完全な円）かどうかで描画方法を切り替え
+    if(spreadDeg>=359.9){
+      // 完全な円はcircleで描画
+      const circle=document.createElementNS('http://www.w3.org/2000/svg','circle');
+      circle.setAttribute('cx',cx);circle.setAttribute('cy',cy);circle.setAttribute('r',R);
+      circle.setAttribute('fill',`url(#${gid})`);
+      g.appendChild(circle);
+    } else {
+      // 扇形パスを生成
+      const halfSpread=spreadDeg/2;
+      const startAngle=(angleDeg-halfSpread)*Math.PI/180;
+      const endAngle  =(angleDeg+halfSpread)*Math.PI/180;
+      const x1=cx+R*Math.cos(startAngle);
+      const y1=cy+R*Math.sin(startAngle);
+      const x2=cx+R*Math.cos(endAngle);
+      const y2=cy+R*Math.sin(endAngle);
+      const largeArc=spreadDeg>180?1:0;
+      const pathD=`M${cx},${cy} L${x1},${y1} A${R},${R} 0 ${largeArc},1 ${x2},${y2} Z`;
+      const path=document.createElementNS('http://www.w3.org/2000/svg','path');
+      path.setAttribute('d',pathD);
+      path.setAttribute('fill',`url(#${gid})`);
+      g.appendChild(path);
+    }
+    svg.appendChild(g);
+  });
+}
+
+// ── ライトノード描画 ──────────────────
+function renderCanvas(){
+  const canvas=document.getElementById('canvas');
+  canvas.querySelectorAll('.light-node').forEach(n=>n.remove());
+  lights.forEach((l,i)=>{
+    if(!l.items||l.items.length===0)return;
+    const node=document.createElement('div');
+    node.className='light-node'+(i===selected?' selected':'');
+    node.dataset.idx=i;
+    const h=l.height??HEIGHT_DEFAULT;
+    node.style.borderColor=heightToColor(h);
+    node.style.left=(l.x??20)+'%';
+    node.style.top=(l.y??30)+'%';
+    node.style.transform='translate(-50%,-50%)';
+    const outTxt=outputLabel(l);
+    node.innerHTML=`
+      <span style="font-size:12px;font-weight:800;line-height:1">${['A','B','C','D','E'][i]}</span>
+      <span style="font-size:8px;color:#555;line-height:1;margin-top:1px">${outTxt}</span>
+    `;
+    node.onclick=(e)=>{e.stopPropagation();selected=(selected===i)?null:i;renderCanvas();renderPanel();};
+    makeDraggable(node,canvas,i);
+    canvas.appendChild(node);
+  });
+  renderBg();
+  renderBeams();
+}
+
+function makeDraggable(node,canvas,idx){
+  let startX,startY,startLeft,startTop;
+  const onMove=(ex,ey)=>{
+    const rect=canvas.getBoundingClientRect();
+    lights[idx].x=Math.max(0,Math.min(100,startLeft+(ex-startX)/rect.width*100));
+    lights[idx].y=Math.max(0,Math.min(100,startTop+(ey-startY)/rect.height*100));
+    node.style.left=lights[idx].x+'%';
+    node.style.top=lights[idx].y+'%';
+    renderBg(); renderBeams(); // ドラッグ中も光追従
+  };
+  node.onmousedown=(e)=>{
+    e.preventDefault();startX=e.clientX;startY=e.clientY;
+    startLeft=lights[idx].x??20;startTop=lights[idx].y??30;
+    const mv=(ev)=>onMove(ev.clientX,ev.clientY);
+    const up=()=>{document.removeEventListener('mousemove',mv);document.removeEventListener('mouseup',up);};
+    document.addEventListener('mousemove',mv);document.addEventListener('mouseup',up);
+  };
+  node.ontouchstart=(e)=>{
+    const t=e.touches[0];startX=t.clientX;startY=t.clientY;
+    startLeft=lights[idx].x??20;startTop=lights[idx].y??30;
+    const mv=(ev)=>{const tt=ev.touches[0];onMove(tt.clientX,tt.clientY);};
+    const up=()=>{document.removeEventListener('touchmove',mv);document.removeEventListener('touchend',up);};
+    document.addEventListener('touchmove',mv,{passive:true});document.addEventListener('touchend',up);
+  };
+}
+
+document.getElementById('canvas').onclick=()=>{selected=null;renderCanvas();renderPanel();};
+
+// ── パネル（ライト選択時） ────────────
+function renderPanel(){
+  const panel=document.getElementById('panel');
+  if(selected===null){panel.innerHTML='';updateBeamPanel();return;}
+  const l=lights[selected],h=l.height??HEIGHT_DEFAULT,color=heightToColor(h);
+  // 出力スライダーの設定を決定
+  const strobe=isStrobe(l.items);
+  const outVal=l.output!==null?l.output:(strobe?8:100);
+  const outDisp=strobe?strobeLabel(outVal):outVal+'%';
+
+  panel.innerHTML=`
+    <div class="panel-card" style="border-color:${color}">
+      <div class="panel-title">${T.panelTitle(['A','B','C','D','E'][selected])}</div>
+      <div class="slider-row">
+        <label>${T.heightLabel}</label>
+        <input type="range" id="hSlider" min="${HEIGHT_MIN}" max="${HEIGHT_MAX}" value="${h}" step="5"
+          style="background:linear-gradient(to right,rgb(66,133,244) 0%,rgb(79,195,247) 25%,rgb(102,187,106) 50%,rgb(255,213,79) 75%,rgb(239,83,80) 100%)">
+      </div>
+      <div class="slider-row">
+        <label>${T.outputLabel}</label>
+        <input type="range" id="outSlider"
+          min="0" max="${strobe?8:100}" value="${outVal}" step="${strobe?1:1}">
+        <span class="slider-val" id="outVal">${outDisp}</span>
+      </div>
+      <div class="items-list">
+        ${l.items.length?l.items.map(n=>`<span class="item-tag">${n}</span>`).join(''):`<span style="font-size:12px;color:#aaa">${T.noItems}</span>`}
+      </div>
+    </div>`;
+  document.getElementById('hSlider').oninput=(e)=>{
+    const val=Number(e.target.value);lights[selected].height=val;
+    panel.querySelector('.panel-card').style.borderColor=heightToColor(val);
+    const node=document.querySelector(`.light-node[data-idx="${selected}"]`);
+    if(node)node.style.borderColor=heightToColor(val);
+    saveLights();
+  };
+  document.getElementById('outSlider').oninput=(e)=>{
+    const val=Number(e.target.value);
+    lights[selected].output=val;
+    const strb=isStrobe(lights[selected].items);
+    document.getElementById('outVal').textContent=strb?strobeLabel(val):val+'%';
+    // ノードの出力表示を更新
+    const node=document.querySelector(`.light-node[data-idx="${selected}"]`);
+    if(node){
+      const spans=node.querySelectorAll('span');
+      if(spans[1]) spans[1].textContent=strb?strobeLabel(val):val+'%';
+    }
+    saveLights();
+  };
+  updateBeamPanel();
+}
+
+// ── 光パーツパネル更新 ────────────────
+function updateBeamPanel(){
+  const beamSlider=document.getElementById('beamSlider');
+  const angleSlider=document.getElementById('angleSlider');
+  const beamVal=document.getElementById('beamVal');
+  const angleVal=document.getElementById('angleVal');
+  const hint=document.querySelector('#beamPanelCard .light-panel-card div[style]');
+
+  if(selected===null){
+    beamSlider.disabled=true;
+    angleSlider.disabled=true;
+    beamSlider.style.opacity='.4';
+    angleSlider.style.opacity='.4';
+    if(hint)hint.style.display='block';
+    return;
+  }
+
+  const l=lights[selected];
+  beamSlider.disabled=false;
+  angleSlider.disabled=false;
+  beamSlider.style.opacity='1';
+  angleSlider.style.opacity='1';
+  if(hint)hint.style.display='none';
+
+  beamSlider.value=l.beam??40;
+  angleSlider.value=l.angle??270;
+  beamVal.textContent=(l.beam??40)+'%';
+  angleVal.textContent=(l.angle??270)+'°';
+
+  // イベント付け替え
+  beamSlider.oninput=(e)=>{
+    lights[selected].beam=Number(e.target.value);
+    beamVal.textContent=e.target.value+'%';
+    renderBg();renderBeams();saveLights();
+  };
+  angleSlider.oninput=(e)=>{
+    lights[selected].angle=Number(e.target.value);
+    angleVal.textContent=e.target.value+'°';
+    renderBg();renderBeams();saveLights();
+  };
+}
+
+function saveLights(){localStorage.setItem('lightingRecipeLights',JSON.stringify(lights));}
+
+// キャンバスサイズ確定後に再描画
+window.addEventListener('resize',()=>{renderBg();renderBeams();});
+
+lights=loadLights();
+// DOMレイアウト確定後に描画
+applyI18n();
+requestAnimationFrame(()=>{renderCanvas();renderPanel();});
+</script>
+</body>
+</html>
