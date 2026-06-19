@@ -722,19 +722,23 @@ function updateBeamPanel(){
 
 window.addEventListener('resize',()=>{renderBg();renderBeams();});
 
-// ページ表示時にlocalStorageを再読み込み（builderから戻った時対応）
-window.addEventListener('pageshow',()=>{
+applyI18n();
+lights=loadLights();
+
+// 初回ロード
+restoreSession();
+requestAnimationFrame(()=>{renderCanvas();renderPanel();});
+
+// Builder等から戻った時（pageshow は初回ロードでも発火するためフラグで制御）
+let _firstPageshow=true;
+window.addEventListener('pageshow',(e)=>{
+  if(_firstPageshow){_firstPageshow=false;return;} // 初回は初期化済みなのでスキップ
+  // Builderから戻った場合、またはbfcache復元時
   lights=loadLights();
   restoreSession();
   renderCanvas();
   renderPanel();
 });
-
-applyI18n();
-lights=loadLights();
-restoreSession();
-// DOMレイアウト確定後に描画
-requestAnimationFrame(()=>{renderCanvas();renderPanel();});
 </script>
 </body>
 </html>
