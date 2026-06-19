@@ -286,8 +286,87 @@ function loadLights() {
   } catch(e){}
   return Array.from({length:5}, (_,i) => ({id:['A','B','C','D','E'][i], items:[], height:150, x:50, y:50, output:null}));
 }
-function saveCustomCats()  { localStorage.setItem('lr_customCats',  JSON.stringify(customCats));  }
+function saveCustomCats()  {
+  // 画像データを除いた軽量版を保存、画像はIDBに別保存
+  try{
+    const slim=customCats.map(c=>({
+      ...c,
+      items:(c.items||[]).map(it=>{
+        if(typeof it==='object'&&it.img){
+          const {img,...rest}=it;
+          return rest; // img除外
+        }
+        return it;
+      })
+    }));
+    localStorage.setItem('lr_customCats', JSON.stringify(slim));
+  }catch(e){ console.warn('saveCustomCats error:',e); }
+}
 function savePendingCats() { localStorage.setItem('lr_pendingCats', JSON.stringify(pendingCats)); }
+
+// デフォルトカテゴリへの追加機材を保存
+function saveDefaultAdditions(){
+  try{
+    const additions={};
+    Object.keys(DEFAULT_DB).forEach(catId=>{
+      const origCount=ORIGINAL_DB_COUNTS[catId]||0;
+      const added=DEFAULT_DB[catId].slice(origCount);
+      if(added.length) additions[catId]=added.map(it=>{
+        if(typeof it==='object'&&it.img){const{img,...rest}=it;return rest;}
+        return it;
+      });
+    });
+    localStorage.setItem('lr_defaultAdditions',JSON.stringify(additions));
+  }catch(e){}
+}
+function loadDefaultAdditions(){
+  try{
+    const additions=JSON.parse(localStorage.getItem('lr_defaultAdditions')||'{}');
+    Object.keys(additions).forEach(catId=>{
+      if(DEFAULT_DB[catId]) DEFAULT_DB[catId].push(...additions[catId]);
+    });
+  }catch(e){}
+}
+
+// 機材画像をIndexedDBに保存・取得
+const IMG_IDB_NAME='lr_item_imgs', IMG_IDB_STORE='imgs', IMG_IDB_VER=1;
+function openImgIDB(){
+  return new Promise((res,rej)=>{
+    const r=indexedDB.open(IMG_IDB_NAME,IMG_IDB_VER);
+    r.onupgradeneeded=e=>e.target.result.createObjectStore(IMG_IDB_STORE);
+    r.onsuccess=e=>res(e.target.result);
+    r.onerror=e=>rej(e.target.error);
+  });
+}
+async function saveItemImg(key, dataUrl){
+  try{
+    const db=await openImgIDB();
+    const tx=db.transaction(IMG_IDB_STORE,'readwrite');
+    tx.objectStore(IMG_IDB_STORE).put(dataUrl,key);
+    await new Promise((res,rej)=>{tx.oncomplete=res;tx.onerror=rej;});
+    db.close();
+  }catch(e){console.warn('saveItemImg error:',e);}
+}
+async function loadAllItemImgs(){
+  try{
+    const db=await openImgIDB();
+    const tx=db.transaction(IMG_IDB_STORE,'readonly');
+    const keys=await new Promise((res,rej)=>{
+      const r=tx.objectStore(IMG_IDB_STORE).getAllKeys();
+      r.onsuccess=e=>res(e.target.result);r.onerror=rej;
+    });
+    const result={};
+    for(const key of keys){
+      const tx2=db.transaction(IMG_IDB_STORE,'readonly');
+      result[key]=await new Promise((res,rej)=>{
+        const r=tx2.objectStore(IMG_IDB_STORE).get(key);
+        r.onsuccess=e=>res(e.target.result);r.onerror=rej;
+      });
+    }
+    db.close();
+    return result;
+  }catch(e){return {};}
+}
 
 // ══════════════════════════════════════════════
 //  ヘルパー
@@ -607,12 +686,19 @@ function showAddItemDialog(catId) {
     const newItem = { maker, model };
     if (newItemImgData) newItem.img = newItemImgData;
 
+    // 画像キー：catId + maker + model
+    const imgKey = catId + '_' + (maker?maker+'_':'') + model;
+
     if (DEFAULT_DB[catId]) {
       DEFAULT_DB[catId].push(newItem);
+      saveDefaultAdditions();
     } else {
       const cat = customCats.find(c => c.id === catId);
       if (cat) { cat.items.push(newItem); saveCustomCats(); }
     }
+    // 画像をIDBに非同期保存
+    if (newItemImgData) saveItemImg(imgKey, newItemImgData);
+
     selectCat(catId);
     return true;
   });
@@ -739,8 +825,26 @@ function applyI18n(){
 }
 
 applyI18n();
-renderCats();
-renderLights();
+loadDefaultAdditions();
+// IDB画像を復元してからレンダリング
+loadAllItemImgs().then(imgs=>{
+  // customCatsとDEFAULT_DBの機材に画像を復元
+  Object.entries(imgs).forEach(([key,dataUrl])=>{
+    // catId_maker_model の形式で検索
+    const parts=key.split('_');
+    const catId=parts[0];
+    const items=DEFAULT_DB[catId]||(customCats.find(c=>c.id===catId)||{}).items;
+    if(!items)return;
+    items.forEach(it=>{
+      if(typeof it==='object'){
+        const k=catId+'_'+(it.maker?it.maker+'_':'')+it.model;
+        if(k===key) it.img=dataUrl;
+      }
+    });
+  });
+  renderCats();
+  renderLights();
+});
 </script>
 </body>
 </html>
