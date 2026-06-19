@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Lighting Recipe – Builder v1.3</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%;font-family:'Helvetica Neue',Arial,sans-serif;background:#f0f0f2;color:#1a1a1a}
+.wrap{max-width:430px;margin:auto;padding:10px}
+
+/* ── カード ── */
+.card{background:#fff;border-radius:14px;padding:12px;margin-bottom:10px;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.card h3{font-size:14px;font-weight:700;color:#555;margin-bottom:10px;letter-spacing:.04em;text-transform:uppercase}
+
+/* ── カテゴリグリッド ── */
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+
+/* 通常タイル */
+.tile{
+  border:1px solid #e0e0e0;border-radius:10px;padding:10px 6px;
+  text-align:center;background:#fafafa;cursor:pointer;font-size:12px;
+  transition:background .15s,border-color .15s;
+}
+.tile:active,.tile.active-cat{background:#e8f0fe;border-color:#4285f4}
+.tile .icon{font-size:20px;display:block;margin-bottom:4px}
+
+/* 追加ボタンタイル */
+.tile-add{border:1.5px dashed #1a73e8;color:#1a73e8;background:#f0f7ff}
+
+/* 新規（未設定）カスタムタイル：タップで編集 */
+.tile-new{border:1.5px dashed #bbb;color:#aaa;background:#fafafa;position:relative}
+.tile-new .icon{font-size:20px;display:block;margin-bottom:4px}
+
+/* ── 機材リスト ── */
+.item{display:flex;align-items:center;gap:10px;padding:10px 6px;border-bottom:1px solid #f0f0f0;cursor:pointer;transition:background .1s}
+.item:last-child{border-bottom:none}
+.item:active{background:#f5f5f5}
+.thumb{width:36px;height:36px;border-radius:8px;background:#e8e8e8;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.item-name{font-size:14px;flex:1}
+.item-sub{font-size:11px;color:#999;display:block}
+
+/* 機材追加行 */
+.item-add{background:#f0f7ff}
+.item-add .thumb{background:#e8f0fe;color:#1a73e8}
+.item-add .item-name{color:#1a73e8;font-weight:600}
+
+/* スライド表示（6件以上） */
+.items-scroll{overflow-x:auto;display:flex;gap:0;flex-direction:column}
+.show-more{text-align:center;padding:8px;font-size:12px;color:#1a73e8;cursor:pointer;border-top:1px solid #f0f0f0}
+
+/* ── ライトカード列 ── */
+.lightRow{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px}
+.lightCard{width:110px;flex-shrink:0;overflow:hidden;border:2px solid #ddd;border-radius:12px;padding:8px;background:#fafafa;cursor:pointer;transition:border-color .15s}
+.lightCard.active{border-color:#ff9800;background:#fff8e8}
+.lc-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.lc-label{font-weight:700;font-size:13px}
+.btn-clear{background:#e53935;color:#fff;border:none;border-radius:50%;width:22px;height:22px;font-size:13px;cursor:pointer;line-height:1}
+.preview{text-align:center;font-size:24px;min-height:80px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;margin-bottom:6px}
+.tag{display:block;font-size:10px;color:#555;line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* ── ゴミ箱ボタン ── */
+.item-del{background:none;border:none;font-size:17px;color:#ccc;cursor:pointer;padding:0 2px;flex-shrink:0;line-height:1;margin-left:auto}
+.item-del:active{color:#e53935}
+
+/* ── 保存ボタン ── */
+.btn-save{width:100%;padding:14px;border:none;border-radius:12px;background:#1a73e8;color:#fff;font-size:16px;font-weight:700;cursor:pointer;letter-spacing:.02em}
+.btn-save:active{background:#1558b0}
+
+/* ── オーバーレイ ── */
+#overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;align-items:center;justify-content:center;padding:20px}
+.dlg{background:#fff;border-radius:16px;padding:20px;width:100%;max-width:360px;box-shadow:0 8px 32px rgba(0,0,0,.25)}
+.dlg-title{font-size:16px;font-weight:700;margin-bottom:14px}
+.dlg-body{margin-bottom:16px}
+.dlg-field{margin-bottom:12px}
+.dlg-field label{font-size:12px;color:#555;display:block;margin-bottom:4px;font-weight:600}
+.dlg-field input{width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-size:14px;outline:none}
+.dlg-field input:focus{border-color:#1a73e8}
+.dlg-btns{display:flex;gap:8px}
+.btn-cancel{flex:1;padding:12px;border:1px solid #ddd;border-radius:10px;background:#f5f5f5;font-size:14px;cursor:pointer}
+.btn-ok{flex:1;padding:12px;border:none;border-radius:10px;background:#1a73e8;color:#fff;font-size:14px;font-weight:700;cursor:pointer}
+
+/* アイコンピッカー */
+.icon-picker{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.icon-opt{font-size:22px;cursor:pointer;padding:6px;border-radius:8px;border:2px solid transparent;transition:border-color .1s}
+.icon-opt.selected{border-color:#1a73e8;background:#e8f0fe}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- 機材倉庫 -->
+  <div class="card">
+    <h3 id="warehouseTitle">機材倉庫</h3>
+    <div class="grid" id="catGrid"></div>
+  </div>
+
+  <!-- 機材リスト -->
+  <div class="card" id="itemCard" style="display:none">
+    <h3 id="catTitle"></h3>
+    <div id="itemList"></div>
+  </div>
+
+  <!-- Light Builder -->
+  <div class="card">
+    <h3 id="builderTitle">Light Builder</h3>
+    <div class="lightRow" id="lightRow"></div>
+  </div>
+
+  <!-- 保存 -->
+  <div class="card">
+    <button class="btn-save" onclick="saveAndExit()" id="saveBtn">保存して戻る</button>
+  </div>
+
+</div>
+
+<!-- オーバーレイ -->
+<div id="overlay">
+  <div class="dlg">
+    <div class="dlg-title" id="dlgTitle"></div>
+    <div class="dlg-body" id="dlgBody"></div>
+    <div class="dlg-btns">
+      <button class="btn-cancel" onclick="closeOverlay()" id="dlgCancel">キャンセル</button>
+      <button class="btn-ok" id="dlgOk">OK</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════
+//  i18n：ブラウザ言語自動検出
+// ══════════════════════════════════════
+const I18N_DATA = {
+  ja:{
+    cats:{strobe:'ストロボ',video:'ビデオ',modifier:'モディファイア',stand:'スタンド',boom:'ブーム',reflector:'レフ板'},
+    warehouseTitle:'機材倉庫', catPrompt:'カテゴリを選んでください',
+    builderTitle:'Light Builder', saveBtn:'保存して戻る',
+    addCatTile:'カテゴリ追加', tapToSet:'タップして設定',
+    addItemRow:'機材を追加', empty:'空',
+    dlgCatTitle:'カテゴリを設定', dlgCatNameLabel:'カテゴリ名', dlgCatNamePh:'例：フィルター',
+    dlgItemTitle:'機材を追加', dlgMakerLabel:'メーカー名（省略可）', dlgMakerPh:'例：Godox',
+    dlgModelLabel:'型番・モデル名', dlgModelPh:'例：AD200Pro',
+    dlgIconLabel:'アイコン（絵文字）',
+    cancel:'キャンセル', ok:'OK', outputLabel:'出力',
+    alertCatName:'カテゴリ名を入力してください',
+    alertModel:'型番・モデル名を入力してください',
+    showMore:(n)=>`残り ${n} 件を表示`,
+    deleteConfirm:(name)=>`「${name}」を削除しますか？`,
+  },
+  en:{
+    cats:{strobe:'Strobe',video:'Video',modifier:'Modifier',stand:'Stand',boom:'Boom',reflector:'Reflector'},
+    warehouseTitle:'Gear Vault', catPrompt:'Select a category',
+    builderTitle:'Light Builder', saveBtn:'Save & Back',
+    addCatTile:'Add Category', tapToSet:'Tap to set up',
+    addItemRow:'Add gear', empty:'Empty',
+    dlgCatTitle:'Set Category', dlgCatNameLabel:'Category name', dlgCatNamePh:'e.g. Filter',
+    dlgItemTitle:'Add Gear', dlgMakerLabel:'Brand (optional)', dlgMakerPh:'e.g. Godox',
+    dlgModelLabel:'Model name', dlgModelPh:'e.g. AD200Pro',
+    dlgIconLabel:'Icon (emoji)',
+    cancel:'Cancel', ok:'OK', outputLabel:'Output',
+    alertCatName:'Please enter a category name.',
+    alertModel:'Please enter a model name.',
+    showMore:(n)=>`Show ${n} more`,
+    deleteConfirm:(name)=>`Delete "${name}"?`,
+  },
+  zh:{
+    cats:{strobe:'频闪灯',video:'视频灯',modifier:'附件',stand:'灯架',boom:'横臂',reflector:'反光板'},
+    warehouseTitle:'器材库', catPrompt:'请选择类别',
+    builderTitle:'灯光构建器', saveBtn:'保存并返回',
+    addCatTile:'添加类别', tapToSet:'点击设置',
+    addItemRow:'添加器材', empty:'空',
+    dlgCatTitle:'设置类别', dlgCatNameLabel:'类别名称', dlgCatNamePh:'例：滤镜',
+    dlgItemTitle:'添加器材', dlgMakerLabel:'品牌（可省略）', dlgMakerPh:'例：Godox',
+    dlgModelLabel:'型号', dlgModelPh:'例：AD200Pro',
+    dlgIconLabel:'图标（表情符号）',
+    cancel:'取消', ok:'确定', outputLabel:'输出',
+    alertCatName:'请输入类别名称。', alertModel:'请输入型号。',
+    showMore:(n)=>`显示剩余 ${n} 件`,
+    deleteConfirm:(name)=>`删除「${name}」吗？`,
+  },
+  ko:{
+    cats:{strobe:'스트로브',video:'비디오',modifier:'모디파이어',stand:'스탠드',boom:'붐',reflector:'반사판'},
+    warehouseTitle:'장비 창고', catPrompt:'카테고리를 선택하세요',
+    builderTitle:'라이트 빌더', saveBtn:'저장 후 돌아가기',
+    addCatTile:'카테고리 추가', tapToSet:'탭하여 설정',
+    addItemRow:'장비 추가', empty:'비어 있음',
+    dlgCatTitle:'카테고리 설정', dlgCatNameLabel:'카테고리 이름', dlgCatNamePh:'예: 필터',
+    dlgItemTitle:'장비 추가', dlgMakerLabel:'브랜드 (생략 가능)', dlgMakerPh:'예: Godox',
+    dlgModelLabel:'모델명', dlgModelPh:'예: AD200Pro',
+    dlgIconLabel:'아이콘 (이모지)',
+    cancel:'취소', ok:'확인', outputLabel:'출력',
+    alertCatName:'카테고리 이름을 입력하세요.', alertModel:'모델명을 입력하세요.',
+    showMore:(n)=>`${n}개 더 보기`,
+    deleteConfirm:(name)=>`「${name}」을 삭제하시겠습니까？`,
+  },
+};
+function detectLang(){
+  const nav=(navigator.language||'en').toLowerCase();
+  if(nav.startsWith('ja'))return 'ja';
+  if(nav.startsWith('zh'))return 'zh';
+  if(nav.startsWith('ko'))return 'ko';
+  return 'en';
+}
+const LANG=detectLang();
+const T=I18N_DATA[LANG];
+document.documentElement.lang=LANG;
+
+// ══════════════════════════════════════════════
+//  定数
+// ══════════════════════════════════════════════
+const ICONS_LIST = ['⚡','💡','⬡','△','┐','◻','🎯','🔦','🌟','🎬','🖼️','🔧','💎','🎨','📐','🧲','🔭','🎞️','💼','🗂️'];
+const VISIBLE_COUNT = 5; // 最初に表示する件数
+
+// ══════════════════════════════════════════════
+//  デフォルトデータ
+// ══════════════════════════════════════════════
+const DEFAULT_CATS = [
+  { id:'strobe',    icon:'⚡', get label(){ return T.cats.strobe; } },
+  { id:'video',     icon:'💡', get label(){ return T.cats.video; } },
+  { id:'modifier',  icon:'⬡',  get label(){ return T.cats.modifier; } },
+  { id:'stand',     icon:'△',  get label(){ return T.cats.stand; } },
+  { id:'boom',      icon:'┐',  get label(){ return T.cats.boom; } },
+  { id:'reflector', icon:'◻',  get label(){ return T.cats.reflector; } },
+];
+
+// デフォルト機材：{ maker, model } 形式
+const DEFAULT_DB = {
+  strobe:    [
+    {maker:'Godox', model:'AD100Pro'},{maker:'Godox', model:'AD200Pro'},
+    {maker:'Godox', model:'AD300Pro'},{maker:'Godox', model:'AD400Pro'},
+    {maker:'Godox', model:'AD600Pro'},
+  ],
+  video:     [
+    {maker:'Godox', model:'Forza300'},{maker:'Godox', model:'Forza500'},
+    {maker:'Aputure', model:'300D'},{maker:'Aputure', model:'600D'},
+  ],
+  modifier:  [
+    {maker:'', model:'120cm Octa'},{maker:'', model:'90cm Octa'},
+    {maker:'', model:'60cm Octa'},{maker:'', model:'Beauty Dish'},
+    {maker:'', model:'Umbrella'},{maker:'', model:'Softbox'},
+    {maker:'', model:'Snoot'},{maker:'', model:'Grid'},
+  ],
+  stand:     [
+    {maker:'Godox', model:'1052BAC'},{maker:'Godox', model:'Nano Stand'},
+    {maker:'', model:'C-Stand'},{maker:'', model:'Air-cushioned Stand'},
+  ],
+  boom:      [{maker:'', model:'Boom Arm'},{maker:'', model:'Mini Boom'}],
+  reflector: [
+    {maker:'', model:'白レフ'},{maker:'', model:'黒レフ'},
+    {maker:'', model:'シルバーレフ'},{maker:'', model:'トランスルーセント'},
+  ],
+};
+
+// ══════════════════════════════════════════════
+//  状態
+// ══════════════════════════════════════════════
+let customCats  = loadCustomCats();   // [{id, icon, label, items:[{maker,model}]}]
+let pendingCats = loadPendingCats();  // グリッドに表示されているが未設定のダミー枠 [{id}]
+let currentLight = 0;
+let lights = loadLights();
+let activeCatId = null;
+
+// ══════════════════════════════════════════════
+//  永続化
+// ══════════════════════════════════════════════
+function loadCustomCats() {
+  try { return JSON.parse(localStorage.getItem('lr_customCats') || '[]'); } catch(e){ return []; }
+}
+function loadPendingCats() {
+  try { return JSON.parse(localStorage.getItem('lr_pendingCats') || '[]'); } catch(e){ return []; }
+}
+function loadLights() {
+  try {
+    const s = JSON.parse(localStorage.getItem('lightingRecipeLights'));
+    if (Array.isArray(s) && s.length === 5) return s;
+  } catch(e){}
+  return Array.from({length:5}, (_,i) => ({id:['A','B','C','D','E'][i], items:[], height:150, x:50, y:50, output:null}));
+}
+function saveCustomCats()  { localStorage.setItem('lr_customCats',  JSON.stringify(customCats));  }
+function savePendingCats() { localStorage.setItem('lr_pendingCats', JSON.stringify(pendingCats)); }
+
+// ══════════════════════════════════════════════
+//  ヘルパー
+// ══════════════════════════════════════════════
+function allCats()  { return [...DEFAULT_CATS, ...customCats]; }
+function getCat(id) { return allCats().find(c => c.id === id); }
+
+function getItems(id) {
+  if (DEFAULT_DB[id]) return DEFAULT_DB[id];
+  const c = customCats.find(c => c.id === id);
+  return c ? c.items : [];
+}
+
+// 表示名: "メーカー 型番" or "型番"
+function displayName(item) {
+  if (typeof item === 'string') return item;
+  return item.maker ? `${item.maker} ${item.model}` : item.model;
+}
+
+function guessIcon(name) {
+  if (/AD|Forza|Aputure/i.test(name))  return '⚡';
+  if (/Octa|Dish|Umbrella|Soft|Snoot|Grid/i.test(name)) return '⬡';
+  if (/BAC|Stand|C-Stand/i.test(name)) return '△';
+  if (/Boom/i.test(name))  return '┐';
+  if (/レフ|Trans/i.test(name)) return '◻';
+  return '📦';
+}
+
+// ══════════════════════════════════════════════
+//  カテゴリグリッド描画
+// ══════════════════════════════════════════════
+function renderCats() {
+  const grid = document.getElementById('catGrid');
+  grid.innerHTML = '';
+
+  // 確定済みカテゴリ
+  allCats().forEach(cat => {
+    const tile = document.createElement('div');
+    tile.className = 'tile' + (cat.id === activeCatId ? ' active-cat' : '');
+    tile.id = 'cat-' + cat.id;
+    tile.innerHTML = `<span class="icon">${cat.icon}</span>${cat.label}`;
+    tile.onclick = () => selectCat(cat.id);
+    grid.appendChild(tile);
+  });
+
+  // 未設定のカスタム枠（タップで編集ダイアログ）
+  pendingCats.forEach(p => {
+    const tile = document.createElement('div');
+    tile.className = 'tile tile-new';
+    tile.id = 'pending-' + p.id;
+    tile.innerHTML = `<span class="icon">➕</span><span style="font-size:11px">${T.tapToSet}</span>`;
+    tile.onclick = () => showEditPendingDialog(p.id);
+    grid.appendChild(tile);
+  });
+
+  // カテゴリ追加ボタン
+  const addTile = document.createElement('div');
+  addTile.className = 'tile tile-add';
+  addTile.innerHTML = `<span class="icon">＋</span>カテゴリ追加`;
+  addTile.onclick = () => addPendingCat();
+  grid.appendChild(addTile);
+}
+
+// ── カテゴリ追加：まずグリッドにブランク枠を生成 ──
+function addPendingCat() {
+  const id = 'pending_' + Date.now();
+  pendingCats.push({ id });
+  savePendingCats();
+  renderCats();
+  // すぐ編集ダイアログを開く
+  showEditPendingDialog(id);
+}
+
+// ── ブランク枠をタップ → カテゴリ設定ダイアログ ──
+function showEditPendingDialog(pendingId) {
+  let pickedIcon = ICONS_LIST[0];
+
+  document.getElementById('dlgTitle').textContent = T.dlgCatTitle;
+  document.getElementById('dlgBody').innerHTML = `
+    <div class="dlg-field">
+      <label>アイコン（絵文字）</label>
+      <div class="icon-picker" id="iconPicker">
+        ${ICONS_LIST.map(ic =>
+          `<span class="icon-opt${ic === pickedIcon ? ' selected' : ''}" data-icon="${ic}">${ic}</span>`
+        ).join('')}
+      </div>
+    </div>
+    <div class="dlg-field">
+      <label>カテゴリ名</label>
+      <input id="newCatName" placeholder="例：フィルター" autofocus>
+    </div>
+  `;
+
+  document.querySelectorAll('.icon-opt').forEach(el => {
+    el.onclick = () => {
+      document.querySelectorAll('.icon-opt').forEach(x => x.classList.remove('selected'));
+      el.classList.add('selected');
+      pickedIcon = el.dataset.icon;
+    };
+  });
+
+  showOverlay(() => {
+    const name = document.getElementById('newCatName').value.trim();
+    if (!name) { alert(T.alertCatName); return false; }
+    // pendingCats から削除して customCats へ昇格
+    pendingCats = pendingCats.filter(p => p.id !== pendingId);
+    savePendingCats();
+    const newCat = { id: 'custom_' + Date.now(), icon: pickedIcon, label: name, items: [] };
+    customCats.push(newCat);
+    saveCustomCats();
+    renderCats();
+    selectCat(newCat.id);
+    return true;
+  });
+}
+
+// ══════════════════════════════════════════════
+//  カテゴリ選択 → 機材リスト描画
+// ══════════════════════════════════════════════
+function selectCat(catId) {
+  activeCatId = catId;
+  renderCats(); // ハイライト更新
+
+  const cat   = getCat(catId);
+  const items = getItems(catId);
+  const isCustom = !!customCats.find(c => c.id === catId);
+
+  document.getElementById('catTitle').textContent = cat ? cat.label : '';
+  document.getElementById('itemCard').style.display = 'block';
+
+  const list = document.getElementById('itemList');
+  list.innerHTML = '';
+
+  // ① 機材を追加（全カテゴリに表示）
+  const addRow = document.createElement('div');
+  addRow.className = 'item item-add';
+  addRow.innerHTML = `
+    <div class="thumb">＋</div>
+    <div class="item-name">${T.addItemRow}</div>
+  `;
+  addRow.onclick = () => showAddItemDialog(catId);
+  list.appendChild(addRow);
+
+  // ② 機材リスト（5件まで表示、残りは「もっと見る」）
+  const LIMIT = VISIBLE_COUNT;
+  const icon  = cat ? cat.icon : '📦';
+
+  function renderItems(showAll) {
+    // 追加行以外を削除
+    list.querySelectorAll('.item:not(.item-add), .show-more').forEach(el => el.remove());
+
+    const visible = showAll ? items : items.slice(0, LIMIT);
+    visible.forEach(item => {
+      const name = displayName(item);
+      const maker = (typeof item === 'object' && item.maker) ? item.maker : '';
+      const model = (typeof item === 'object') ? item.model : item;
+
+      const row = document.createElement('div');
+      row.className = 'item';
+      row.innerHTML = `
+        <div class="thumb">${icon}</div>
+        <div class="item-name">
+          ${model}
+          ${maker ? `<span class="item-sub">${maker}</span>` : ''}
+        </div>
+        <button class="item-del" title="削除">🗑️</button>
+      `;
+      // 行タップ → ライトへ追加（ゴミ箱以外）
+      row.onclick = (e) => {
+        if (e.target.closest('.item-del')) return;
+        addItemToLight(name);
+      };
+      // ゴミ箱タップ → 削除確認
+      row.querySelector('.item-del').onclick = (e) => {
+        e.stopPropagation();
+        deleteItem(catId, item, name, showAll, renderItems);
+      };
+      list.appendChild(row);
+    });
+
+    // 5件超の場合は「もっと見る」
+    if (!showAll && items.length > LIMIT) {
+      const more = document.createElement('div');
+      more.className = 'show-more';
+      more.textContent = T.showMore(items.length - LIMIT);
+      more.onclick = () => renderItems(true);
+      list.appendChild(more);
+    }
+  }
+
+  renderItems(false);
+}
+
+// ══════════════════════════════════════════════
+//  機材削除
+// ══════════════════════════════════════════════
+function deleteItem(catId, item, name, showAll, rerenderFn) {
+  // confirm()の代わりに既存オーバーレイで確認
+  document.getElementById('dlgTitle').textContent = T.deleteConfirm(name);
+  document.getElementById('dlgBody').innerHTML = '';
+  // OKボタンのラベルを「削除」に
+  const okBtn = document.getElementById('dlgOk');
+  const origOkText = okBtn.textContent;
+  okBtn.textContent = '🗑️ ' + (T.ok || 'OK');
+  okBtn.style.background = '#e53935';
+
+  showOverlay(() => {
+    // 削除実行
+    if (DEFAULT_DB[catId]) {
+      const idx = DEFAULT_DB[catId].indexOf(item);
+      if (idx !== -1) DEFAULT_DB[catId].splice(idx, 1);
+    } else {
+      const cat = customCats.find(c => c.id === catId);
+      if (cat) {
+        const idx = cat.items.indexOf(item);
+        if (idx !== -1) { cat.items.splice(idx, 1); saveCustomCats(); }
+      }
+    }
+    // ボタンを元に戻す
+    okBtn.textContent = origOkText;
+    okBtn.style.background = '';
+    rerenderFn(showAll);
+    return true;
+  });
+
+  // closeOverlay時もボタンをリセット
+  const origClose = closeOverlay;
+  // キャンセル時にボタンリセット
+  document.getElementById('dlgCancel').onclick = () => {
+    okBtn.textContent = origOkText;
+    okBtn.style.background = '';
+    closeOverlay();
+    // onclickを元に戻す
+    document.getElementById('dlgCancel').onclick = closeOverlay;
+  };
+}
+
+// ══════════════════════════════════════════════
+//  機材追加ダイアログ（メーカー名・型番）
+// ══════════════════════════════════════════════
+function showAddItemDialog(catId) {
+  document.getElementById('dlgTitle').textContent = T.dlgItemTitle;
+  document.getElementById('dlgBody').innerHTML = `
+    <div class="dlg-field">
+      <label>メーカー名（省略可）</label>
+      <input id="newMaker" placeholder="例：Godox">
+    </div>
+    <div class="dlg-field">
+      <label>型番・モデル名</label>
+      <input id="newModel" placeholder="例：AD200Pro">
+    </div>
+  `;
+  document.getElementById('newMaker').focus();
+
+  // Enterキーで次フィールドへ
+  document.getElementById('newMaker').onkeydown = (e) => {
+    if (e.key === 'Enter') document.getElementById('newModel').focus();
+  };
+
+  showOverlay(() => {
+    const maker = document.getElementById('newMaker').value.trim();
+    const model = document.getElementById('newModel').value.trim();
+    if (!model) { alert(T.alertModel); return false; }
+
+    if (DEFAULT_DB[catId]) {
+      DEFAULT_DB[catId].push({ maker, model });
+    } else {
+      const cat = customCats.find(c => c.id === catId);
+      if (cat) { cat.items.push({ maker, model }); saveCustomCats(); }
+    }
+    selectCat(catId);
+    return true;
+  });
+}
+
+// ══════════════════════════════════════════════
+//  ライトへ機材追加
+// ══════════════════════════════════════════════
+function addItemToLight(name) {
+  lights[currentLight].items.push(name);
+  renderLights();
+}
+
+// ══════════════════════════════════════════════
+//  ライトカード描画
+// ══════════════════════════════════════════════
+//  ストロボ判定・出力表示ヘルパー
+// ══════════════════════════════════════════════
+function isStrobe(items){ return items.some(n=>/AD\d|strobe/i.test(n)); }
+const STROBE_STEPS=['1/256','1/128','1/64','1/32','1/16','1/8','1/4','1/2','1/1'];
+function strobeLabel(v){ return STROBE_STEPS[Math.round(v)]||'1/1'; }
+function outputLabel(l){
+  if(!l.items||l.items.length===0) return '';
+  const v=l.output!=null?l.output:null;
+  if(isStrobe(l.items)) return v!==null?strobeLabel(v):'1/1';
+  return (v!==null?Math.round(v):100)+'%';
+}
+
+// ══════════════════════════════════════════════
+function renderLights() {
+  const row = document.getElementById('lightRow');
+  row.innerHTML = '';
+  lights.forEach((l, i) => {
+    const card = document.createElement('div');
+    card.className = 'lightCard' + (i === currentLight ? ' active' : '');
+
+    const uniqueIcons = [...new Set(l.items.map(guessIcon))];
+    const previewHTML = uniqueIcons.length
+      ? uniqueIcons.map(ic => `<span>${ic}</span>`).join('')
+      : `<span style="color:#ccc;font-size:13px">${T.empty}</span>`;
+
+    const strobe=isStrobe(l.items);
+    const outVal=l.output!=null?l.output:(strobe?8:100);
+    const outDisp=outputLabel(l);
+
+    card.innerHTML = `
+      <div class="lc-header">
+        <span class="lc-label">${['A','B','C','D','E'][i]}</span>
+        <button class="btn-clear" onclick="clearLight(${i});event.stopPropagation()">×</button>
+      </div>
+      <div class="preview">${previewHTML}</div>
+      <div>${l.items.map(v => `<span class="tag">${v}</span>`).join('')}</div>
+      ${l.items.length ? `
+      <div style="margin-top:5px;padding-top:5px;border-top:1px solid #eee">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px">
+          <span style="font-size:9px;color:#888">出力</span>
+          <span id="outDisp_${i}" style="font-size:9px;font-weight:700;color:#1a73e8">${outDisp}</span>
+        </div>
+        <input type="range" style="width:100%;accent-color:#1a73e8;height:14px"
+          min="0" max="${strobe?8:100}" value="${outVal}" step="1"
+          onclick="event.stopPropagation()"
+          oninput="event.stopPropagation();updateOutput(${i},this.value)">
+      </div>` : ''}
+    `;
+    card.onclick = () => { currentLight = i; renderLights(); };
+    row.appendChild(card);
+  });
+}
+
+function clearLight(i) { lights[i].items = []; renderLights(); }
+
+function updateOutput(i, val) {
+  lights[i].output = Number(val);
+  const disp = document.getElementById('outDisp_'+i);
+  if (disp) disp.textContent = isStrobe(lights[i].items) ? strobeLabel(val) : Math.round(val)+'%';
+}
+
+// ══════════════════════════════════════════════
+//  オーバーレイ共通制御
+//  onOk: ()=>boolean  true=閉じる / false=閉じない
+// ══════════════════════════════════════════════
+function showOverlay(onOk) {
+  document.getElementById('overlay').style.display = 'flex';
+  document.getElementById('dlgOk').onclick = () => { if (onOk()) closeOverlay(); };
+}
+function closeOverlay() {
+  document.getElementById('overlay').style.display = 'none';
+}
+
+// ══════════════════════════════════════════════
+//  保存
+// ══════════════════════════════════════════════
+function saveAndExit() {
+  try {
+    localStorage.setItem('lightingRecipeLights', JSON.stringify(lights));
+  } catch(e) { console.warn('localStorage error:', e); }
+  // Safari対応：setItem後に少し待ってから遷移
+  setTimeout(() => { window.location.href = 'index.html'; }, 100);
+}
+
+// ══════════════════════════════════════════════
+//  初期化
+// ══════════════════════════════════════════════
+
+function applyI18n(){
+  const s=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
+  s('warehouseTitle', T.warehouseTitle);
+  s('catTitle',       T.catPrompt);
+  s('builderTitle',   T.builderTitle);
+  s('saveBtn',        T.saveBtn);
+}
+
+applyI18n();
+renderCats();
+renderLights();
+</script>
+</body>
+</html>
