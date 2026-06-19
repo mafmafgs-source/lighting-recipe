@@ -1,9 +1,1 @@
-
-body{font-family:sans-serif;background:#f3f3f3}
-.wrap{max-width:430px;margin:auto}
-#photoBox,#canvas,#assembly{
-background:white;border:1px solid #ccc;
-min-height:120px;padding:10px;margin:10px 0}
-.light{
-display:inline-block;padding:8px;margin:4px;
-border-radius:50%;background:gray;color:white}
+/* legacy - unused */
