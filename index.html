@@ -273,36 +273,39 @@ document.addEventListener('click',e=>{
 });
 
 // ── EXIF ──────────────────────────────
-document.getElementById('fileInput').addEventListener('change',async function(e){
+document.getElementById('fileInput').addEventListener('change',function(e){
   const file=e.target.files[0];
   if(!file)return;
   // 写真表示 + localStorageに保存（Base64）
+  // FileReaderでBase64変換 → 表示・保存・EXIF解析をすべてonload内で実行
   const reader=new FileReader();
-  reader.onload=ev=>{
+  reader.onload=async ev=>{
     const dataUrl=ev.target.result;
+    // 写真表示
     const img=document.getElementById('photoImg');
     img.onload=()=>{img.classList.add('loaded');};
     img.src=dataUrl;
     document.getElementById('photoHint').style.display='none';
+    // IndexedDBに保存
     savePhotoToSession(dataUrl);
+    // EXIF解析
+    try{
+      const ex=await exifr.parse(file,{tiff:true,exif:true,gps:false,ifd0:true});
+      if(!ex)return;
+      document.getElementById('exCamera').textContent=ex.Make&&ex.Model?ex.Make+' '+ex.Model:(ex.Model||'–');
+      document.getElementById('exLens').textContent=ex.LensModel||'–';
+      document.getElementById('exF').textContent=ex.FNumber?'F'+ex.FNumber:'–';
+      document.getElementById('exSS').textContent=ex.ExposureTime?(ex.ExposureTime<1?'1/'+Math.round(1/ex.ExposureTime)+'s':ex.ExposureTime+'s'):'–';
+      document.getElementById('exISO').textContent=ex.ISO?'ISO'+ex.ISO:'–';
+      document.getElementById('exFL').textContent=ex.FocalLength?ex.FocalLength+'mm':'–';
+      const dt=ex.DateTimeOriginal||ex.DateTime||ex.CreateDate;
+      if(dt){
+        const d=dt instanceof Date?dt:new Date(String(dt).replace(':','/',1).replace(':','/',1));
+        if(!isNaN(d.getTime()))document.getElementById('exDate').textContent=d.getFullYear()+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+String(d.getDate()).padStart(2,'0');
+      }
+    }catch(err){console.warn('EXIF error:',err);}
   };
   reader.readAsDataURL(file);
-  // EXIF
-  try{
-    const ex=await exifr.parse(file,{tiff:true,exif:true,gps:false});
-    if(!ex)return;
-    document.getElementById('exCamera').textContent=ex.Make&&ex.Model?ex.Make+' '+ex.Model:(ex.Model||'–');
-    document.getElementById('exLens').textContent=ex.LensModel||'–';
-    document.getElementById('exF').textContent=ex.FNumber?'F'+ex.FNumber:'–';
-    document.getElementById('exSS').textContent=ex.ExposureTime?(ex.ExposureTime<1?'1/'+Math.round(1/ex.ExposureTime)+'s':ex.ExposureTime+'s'):'–';
-    document.getElementById('exISO').textContent=ex.ISO?'ISO'+ex.ISO:'–';
-    document.getElementById('exFL').textContent=ex.FocalLength?ex.FocalLength+'mm':'–';
-    const dt=ex.DateTimeOriginal||ex.DateTime||ex.CreateDate;
-    if(dt){
-      const d=dt instanceof Date?dt:new Date(String(dt).replace(':','/',1).replace(':','/',1));
-      if(!isNaN(d.getTime()))document.getElementById('exDate').textContent=d.getFullYear()+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+String(d.getDate()).padStart(2,'0');
-    }
-  }catch(err){console.warn('EXIF error:',err);}
 });
 
 // ══════════════════════════════════════
@@ -588,11 +591,14 @@ function renderCanvas(){
       node.style.backgroundPosition='center';
       node.style.background='url('+nodeImg+') center/cover no-repeat';
     }
+    const LABELS=['A','B','C','D','E'];
+    const overlayBg=nodeImg?'rgba(0,0,0,0.35)':'transparent';
+    const labelColor=nodeImg?'#fff':'inherit';
+    const outColor=nodeImg?'rgba(255,255,255,0.9)':'#555';
     node.innerHTML=
-      '<div style="width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:50%;background:'+
-      (nodeImg?'rgba(0,0,0,0.35)':'transparent')+'">' +
-      '<span style="font-size:12px;font-weight:800;line-height:1;color:'+(nodeImg?'#fff':'inherit')+'">${['A','B','C','D','E'][i]}</span>'+
-      '<span style="font-size:8px;line-height:1;margin-top:1px;color:'+(nodeImg?'rgba(255,255,255,0.9)':'#555')+'">${outputLabel(l)}</span>'+
+      '<div style="width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:50%;background:'+overlayBg+'">' +
+      '<span style="font-size:12px;font-weight:800;line-height:1;color:'+labelColor+'">'+LABELS[i]+'</span>'+
+      '<span style="font-size:8px;line-height:1;margin-top:1px;color:'+outColor+'">'+outputLabel(l)+'</span>'+
       '</div>';
     node.addEventListener('click',e=>{e.stopPropagation();selected=(selected===i)?null:i;renderAll();renderPanel();});
     makeDraggable(node,canvas,i);
