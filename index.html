@@ -348,6 +348,15 @@ function saveSession(){
       memo:document.getElementById('memoInput').value,
       bgOn:bgOn,
       bgColor:document.getElementById('bgColor').value,
+      exif:{
+        camera:document.getElementById('exCamera').textContent,
+        lens:document.getElementById('exLens').textContent,
+        date:document.getElementById('exDate').textContent,
+        f:document.getElementById('exF').textContent,
+        ss:document.getElementById('exSS').textContent,
+        iso:document.getElementById('exISO').textContent,
+        fl:document.getElementById('exFL').textContent,
+      }
     };
     localStorage.setItem(SS_KEY,JSON.stringify(s));
   }catch(e){}
@@ -405,6 +414,20 @@ function restoreSession(){
       }
     }
   }catch(e){}
+  // EXIFの復元
+  if(raw){
+    const s=JSON.parse(raw);
+    if(s.exif){
+      const ex=s.exif;
+      if(ex.camera&&ex.camera!=='–') document.getElementById('exCamera').textContent=ex.camera;
+      if(ex.lens&&ex.lens!=='–')     document.getElementById('exLens').textContent=ex.lens;
+      if(ex.date&&ex.date!=='–')     document.getElementById('exDate').textContent=ex.date;
+      if(ex.f&&ex.f!=='–')           document.getElementById('exF').textContent=ex.f;
+      if(ex.ss&&ex.ss!=='–')         document.getElementById('exSS').textContent=ex.ss;
+      if(ex.iso&&ex.iso!=='–')       document.getElementById('exISO').textContent=ex.iso;
+      if(ex.fl&&ex.fl!=='–')         document.getElementById('exFL').textContent=ex.fl;
+    }
+  }
   // 写真（IndexedDB・非同期）
   loadPhotoFromIDB().then(dataUrl=>{
     if(!dataUrl)return;
