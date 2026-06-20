@@ -903,7 +903,7 @@ function renderLights() {
       if (hasMod) {
         modifiers.forEach((name, idx) => {
           const src = getItemImgSrc(name);
-          const mb = hasBase ? 113 : 0;
+          const mb = hasBase ? 80 : 0;
           // 2枚目以降は左に重ねる
           const ml = idx === 0 ? -30 : -18;
           html += `<div style="margin-bottom:${mb}px;margin-left:${ml}px;">`;
