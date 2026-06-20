@@ -66,9 +66,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
 .light-node{position:absolute;width:80px;height:145px;background:transparent;border:none;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;cursor:grab;user-select:none;touch-action:none;transition:filter .15s}
 .light-node.selected{filter:drop-shadow(0 0 4px rgba(255,152,0,.9))}
 /* A-Eラベル円 */
-.ln-label{position:absolute;top:0px;left:50%;transform:translateX(-50%);width:22px;height:22px;border-radius:50%;border:2.5px solid #ccc;background:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#333;line-height:1}
+.ln-label{position:absolute;top:-5px;left:50%;transform:translateX(-50%);width:22px;height:22px;border-radius:50%;border:2.5px solid #ccc;background:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#333;line-height:1}
 /* 出力ラベル */
-.ln-output{position:absolute;top:24px;left:50%;transform:translateX(-50%);font-size:9px;font-weight:700;color:#555;white-space:nowrap;line-height:1}
+.ln-output{position:absolute;top:19px;left:50%;transform:translateX(-50%);font-size:9px;font-weight:700;color:#555;white-space:nowrap;line-height:1}
 /* パネル */
 #panel{margin-top:10px}
 .panel-card{border:1px solid #e8e8e8;border-radius:10px;padding:10px;background:#fafafa}
@@ -753,7 +753,7 @@ function renderBeams(){
   svg.querySelectorAll('.beam-group').forEach(el=>el.remove());
 
   // 光源のy位置オフセット（ノード上端の光源画像中心）
-  const LIGHT_OFFSET_RATIO=42/H;
+  const LIGHT_OFFSET_RATIO=40/H;
 
   lights.forEach((l,i)=>{
     if(!l.items||!l.items.length)return;
