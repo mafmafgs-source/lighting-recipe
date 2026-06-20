@@ -56,22 +56,21 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
 .exif-names{display:flex;margin-top:4px;border:1px solid #e8e8e8;border-radius:8px;overflow:hidden}
 .exif-names .cell{flex:1;padding:6px 4px;font-size:11px;text-align:center}
 /* キャンバス */
-.lighting-wrap{position:relative}
+.lighting-wrap{position:relative;overflow:hidden;border-radius:12px;touch-action:none}
 #canvas{width:100%;aspect-ratio:1/1;border:1px solid #e0e0e0;border-radius:12px;background:#fafafa;position:relative;overflow:hidden;touch-action:none}
 .subject{position:absolute;left:50%;top:42%;transform:translate(-50%,-50%);font-size:28px;pointer-events:none;user-select:none}
 .camera-icon{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);font-size:22px;pointer-events:none;user-select:none}
-.height-legend{position:absolute;right:8px;top:8px;bottom:8px;width:16px;border-radius:8px;background:linear-gradient(to bottom,hsl(0,80%,55%),hsl(45,80%,55%),hsl(90,70%,45%),hsl(180,70%,45%),hsl(210,80%,55%));opacity:.7}
-.legend-label{position:absolute;right:28px;font-size:9px;color:#999}
-.legend-top{top:8px}.legend-btm{bottom:8px}
+.height-legend{position:absolute;right:8px;top:25%;bottom:25%;width:10px;border-radius:6px;background:linear-gradient(to bottom,rgb(10,60,180),rgb(80,160,240),rgb(180,220,255));opacity:.8}
+.legend-label{position:absolute;right:22px;font-size:9px;color:#999}
+.legend-top{top:25%}.legend-btm{bottom:25%}
 #lightSvg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}
 /* ライトノード */
 .light-node{position:absolute;width:80px;height:145px;background:transparent;border:none;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;cursor:grab;user-select:none;touch-action:none;transition:filter .15s}
 .light-node.selected{filter:drop-shadow(0 0 4px rgba(255,152,0,.9))}
-.ln-label{position:absolute;top:-14px;left:50%;transform:translateX(-50%);font-size:11px;font-weight:800;color:#333;background:rgba(255,255,255,0.8);border-radius:4px;padding:0 4px;line-height:1.4}
-/* 光源を囲む高さ円 */
-.ln-height-ring{position:absolute;top:0;left:50%;transform:translateX(-50%);width:32px;height:32px;border-radius:50%;pointer-events:none}
+/* A-Eラベル円 */
+.ln-label{position:absolute;top:-30px;left:50%;transform:translateX(-50%);width:22px;height:22px;border-radius:50%;border:2.5px solid #ccc;background:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#333;line-height:1}
 /* 出力ラベル */
-.ln-output{position:absolute;bottom:-16px;left:50%;transform:translateX(-50%);font-size:10px;font-weight:700;color:#1a73e8;white-space:nowrap;background:rgba(255,255,255,0.85);border-radius:4px;padding:0 3px;line-height:1.4}
+.ln-output{position:absolute;top:-6px;left:50%;transform:translateX(-50%);font-size:9px;font-weight:700;color:#555;white-space:nowrap;line-height:1}
 /* パネル */
 #panel{margin-top:10px}
 .panel-card{border:1px solid #e8e8e8;border-radius:10px;padding:10px;background:#fafafa}
@@ -345,12 +344,17 @@ document.getElementById('fileInput').addEventListener('change',function(e){
 // ══════════════════════════════════════
 const HEIGHT_MIN=0,HEIGHT_MAX=300,HEIGHT_DEFAULT=150;
 function heightToColor(h){
-  const stops=[[0,[41,98,255]],[75,[0,188,255]],[150,[0,200,83]],[225,[255,196,0]],[300,[255,50,30]]];
+  // 低い=薄い水色 → 高い=濃い青
+  const stops=[
+    [0,  [180,220,255]],  // 薄い水色
+    [150,[80, 160,240]],  // 中間の青
+    [300,[10,  60,180]],  // 濃い青
+  ];
   for(let i=0;i<stops.length-1;i++){
     const[h0,c0]=stops[i],[h1,c1]=stops[i+1];
     if(h>=h0&&h<=h1){const t=(h-h0)/(h1-h0);return`rgb(${Math.round(c0[0]+(c1[0]-c0[0])*t)},${Math.round(c0[1]+(c1[1]-c0[1])*t)},${Math.round(c0[2]+(c1[2]-c0[2])*t)})`;}
   }
-  return'#ccc';
+  return'rgb(10,60,180)';
 }
 
 // ══════════════════════════════════════
@@ -808,20 +812,17 @@ function renderCanvas(){
     node.style.top=(l.y??30)+'%';
     node.style.transform='translate(-50%,-50%)';
 
-    // 高さ→色（外側濃く・内側薄いradial-gradient）
+    // 高さ→色・border幅（低い=細い1px、高い=太い5px）
     const h=l.height??HEIGHT_DEFAULT;
     const col=heightToColor(h);
-    const ringStyle=`background:radial-gradient(circle, rgba(255,255,255,0) 30%, ${col} 100%);border:2px solid ${col};`;
-
-    // 出力表示
+    const borderW=Math.round(1+(h/HEIGHT_MAX)*4); // 1〜5px
     const outTxt=outputLabel(l);
-
     const LABELS=['A','B','C','D','E'];
+
     node.innerHTML=
-      `<span class="ln-label">${LABELS[i]}</span>`+
-      `<div class="ln-height-ring" style="${ringStyle}"></div>`+
-      buildNodeHTML(l)+
-      (outTxt?`<span class="ln-output">${outTxt}</span>`:'');
+      `<span class="ln-label" style="border-color:${col};border-width:${borderW}px;background:radial-gradient(circle,#fff 40%,${col}44 100%);color:#333">${LABELS[i]}</span>`+
+      (outTxt?`<span class="ln-output">${outTxt}</span>`:'')+
+      buildNodeHTML(l);
 
     // 光源の位置をdata属性に記録（光パーツ起点計算用）
     // 光源はノード上部21px付近 → ノード中心より(height/2 - 21/2)px上
@@ -837,9 +838,75 @@ function renderCanvas(){
 
 function renderAll(){renderCanvas();}
 
+// ══════════════════════════════════════
+//  ピンチズーム
+// ══════════════════════════════════════
+let canvasScale=1;
+let isPinching=false;
+const SCALE_MIN=1, SCALE_MAX=4;
+
+function applyCanvasScale(){
+  const canvas=document.getElementById('canvas');
+  canvas.style.transformOrigin='center center';
+  canvas.style.transform=`scale(${canvasScale})`;
+}
+
+(()=>{
+  const wrap=document.querySelector('.lighting-wrap');
+  let lastDist=null;
+
+  wrap.addEventListener('touchstart',e=>{
+    if(e.touches.length===2){
+      isPinching=true;
+      lastDist=Math.hypot(
+        e.touches[0].clientX-e.touches[1].clientX,
+        e.touches[0].clientY-e.touches[1].clientY
+      );
+      e.preventDefault();
+    }
+  },{passive:false});
+
+  wrap.addEventListener('touchmove',e=>{
+    if(e.touches.length===2&&isPinching){
+      const dist=Math.hypot(
+        e.touches[0].clientX-e.touches[1].clientX,
+        e.touches[0].clientY-e.touches[1].clientY
+      );
+      if(lastDist){
+        const delta=dist/lastDist;
+        canvasScale=Math.min(SCALE_MAX,Math.max(SCALE_MIN,canvasScale*delta));
+        applyCanvasScale();
+      }
+      lastDist=dist;
+      e.preventDefault();
+    }
+  },{passive:false});
+
+  wrap.addEventListener('touchend',e=>{
+    if(e.touches.length<2){
+      isPinching=false;
+      lastDist=null;
+    }
+  });
+
+  // ダブルタップでズームリセット
+  let lastTap=0;
+  wrap.addEventListener('touchend',e=>{
+    if(e.touches.length===0){
+      const now=Date.now();
+      if(now-lastTap<300){
+        canvasScale=1;
+        applyCanvasScale();
+      }
+      lastTap=now;
+    }
+  });
+})();
+
 function makeDraggable(node,canvas,idx){
   let sx,sy,sl,st;
   const mv=(ex,ey)=>{
+    if(isPinching)return; // ズーム中はドラッグ無効
     const rect=canvas.getBoundingClientRect();
     lights[idx].x=Math.max(0,Math.min(100,sl+(ex-sx)/rect.width*100));
     lights[idx].y=Math.max(0,Math.min(100,st+(ey-sy)/rect.height*100));
@@ -847,14 +914,16 @@ function makeDraggable(node,canvas,idx){
     renderBg();renderBeams();
   };
   node.addEventListener('mousedown',e=>{
+    if(canvasScale>1)return; // ズーム中はドラッグ無効
     e.preventDefault();sx=e.clientX;sy=e.clientY;sl=lights[idx].x??20;st=lights[idx].y??30;
     const up=()=>{document.removeEventListener('mousemove',mvM);document.removeEventListener('mouseup',up);};
     const mvM=e=>mv(e.clientX,e.clientY);
     document.addEventListener('mousemove',mvM);document.addEventListener('mouseup',up);
   });
   node.addEventListener('touchstart',e=>{
+    if(isPinching||canvasScale>1)return; // ズーム中はドラッグ無効
     const t=e.touches[0];sx=t.clientX;sy=t.clientY;sl=lights[idx].x??20;st=lights[idx].y??30;
-    const mvT=e=>{const t=e.touches[0];mv(t.clientX,t.clientY);};
+    const mvT=e=>{if(isPinching)return;const t=e.touches[0];mv(t.clientX,t.clientY);};
     const up=()=>{document.removeEventListener('touchmove',mvT);document.removeEventListener('touchend',up);};
     document.addEventListener('touchmove',mvT,{passive:true});document.addEventListener('touchend',up);
   },{passive:true});
@@ -877,7 +946,7 @@ function renderPanel(){
       <div class="slider-row">
         <label>${T.heightLabel}</label>
         <input type="range" id="hSlider" min="${HEIGHT_MIN}" max="${HEIGHT_MAX}" value="${h}" step="5"
-          style="background:linear-gradient(to right,rgb(41,98,255) 0%,rgb(0,188,255) 25%,rgb(0,200,83) 50%,rgb(255,196,0) 75%,rgb(255,50,30) 100%)">
+          style="background:linear-gradient(to right,rgb(180,220,255) 0%,rgb(80,160,240) 50%,rgb(10,60,180) 100%)">
       </div>
       <div class="slider-row">
         <label>${T.outputLabel}</label>
@@ -890,9 +959,20 @@ function renderPanel(){
     </div>`;
   document.getElementById('hSlider').addEventListener('input',e=>{
     lights[selected].height=Number(e.target.value);
-    panel.querySelector('.panel-card').style.borderColor=heightToColor(lights[selected].height);
+    const col=heightToColor(lights[selected].height);
+    panel.querySelector('.panel-card').style.borderColor=col;
     const nd=document.querySelector(`.light-node[data-idx="${selected}"]`);
-    if(nd)nd.style.borderColor=heightToColor(lights[selected].height);
+    if(nd){
+      const col=heightToColor(lights[selected].height);
+      const borderW=Math.round(1+(lights[selected].height/HEIGHT_MAX)*4);
+      const lbl=nd.querySelector('.ln-label');
+      if(lbl){
+        lbl.style.borderColor=col;
+        lbl.style.borderWidth=borderW+'px';
+        lbl.style.background=`radial-gradient(circle,#fff 40%,${col}44 100%)`;
+        lbl.style.color='#333';
+      }
+    }
     saveLights();
   });
   document.getElementById('outSlider').addEventListener('input',e=>{
