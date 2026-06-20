@@ -63,9 +63,12 @@ body{-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%;font-
 .lc-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
 .lc-label{font-weight:700;font-size:13px}
 .btn-clear{background:#e53935;color:#fff;border:none;border-radius:50%;width:22px;height:22px;font-size:13px;cursor:pointer;line-height:1}
-.preview{text-align:center;font-size:24px;min-height:120px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:0;margin-bottom:6px;padding:4px 0}
-.preview-light-row{display:flex;align-items:flex-end;justify-content:center;gap:2px}
-.preview img{display:block}
+.preview{font-size:24px;min-height:130px;display:flex;align-items:flex-end;justify-content:center;gap:3px;margin-bottom:6px;padding:4px 2px;overflow:hidden}
+/* 光源＋スタンドの縦積みブロック */
+.preview-base-col{display:flex;flex-direction:column;align-items:center;gap:0;flex-shrink:0}
+.preview-base-col img{display:block}
+/* モディファイア列 */
+.preview-mod-col{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:2px;flex-shrink:0}
 .tag{display:block;font-size:10px;color:#555;line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
 /* ── ゴミ箱ボタン ── */
@@ -869,34 +872,56 @@ function renderLights() {
     const modifiers = l.items.filter(n => getItemRole(n) === 'modifier');
 
     const previewHTML = (() => {
-      if (!l.items.length) return '<span style="color:#ccc;font-size:13px">' + T.empty + '</span>';
+      if (!l.items.length) return '<span style="color:#ccc;font-size:13px;align-self:center">' + T.empty + '</span>';
 
       let html = '';
 
-      // 【上段】光源＋モディファイア横並び
-      if (lights_.length || modifiers.length) {
-        html += '<div class="preview-light-row">';
-        // 光源
-        lights_.forEach(name => {
-          const src = getItemImgSrc(name);
-          html += src ? makeImgTag(src, 44) : `<span style="font-size:22px">${guessIcon(name)}</span>`;
-        });
-        // モディファイア（光源の右側）
-        modifiers.forEach(name => {
-          const src = getItemImgSrc(name);
-          html += src ? makeImgTag(src, 38, 'margin-left:2px;') : `<span style="font-size:18px">${guessIcon(name)}</span>`;
-        });
+      // 【左ブロック】光源をスタンドの真上に縦積み（1つのシルエット）
+      const hasBase  = bases.length > 0;
+      const hasLight = lights_.length > 0;
+
+      if (hasLight || hasBase) {
+        html += '<div class="preview-base-col">';
+        // 光源（上）
+        if (hasLight) {
+          const src = getItemImgSrc(lights_[0]);
+          html += src
+            ? `<img src="${src}" style="width:42px;height:42px;object-fit:contain;margin-bottom:-4px;">`
+            : `<span style="font-size:22px;line-height:1">${guessIcon(lights_[0])}</span>`;
+        }
+        // スタンド（下・光源に密着）
+        if (hasBase) {
+          const src = getItemImgSrc(bases[0]);
+          html += src
+            ? `<img src="${src}" style="width:36px;height:56px;object-fit:contain;">`
+            : `<span style="font-size:22px;line-height:1">${guessIcon(bases[0])}</span>`;
+        }
         html += '</div>';
       }
 
-      // 【下段】ベース（スタンド・ブーム）
-      if (bases.length) {
-        html += '<div style="display:flex;justify-content:center;gap:2px;margin-top:1px">';
-        bases.forEach(name => {
+      // 【右ブロック】モディファイア（下端を光源に合わせる）
+      if (modifiers.length) {
+        modifiers.forEach(name => {
           const src = getItemImgSrc(name);
-          html += src ? makeImgTag(src, 52) : `<span style="font-size:22px">${guessIcon(name)}</span>`;
+          html += '<div class="preview-mod-col">';
+          // モディファイアはスタンド分の高さを空けて光源と同じ高さに揃える
+          const standOffset = hasBase ? 56 : 0;
+          html += `<div style="flex:1;min-height:${standOffset}px"></div>`;
+          html += src
+            ? `<img src="${src}" style="width:34px;height:34px;object-fit:contain;">`
+            : `<span style="font-size:18px">${guessIcon(name)}</span>`;
+          html += '</div>';
         });
-        html += '</div>';
+      }
+
+      // 光源もスタンドもない（モディファイアのみ）
+      if (!hasLight && !hasBase && modifiers.length) {
+        html = modifiers.map(name => {
+          const src = getItemImgSrc(name);
+          return src
+            ? `<img src="${src}" style="width:38px;height:38px;object-fit:contain;">`
+            : `<span style="font-size:20px">${guessIcon(name)}</span>`;
+        }).join('');
       }
 
       return html;
