@@ -447,11 +447,29 @@ function findItemImg(name) {
 
 function guessIcon(name) {
   if (/AD|Forza|Aputure/i.test(name))  return '⚡';
+  if (/TL\d|PavoTube|MT Pro/i.test(name)) return '💡';
   if (/Octa|Dish|Umbrella|Soft|Snoot|Grid/i.test(name)) return '⬡';
   if (/BAC|Stand|C-Stand/i.test(name)) return '△';
   if (/Boom/i.test(name))  return '┐';
-  if (/レフ|Trans/i.test(name)) return '◻';
+  if (/レフ|Trans|Reflector/i.test(name)) return '◻';
+  if (/Flag/i.test(name)) return '▬';
   return '📦';
+}
+
+// 機材名からカテゴリのimgPathを逆引き
+function getCatImgByItemName(name) {
+  for(const [catId, items] of Object.entries(DEFAULT_DB)){
+    if(items.some(it => displayName(it) === name || (typeof it==='object' && it.model === name))){
+      const cat = getCat(catId);
+      return cat && cat.imgPath ? cat.imgPath : null;
+    }
+  }
+  for(const c of customCats){
+    if((c.items||[]).some(it => displayName(it) === name)){
+      return c.imgPath || null;
+    }
+  }
+  return null;
 }
 
 // 展開中の親カテゴリID
@@ -622,9 +640,13 @@ function selectCat(catId) {
       const row = document.createElement('div');
       row.className = 'item';
       const searchQuery = maker ? maker+' '+model : model;
+      // 優先順位: 個別写真 > カテゴリ画像 > 絵文字
+      const catImg = getCatImgByItemName(name);
       const thumbHtml = (typeof item==='object' && item.img)
         ? `<div class="thumb"><img class="thumb-img" src="${item.img}"></div>`
-        : `<div class="thumb">${icon}</div>`;
+        : catImg
+          ? `<div class="thumb"><img class="thumb-img" src="${catImg}" onerror="this.parentNode.innerHTML='${icon}'"></div>`
+          : `<div class="thumb">${icon}</div>`;
       row.innerHTML = `
         ${thumbHtml}
         <div class="item-name">
@@ -817,17 +839,19 @@ function renderLights() {
     const card = document.createElement('div');
     card.className = 'lightCard' + (i === currentLight ? ' active' : '');
 
-    // 画像付き機材は img タグ、それ以外はアイコン絵文字で表示
+    // 画像付き機材は個別img、なければカテゴリ画像、なければ絵文字
     const previewHTML = (() => {
       if (!l.items.length) return '<span style="color:#ccc;font-size:13px">' + T.empty + '</span>';
       const seen = new Set();
       const parts = [];
       l.items.forEach(name => {
-        const img = findItemImg(name);
-        if (img && !seen.has('img:' + name)) {
+        const itemImg = findItemImg(name);
+        const catImg  = getCatImgByItemName(name);
+        const imgSrc  = itemImg || catImg;
+        if (imgSrc && !seen.has('img:' + name)) {
           seen.add('img:' + name);
-          parts.push('<img src="' + img + '" style="width:28px;height:28px;object-fit:cover;border-radius:4px;">');
-        } else {
+          parts.push('<img src="' + imgSrc + '" style="width:48px;height:48px;object-fit:contain;border-radius:4px;">');
+        } else if (!imgSrc) {
           const ic = guessIcon(name);
           if (!seen.has('ic:' + ic)) { seen.add('ic:' + ic); parts.push('<span>' + ic + '</span>'); }
         }
