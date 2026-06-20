@@ -63,7 +63,9 @@ body{-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%;font-
 .lc-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
 .lc-label{font-weight:700;font-size:13px}
 .btn-clear{background:#e53935;color:#fff;border:none;border-radius:50%;width:22px;height:22px;font-size:13px;cursor:pointer;line-height:1}
-.preview{text-align:center;font-size:24px;min-height:80px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;margin-bottom:6px}
+.preview{text-align:center;font-size:24px;min-height:120px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:0;margin-bottom:6px;padding:4px 0}
+.preview-light-row{display:flex;align-items:flex-end;justify-content:center;gap:2px}
+.preview img{display:block}
 .tag{display:block;font-size:10px;color:#555;line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
 /* ── ゴミ箱ボタン ── */
@@ -817,9 +819,31 @@ function addItemToLight(name) {
 }
 
 // ══════════════════════════════════════════════
-//  ライトカード描画
+//  機材の役割判定
 // ══════════════════════════════════════════════
-//  ストロボ判定・出力表示ヘルパー
+function getItemRole(name) {
+  // DEFAULT_DBのどのカテゴリに属するか調べる
+  for(const [catId, items] of Object.entries(DEFAULT_DB)){
+    if(items.some(it => displayName(it) === name || (typeof it==='object' && it.model === name))){
+      if(['stand','boom'].includes(catId))            return 'base';
+      if(['strobe','video','video_stick'].includes(catId)) return 'light';
+      if(['softbox','umbrella','beauty_dish','snoot','flag','reflector'].includes(catId)) return 'modifier';
+    }
+  }
+  // カスタム機材はmodifierとして扱う
+  return 'modifier';
+}
+
+function getItemImgSrc(name) {
+  return findItemImg(name) || getCatImgByItemName(name) || null;
+}
+
+function makeImgTag(src, size, style='') {
+  return `<img src="${src}" style="width:${size}px;height:${size}px;object-fit:contain;${style}">`;
+}
+
+// ══════════════════════════════════════════════
+//  ライトカード描画
 // ══════════════════════════════════════════════
 function isStrobe(items){ return items.some(n=>/AD\d|strobe/i.test(n)); }
 const STROBE_STEPS=['1/256','1/128','1/64','1/32','1/16','1/8','1/4','1/2','1/1'];
@@ -839,24 +863,43 @@ function renderLights() {
     const card = document.createElement('div');
     card.className = 'lightCard' + (i === currentLight ? ' active' : '');
 
-    // 画像付き機材は個別img、なければカテゴリ画像、なければ絵文字
+    // 機材を役割別に仕分け
+    const bases     = l.items.filter(n => getItemRole(n) === 'base');
+    const lights_   = l.items.filter(n => getItemRole(n) === 'light');
+    const modifiers = l.items.filter(n => getItemRole(n) === 'modifier');
+
     const previewHTML = (() => {
       if (!l.items.length) return '<span style="color:#ccc;font-size:13px">' + T.empty + '</span>';
-      const seen = new Set();
-      const parts = [];
-      l.items.forEach(name => {
-        const itemImg = findItemImg(name);
-        const catImg  = getCatImgByItemName(name);
-        const imgSrc  = itemImg || catImg;
-        if (imgSrc && !seen.has('img:' + name)) {
-          seen.add('img:' + name);
-          parts.push('<img src="' + imgSrc + '" style="width:48px;height:48px;object-fit:contain;border-radius:4px;">');
-        } else if (!imgSrc) {
-          const ic = guessIcon(name);
-          if (!seen.has('ic:' + ic)) { seen.add('ic:' + ic); parts.push('<span>' + ic + '</span>'); }
-        }
-      });
-      return parts.join('');
+
+      let html = '';
+
+      // 【上段】光源＋モディファイア横並び
+      if (lights_.length || modifiers.length) {
+        html += '<div class="preview-light-row">';
+        // 光源
+        lights_.forEach(name => {
+          const src = getItemImgSrc(name);
+          html += src ? makeImgTag(src, 44) : `<span style="font-size:22px">${guessIcon(name)}</span>`;
+        });
+        // モディファイア（光源の右側）
+        modifiers.forEach(name => {
+          const src = getItemImgSrc(name);
+          html += src ? makeImgTag(src, 38, 'margin-left:2px;') : `<span style="font-size:18px">${guessIcon(name)}</span>`;
+        });
+        html += '</div>';
+      }
+
+      // 【下段】ベース（スタンド・ブーム）
+      if (bases.length) {
+        html += '<div style="display:flex;justify-content:center;gap:2px;margin-top:1px">';
+        bases.forEach(name => {
+          const src = getItemImgSrc(name);
+          html += src ? makeImgTag(src, 52) : `<span style="font-size:22px">${guessIcon(name)}</span>`;
+        });
+        html += '</div>';
+      }
+
+      return html;
     })();
 
     const strobe=isStrobe(l.items);
