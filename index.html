@@ -65,8 +65,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
 .legend-top{top:8px}.legend-btm{bottom:8px}
 #lightSvg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}
 /* ライトノード */
-.light-node{position:absolute;width:48px;height:48px;border-radius:50%;border:6px solid #ccc;background:rgba(255,255,255,.95);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:grab;user-select:none;touch-action:none;font-size:10px;font-weight:700;transition:border-color .15s;box-shadow:0 2px 6px rgba(0,0,0,.15)}
-.light-node.selected{box-shadow:0 0 0 3px rgba(255,152,0,.5)}
+.light-node{position:absolute;width:80px;height:130px;background:transparent;border:none;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;cursor:grab;user-select:none;touch-action:none;transition:filter .15s}
+.light-node.selected{filter:drop-shadow(0 0 4px rgba(255,152,0,.9))}
+.ln-label{position:absolute;top:-14px;left:50%;transform:translateX(-50%);font-size:11px;font-weight:800;color:#333;background:rgba(255,255,255,0.8);border-radius:4px;padding:0 4px;line-height:1.4}
 /* パネル */
 #panel{margin-top:10px}
 .panel-card{border:1px solid #e8e8e8;border-radius:10px;padding:10px;background:#fafafa}
@@ -488,6 +489,112 @@ function findItemImg(name){
   }catch(e){return null;}
 }
 
+// カテゴリIDとimgPathのマッピング（icons/フォルダ参照）
+const CAT_IMG_MAP={
+  strobe:'icons/strobe.png', video:'icons/video.png', video_stick:'icons/video_stick.png',
+  softbox:'icons/softbox.png', umbrella:'icons/umbrella.png',
+  beauty_dish:'icons/beauty_dish.png', snoot:'icons/snoot.png',
+  stand:'icons/stand.png', boom:'icons/boom.png',
+  reflector:'icons/reflector.png', flag:'icons/flag.png',
+};
+
+// DEFAULT_DB相当（カテゴリ逆引き用）
+const IDX_DEFAULT_DB={
+  strobe:['AD100Pro','AD200Pro','AD300Pro','AD400Pro','AD600Pro'],
+  video:['Forza300','Forza500','300D','600D'],
+  video_stick:['TL60','TL120','MT Pro','PavoTube II 15X'],
+  softbox:['120cm Octa','90cm Octa','60cm Octa','Softbox 60x90'],
+  umbrella:['White Umbrella 85cm','Silver Umbrella 85cm','Shoot-through Umbrella'],
+  beauty_dish:['Beauty Dish 55cm','Beauty Dish 70cm'],
+  snoot:['Snoot','Grid Snoot'],
+  stand:['1052BAC','Nano Stand','C-Stand','Air-cushioned Stand'],
+  boom:['Boom Arm','Mini Boom'],
+  reflector:['白レフ','黒レフ','シルバーレフ','トランスルーセント'],
+  flag:['Flag Frame S','Flag Frame M','Flag Frame L'],
+};
+
+function getCatImgByItemName(name){
+  for(const[catId,models]of Object.entries(IDX_DEFAULT_DB)){
+    if(models.some(m=>name===m||name.includes(m)||m.includes(name.split(' ').pop()))){
+      return CAT_IMG_MAP[catId]||null;
+    }
+  }
+  // カスタムカテゴリ
+  try{
+    const customs=JSON.parse(localStorage.getItem('lr_customCats')||'[]');
+    const cat=customs.find(c=>(c.items||[]).some(it=>(it.maker?it.maker+' '+it.model:it.model)===name));
+    return cat&&cat.imgPath?cat.imgPath:null;
+  }catch(e){return null;}
+}
+
+function getItemRole(name){
+  if(['stand','boom'].some(id=>IDX_DEFAULT_DB[id]&&IDX_DEFAULT_DB[id].some(m=>name===m||name.includes(m)))) return 'base';
+  if(['strobe','video','video_stick'].some(id=>IDX_DEFAULT_DB[id]&&IDX_DEFAULT_DB[id].some(m=>name===m||name.includes(m)))) return 'light';
+  return 'modifier';
+}
+
+function getItemImgSrc(name){
+  return findItemImg(name)||getCatImgByItemName(name)||null;
+}
+
+// ライトノードの内部HTMLを生成（builder.htmlと同じ縦積みシルエット）
+function buildNodeHTML(l){
+  const bases    =l.items.filter(n=>getItemRole(n)==='base');
+  const lights_  =l.items.filter(n=>getItemRole(n)==='light');
+  const modifiers=l.items.filter(n=>getItemRole(n)==='modifier');
+  const hasBase  =bases.length>0;
+  const hasLight =lights_.length>0;
+  const hasMod   =modifiers.length>0;
+
+  let html='<div style="display:flex;align-items:flex-end;justify-content:center;gap:1px;width:100%;height:100%">';
+
+  // 光源＋スタンドの縦積み
+  if(hasLight||hasBase){
+    html+='<div style="display:flex;flex-direction:column;align-items:center;gap:0">';
+    if(hasLight){
+      const src=getItemImgSrc(lights_[0]);
+      html+=src
+        ?`<img src="${src}" style="width:21px;height:21px;object-fit:contain;margin-bottom:-15px;">`
+        :`<span style="font-size:12px">⚡</span>`;
+    }
+    if(hasBase){
+      const src=getItemImgSrc(bases[0]);
+      html+=src
+        ?`<img src="${src}" style="width:71px;height:113px;object-fit:contain;">`
+        :`<span style="font-size:30px">△</span>`;
+    }
+    html+='</div>';
+  }
+
+  // モディファイア（光源の右横）
+  if(hasMod){
+    modifiers.forEach((name,idx)=>{
+      const src=getItemImgSrc(name);
+      const mb=hasBase?90:0;
+      const ml=idx===0?-30:-18;
+      html+=`<div style="margin-bottom:${mb}px;margin-left:${ml}px;">`;
+      html+=src
+        ?`<img src="${src}" style="width:36px;height:36px;object-fit:contain;">`
+        :`<span style="font-size:16px">⬡</span>`;
+      html+='</div>';
+    });
+  }
+
+  // 機材なし・モディファイアのみ
+  if(!hasLight&&!hasBase&&hasMod){
+    html='<div style="display:flex;align-items:center;justify-content:center;gap:2px;width:100%;height:100%">';
+    modifiers.forEach(name=>{
+      const src=getItemImgSrc(name);
+      html+=src
+        ?`<img src="${src}" style="width:38px;height:38px;object-fit:contain;">`
+        :`<span style="font-size:18px">⬡</span>`;
+    });
+  }
+
+  html+='</div>';
+  return html;
+}
+
 // ストロボ判定
 function isStrobe(items){return items.some(n=>/AD\d|strobe/i.test(n));}
 const STROBE_STEPS=['1/256','1/128','1/64','1/32','1/16','1/8','1/4','1/2','1/1'];
@@ -688,28 +795,13 @@ function renderCanvas(){
     const node=document.createElement('div');
     node.className='light-node'+(i===selected?' selected':'');
     node.dataset.idx=i;
-    const h=l.height??HEIGHT_DEFAULT;
-    node.style.borderColor=heightToColor(h);
     node.style.left=(l.x??20)+'%';
     node.style.top=(l.y??30)+'%';
     node.style.transform='translate(-50%,-50%)';
-    // 機材の中に画像があれば背景に表示
-    const nodeImg = l.items.reduce((found,name)=>found||findItemImg(name), null);
-    if(nodeImg){
-      node.style.backgroundImage='url('+nodeImg+')';
-      node.style.backgroundSize='cover';
-      node.style.backgroundPosition='center';
-      node.style.background='url('+nodeImg+') center/cover no-repeat';
-    }
     const LABELS=['A','B','C','D','E'];
-    const overlayBg=nodeImg?'rgba(0,0,0,0.35)':'transparent';
-    const labelColor=nodeImg?'#fff':'inherit';
-    const outColor=nodeImg?'rgba(255,255,255,0.9)':'#555';
     node.innerHTML=
-      '<div style="width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:50%;background:'+overlayBg+'">' +
-      '<span style="font-size:12px;font-weight:800;line-height:1;color:'+labelColor+'">'+LABELS[i]+'</span>'+
-      '<span style="font-size:8px;line-height:1;margin-top:1px;color:'+outColor+'">'+outputLabel(l)+'</span>'+
-      '</div>';
+      `<span class="ln-label">${LABELS[i]}</span>`+
+      buildNodeHTML(l);
     node.addEventListener('click',e=>{e.stopPropagation();selected=(selected===i)?null:i;renderAll();renderPanel();});
     makeDraggable(node,canvas,i);
     canvas.appendChild(node);
