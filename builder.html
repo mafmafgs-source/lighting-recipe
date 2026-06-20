@@ -6,99 +6,93 @@
 <title>Lighting Recipe – Builder v1.3</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%;font-family:'Helvetica Neue',Arial,sans-serif;background:#f0f0f2;color:#1a1a1a}
+body{-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%;font-family:'Helvetica Neue',Arial,sans-serif;background:#0f0f0f;color:#e8e8e8}
 .wrap{max-width:430px;margin:auto;padding:10px}
 
 /* ── カード ── */
-.card{background:#fff;border-radius:14px;padding:12px;margin-bottom:10px;box-shadow:0 1px 4px rgba(0,0,0,.08)}
-.card h3{font-size:14px;font-weight:700;color:#555;margin-bottom:10px;letter-spacing:.04em;text-transform:uppercase}
+.card{background:#1a1a1a;border-radius:14px;padding:12px;margin-bottom:10px;box-shadow:0 2px 12px rgba(0,0,0,.5);border:1px solid #2e2e2e}
+.card h3{font-size:14px;font-weight:700;color:#888;margin-bottom:10px;letter-spacing:.06em;text-transform:uppercase}
 
 /* ── カテゴリグリッド ── */
 .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 
 /* 通常タイル */
-.tile{
-  border:1px solid #e0e0e0;border-radius:10px;padding:10px 6px;
-  text-align:center;background:#fafafa;cursor:pointer;font-size:12px;
-  transition:background .15s,border-color .15s;
-}
-.tile:active,.tile.active-cat{background:#e8f0fe;border-color:#4285f4}
+.tile{border:1px solid #2e2e2e;border-radius:10px;padding:10px 6px;text-align:center;background:#141414;cursor:pointer;font-size:12px;color:#e8e8e8;transition:background .15s,border-color .15s}
+.tile:active,.tile.active-cat{background:#2a2218;border-color:#c8a96e;color:#c8a96e}
 .tile .icon{font-size:20px;display:block;margin-bottom:4px}
 .tile .icon-img{width:48px;height:48px;object-fit:contain;display:block;margin:0 auto 4px;border-radius:6px}
 /* サブカテゴリ展開パネル */
-.subcat-panel{grid-column:1/-1;background:#f0f7ff;border-radius:10px;padding:8px;margin-top:-4px}
+.subcat-panel{grid-column:1/-1;background:#111;border-radius:10px;padding:8px;margin-top:-4px;border:1px solid #2e2e2e}
 .subcat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
-.tile-sub{border:1px solid #c5d8f5;border-radius:8px;padding:8px 4px;text-align:center;background:#fff;cursor:pointer;font-size:11px;transition:background .15s}
-.tile-sub:active,.tile-sub.active-cat{background:#e8f0fe;border-color:#4285f4}
+.tile-sub{border:1px solid #2e2e2e;border-radius:8px;padding:8px 4px;text-align:center;background:#1a1a1a;cursor:pointer;font-size:11px;color:#e8e8e8;transition:background .15s}
+.tile-sub:active,.tile-sub.active-cat{background:#2a2218;border-color:#c8a96e;color:#c8a96e}
 .tile-sub .icon-img{width:40px;height:40px;object-fit:contain;display:block;margin:0 auto 3px;border-radius:4px}
 
 /* 追加ボタンタイル */
-.tile-add{border:1.5px dashed #1a73e8;color:#1a73e8;background:#f0f7ff}
+.tile-add{border:1.5px dashed #c8a96e;color:#c8a96e;background:#1a1a0a}
 
-/* 新規（未設定）カスタムタイル：タップで編集 */
-.tile-new{border:1.5px dashed #bbb;color:#aaa;background:#fafafa;position:relative}
+/* 新規（未設定）カスタムタイル */
+.tile-new{border:1.5px dashed #333;color:#555;background:#141414;position:relative}
 .tile-new .icon{font-size:20px;display:block;margin-bottom:4px}
 
 /* ── 機材リスト ── */
-.item{display:flex;align-items:center;gap:10px;padding:10px 6px;border-bottom:1px solid #f0f0f0;cursor:pointer;transition:background .1s}
+.item{display:flex;align-items:center;gap:10px;padding:10px 6px;border-bottom:1px solid #222;cursor:pointer;transition:background .1s}
 .item:last-child{border-bottom:none}
-.item:active{background:#f5f5f5}
-.thumb{width:36px;height:36px;border-radius:8px;background:#e8e8e8;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
-.item-name{font-size:14px;flex:1}
-.item-sub{font-size:11px;color:#999;display:block}
+.item:active{background:#202020}
+.thumb{width:36px;height:36px;border-radius:8px;background:#252525;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.item-name{font-size:14px;flex:1;color:#e8e8e8}
+.item-sub{font-size:11px;color:#666;display:block}
 
 /* 機材追加行 */
-.item-add{background:#f0f7ff}
-.item-add .thumb{background:#e8f0fe;color:#1a73e8}
-.item-add .item-name{color:#1a73e8;font-weight:600}
+.item-add{background:#1a1a0a}
+.item-add .thumb{background:#252218;color:#c8a96e}
+.item-add .item-name{color:#c8a96e;font-weight:600}
 
-/* スライド表示（6件以上） */
+/* スライド表示 */
 .items-scroll{overflow-x:auto;display:flex;gap:0;flex-direction:column}
-.show-more{text-align:center;padding:8px;font-size:12px;color:#1a73e8;cursor:pointer;border-top:1px solid #f0f0f0}
+.show-more{text-align:center;padding:8px;font-size:12px;color:#c8a96e;cursor:pointer;border-top:1px solid #222}
 
 /* ── ライトカード列 ── */
 .lightRow{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px}
-.lightCard{width:110px;flex-shrink:0;overflow:hidden;border:2px solid #ddd;border-radius:12px;padding:8px;background:#fafafa;cursor:pointer;transition:border-color .15s}
-.lightCard.active{border-color:#ff9800;background:#fff8e8}
+.lightCard{width:110px;flex-shrink:0;overflow:hidden;border:2px solid #2e2e2e;border-radius:12px;padding:8px;background:#141414;cursor:pointer;transition:border-color .15s}
+.lightCard.active{border-color:#c8a96e;background:#1e1a10}
 .lc-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
-.lc-label{font-weight:700;font-size:13px}
-.btn-clear{background:#e53935;color:#fff;border:none;border-radius:50%;width:22px;height:22px;font-size:13px;cursor:pointer;line-height:1}
+.lc-label{font-weight:700;font-size:13px;color:#e8e8e8}
+.btn-clear{background:#c0392b;color:#fff;border:none;border-radius:50%;width:22px;height:22px;font-size:13px;cursor:pointer;line-height:1}
 .preview{font-size:24px;min-height:150px;display:flex;align-items:flex-end;justify-content:center;gap:3px;margin-bottom:6px;padding:4px 2px;overflow:hidden}
-/* 光源＋スタンドの縦積みブロック */
 .preview-base-col{display:flex;flex-direction:column;align-items:center;gap:0;flex-shrink:0}
 .preview-base-col img{display:block}
-/* モディファイア列 */
 .preview-mod-col{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:2px;flex-shrink:0}
-.tag{display:block;font-size:10px;color:#555;line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tag{display:block;font-size:10px;color:#888;line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
 /* ── ゴミ箱ボタン ── */
-.item-del{background:none;border:none;font-size:17px;color:#ccc;cursor:pointer;padding:0 2px;flex-shrink:0;line-height:1;margin-left:auto}
-.item-del:active{color:#e53935}
-.thumb-img{width:100%;height:100%;object-fit:cover;border-radius:8px;}
-.item-amz{background:none;border:1px solid #ff9900;color:#ff9900;border-radius:6px;font-size:9px;font-weight:700;padding:3px 5px;cursor:pointer;flex-shrink:0;line-height:1.2;white-space:nowrap;text-decoration:none;display:flex;align-items:center;gap:2px}
-.item-amz:active{background:#fff3e0}
+.item-del{background:none;border:none;font-size:17px;color:#444;cursor:pointer;padding:0 2px;flex-shrink:0;line-height:1;margin-left:auto}
+.item-del:active{color:#c0392b}
+.thumb-img{width:100%;height:100%;object-fit:cover;border-radius:8px}
+.item-amz{background:none;border:1px solid #c8a96e;color:#c8a96e;border-radius:6px;font-size:9px;font-weight:700;padding:3px 5px;cursor:pointer;flex-shrink:0;line-height:1.2;white-space:nowrap;text-decoration:none;display:flex;align-items:center;gap:2px}
+.item-amz:active{background:#2a2218}
 
 /* ── 保存ボタン ── */
-.btn-save{width:100%;padding:14px;border:none;border-radius:12px;background:#1a73e8;color:#fff;font-size:16px;font-weight:700;cursor:pointer;letter-spacing:.02em}
-.btn-save:active{background:#1558b0}
+.btn-save{width:100%;padding:14px;border:none;border-radius:12px;background:#c8a96e;color:#0f0f0f;font-size:16px;font-weight:700;cursor:pointer;letter-spacing:.02em}
+.btn-save:active{background:#b8956a}
 
 /* ── オーバーレイ ── */
-#overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;align-items:center;justify-content:center;padding:20px}
-.dlg{background:#fff;border-radius:16px;padding:20px;width:100%;max-width:360px;box-shadow:0 8px 32px rgba(0,0,0,.25)}
-.dlg-title{font-size:16px;font-weight:700;margin-bottom:14px}
+#overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:100;align-items:center;justify-content:center;padding:20px}
+.dlg{background:#1e1e1e;border-radius:16px;padding:20px;width:100%;max-width:360px;box-shadow:0 8px 40px rgba(0,0,0,.6);border:1px solid #333}
+.dlg-title{font-size:16px;font-weight:700;margin-bottom:14px;color:#e8e8e8}
 .dlg-body{margin-bottom:16px}
 .dlg-field{margin-bottom:12px}
-.dlg-field label{font-size:12px;color:#555;display:block;margin-bottom:4px;font-weight:600}
-.dlg-field input{width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-size:14px;outline:none}
-.dlg-field input:focus{border-color:#1a73e8}
+.dlg-field label{font-size:12px;color:#888;display:block;margin-bottom:4px;font-weight:600}
+.dlg-field input{width:100%;padding:10px;border:1px solid #333;border-radius:8px;font-size:14px;outline:none;background:#141414;color:#e8e8e8}
+.dlg-field input:focus{border-color:#c8a96e}
 .dlg-btns{display:flex;gap:8px}
-.btn-cancel{flex:1;padding:12px;border:1px solid #ddd;border-radius:10px;background:#f5f5f5;font-size:14px;cursor:pointer}
-.btn-ok{flex:1;padding:12px;border:none;border-radius:10px;background:#1a73e8;color:#fff;font-size:14px;font-weight:700;cursor:pointer}
+.btn-cancel{flex:1;padding:12px;border:1px solid #333;border-radius:10px;background:#252525;font-size:14px;cursor:pointer;color:#aaa}
+.btn-ok{flex:1;padding:12px;border:none;border-radius:10px;background:#c8a96e;color:#0f0f0f;font-size:14px;font-weight:700;cursor:pointer}
 
 /* アイコンピッカー */
 .icon-picker{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
 .icon-opt{font-size:22px;cursor:pointer;padding:6px;border-radius:8px;border:2px solid transparent;transition:border-color .1s}
-.icon-opt.selected{border-color:#1a73e8;background:#e8f0fe}
+.icon-opt.selected{border-color:#c8a96e;background:#2a2218}
 </style>
 </head>
 <body>
