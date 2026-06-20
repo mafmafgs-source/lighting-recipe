@@ -879,7 +879,7 @@ function renderLights() {
       const hasMod   = modifiers.length > 0;
 
       // 全体を横並びのflex、下端揃えで包む
-      let html = '<div style="display:flex;align-items:flex-end;justify-content:center;gap:3px;width:100%">';
+      let html = '<div style="display:flex;align-items:flex-end;justify-content:center;gap:1px;width:100%">';
 
       // 【左】光源＋スタンドの縦積みシルエット
       if (hasLight || hasBase) {
@@ -901,11 +901,12 @@ function renderLights() {
 
       // 【右】モディファイア：光源と下端を揃えるため光源と同じ高さ(40px)で表示
       if (hasMod) {
-        modifiers.forEach(name => {
+        modifiers.forEach((name, idx) => {
           const src = getItemImgSrc(name);
-          // スタンド分(54px)だけ底上げして光源の横に来るようmargin-bottomで調整
           const mb = hasBase ? 54 : 0;
-          html += `<div style="margin-bottom:${mb}px">`;
+          // 2枚目以降は左に重ねる
+          const ml = idx === 0 ? 0 : -18;
+          html += `<div style="margin-bottom:${mb}px;margin-left:${ml}px;">`;
           html += src
             ? `<img src="${src}" style="width:36px;height:36px;object-fit:contain;">`
             : `<span style="font-size:18px">${guessIcon(name)}</span>`;
