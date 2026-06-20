@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
 <title>Lighting Recipe v1.7</title>
 <script src="https://cdn.jsdelivr.net/npm/exifr/dist/full.umd.js"></script>
 <style>
@@ -863,22 +863,23 @@ function applyCanvasScale(){
     legend.style.height=(newSize*0.5)+'px';
   }
   if(lblTop) lblTop.style.top=(newSize*0.25)+'px';
-  if(lblBtm) lblBtm.style.bottom='auto', lblBtm.style.top=(newSize*0.75-12)+'px';
+  if(lblBtm){ lblBtm.style.bottom='auto'; lblBtm.style.top=(newSize*0.75-12)+'px'; }
 
   renderBg();
   renderBeams();
 }
 
-(()=>{
+function initPinch(){
   const wrap=document.querySelector('.lighting-wrap');
-  let lastDist=null;
+  let startDist=null;
   let startScale=1;
+  let lastTap=0;
 
   wrap.addEventListener('touchstart',e=>{
     if(e.touches.length===2){
       isPinching=true;
       startScale=canvasScale;
-      lastDist=Math.hypot(
+      startDist=Math.hypot(
         e.touches[0].clientX-e.touches[1].clientX,
         e.touches[0].clientY-e.touches[1].clientY
       );
@@ -887,29 +888,24 @@ function applyCanvasScale(){
   },{passive:false});
 
   wrap.addEventListener('touchmove',e=>{
-    if(e.touches.length===2&&isPinching){
+    if(e.touches.length===2&&isPinching&&startDist){
+      e.preventDefault();
       const dist=Math.hypot(
         e.touches[0].clientX-e.touches[1].clientX,
         e.touches[0].clientY-e.touches[1].clientY
       );
-      // lastDistからの比率ではなくstartScaleからの比率で計算
-      canvasScale=Math.min(SCALE_MAX,Math.max(SCALE_MIN,startScale*(dist/lastDist)));
+      canvasScale=Math.min(SCALE_MAX,Math.max(SCALE_MIN,startScale*(dist/startDist)));
       applyCanvasScale();
-      e.preventDefault();
     }
   },{passive:false});
 
   wrap.addEventListener('touchend',e=>{
     if(e.touches.length<2){
       isPinching=false;
-      lastDist=null;
+      startDist=null;
       startScale=canvasScale;
     }
-  });
-
-  // ダブルタップでリセット
-  let lastTap=0;
-  wrap.addEventListener('touchend',e=>{
+    // ダブルタップでリセット
     if(e.touches.length===0){
       const now=Date.now();
       if(now-lastTap<300){
@@ -918,8 +914,8 @@ function applyCanvasScale(){
       }
       lastTap=now;
     }
-  });
-})();
+  },{passive:true});
+}
 
 function makeDraggable(node,canvas,idx){
   let sx,sy,sl,st;
@@ -1028,7 +1024,7 @@ lights=loadLights();
 
 // 初回ロード
 restoreSession();
-requestAnimationFrame(()=>{renderCanvas();renderPanel();});
+requestAnimationFrame(()=>{renderCanvas();renderPanel();initPinch();});
 
 // Builder等から戻った時（pageshow は初回ロードでも発火するためフラグで制御）
 let _firstPageshow=true;
