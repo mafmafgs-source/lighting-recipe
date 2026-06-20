@@ -24,6 +24,7 @@ body{-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%;font-
 }
 .tile:active,.tile.active-cat{background:#e8f0fe;border-color:#4285f4}
 .tile .icon{font-size:20px;display:block;margin-bottom:4px}
+.tile .icon-img{width:40px;height:40px;object-fit:contain;display:block;margin:0 auto 4px;border-radius:6px}
 
 /* 追加ボタンタイル */
 .tile-add{border:1.5px dashed #1a73e8;color:#1a73e8;background:#f0f7ff}
@@ -225,7 +226,7 @@ const VISIBLE_COUNT = 5; // 最初に表示する件数
 //  デフォルトデータ
 // ══════════════════════════════════════════════
 const DEFAULT_CATS = [
-  { id:'strobe',    icon:'⚡', get label(){ return T.cats.strobe; } },
+  { id:'strobe',    icon:'⚡', imgPath:'icons/strobe.png', get label(){ return T.cats.strobe; } },
   { id:'video',     icon:'💡', get label(){ return T.cats.video; } },
   { id:'modifier',  icon:'⬡',  get label(){ return T.cats.modifier; } },
   { id:'stand',     icon:'△',  get label(){ return T.cats.stand; } },
@@ -420,7 +421,11 @@ function renderCats() {
     const tile = document.createElement('div');
     tile.className = 'tile' + (cat.id === activeCatId ? ' active-cat' : '');
     tile.id = 'cat-' + cat.id;
-    tile.innerHTML = `<span class="icon">${cat.icon}</span>${cat.label}`;
+    const iconHtml = cat.imgPath
+      ? `<img class="icon-img" src="${cat.imgPath}" alt="${cat.label}" onerror="this.style.display='none';this.nextSibling.style.display='block'">`
+        + `<span class="icon" style="display:none">${cat.icon}</span>`
+      : `<span class="icon">${cat.icon}</span>`;
+    tile.innerHTML = iconHtml + cat.label;
     tile.onclick = () => selectCat(cat.id);
     grid.appendChild(tile);
   });
