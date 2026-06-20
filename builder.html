@@ -24,7 +24,13 @@ body{-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%;font-
 }
 .tile:active,.tile.active-cat{background:#e8f0fe;border-color:#4285f4}
 .tile .icon{font-size:20px;display:block;margin-bottom:4px}
-.tile .icon-img{width:40px;height:40px;object-fit:contain;display:block;margin:0 auto 4px;border-radius:6px}
+.tile .icon-img{width:48px;height:48px;object-fit:contain;display:block;margin:0 auto 4px;border-radius:6px}
+/* サブカテゴリ展開パネル */
+.subcat-panel{grid-column:1/-1;background:#f0f7ff;border-radius:10px;padding:8px;margin-top:-4px}
+.subcat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.tile-sub{border:1px solid #c5d8f5;border-radius:8px;padding:8px 4px;text-align:center;background:#fff;cursor:pointer;font-size:11px;transition:background .15s}
+.tile-sub:active,.tile-sub.active-cat{background:#e8f0fe;border-color:#4285f4}
+.tile-sub .icon-img{width:40px;height:40px;object-fit:contain;display:block;margin:0 auto 3px;border-radius:4px}
 
 /* 追加ボタンタイル */
 .tile-add{border:1.5px dashed #1a73e8;color:#1a73e8;background:#f0f7ff}
@@ -136,7 +142,7 @@ body{-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%;font-
 // ══════════════════════════════════════
 const I18N_DATA = {
   ja:{
-    cats:{strobe:'ストロボ',video:'ビデオ',modifier:'モディファイア',stand:'スタンド',boom:'ブーム',reflector:'レフ板'},
+    cats:{strobe:'ストロボ',video:'ビデオライト',video_stick:'スティック型',modifier:'モディファイア',softbox:'ソフトボックス',umbrella:'アンブレラ',beauty_dish:'ビューティーディッシュ',snoot:'スヌート',stand:'ライトスタンド',boom:'ブームアーム',reflector:'レフ板',flag:'Flag Frame'},
     warehouseTitle:'機材倉庫', catPrompt:'カテゴリを選んでください',
     builderTitle:'Light Builder', saveBtn:'保存して戻る',
     addCatTile:'カテゴリ追加', tapToSet:'タップして設定',
@@ -152,7 +158,7 @@ const I18N_DATA = {
     deleteConfirm:(name)=>`「${name}」を削除しますか？`,
   },
   en:{
-    cats:{strobe:'Strobe',video:'Video',modifier:'Modifier',stand:'Stand',boom:'Boom',reflector:'Reflector'},
+    cats:{strobe:'Strobe',video:'Video Light',video_stick:'Stick Light',modifier:'Modifier',softbox:'Softbox',umbrella:'Umbrella',beauty_dish:'Beauty Dish',snoot:'Snoot',stand:'Light Stand',boom:'Boom Arm',reflector:'Reflector',flag:'Flag Frame'},
     warehouseTitle:'Gear Vault', catPrompt:'Select a category',
     builderTitle:'Light Builder', saveBtn:'Save & Back',
     addCatTile:'Add Category', tapToSet:'Tap to set up',
@@ -168,7 +174,7 @@ const I18N_DATA = {
     deleteConfirm:(name)=>`Delete "${name}"?`,
   },
   zh:{
-    cats:{strobe:'频闪灯',video:'视频灯',modifier:'附件',stand:'灯架',boom:'横臂',reflector:'反光板'},
+    cats:{strobe:'频闪灯',video:'视频灯',video_stick:'棒形灯',modifier:'附件',softbox:'柔光箱',umbrella:'伞',beauty_dish:'美颜碟',snoot:'束光筒',stand:'灯架',boom:'横臂',reflector:'反光板',flag:'遮光板'},
     warehouseTitle:'器材库', catPrompt:'请选择类别',
     builderTitle:'灯光构建器', saveBtn:'保存并返回',
     addCatTile:'添加类别', tapToSet:'点击设置',
@@ -183,7 +189,7 @@ const I18N_DATA = {
     deleteConfirm:(name)=>`删除「${name}」吗？`,
   },
   ko:{
-    cats:{strobe:'스트로브',video:'비디오',modifier:'모디파이어',stand:'스탠드',boom:'붐',reflector:'반사판'},
+    cats:{strobe:'스트로브',video:'비디오라이트',video_stick:'스틱라이트',modifier:'모디파이어',softbox:'소프트박스',umbrella:'우산',beauty_dish:'뷰티디쉬',snoot:'스누트',stand:'라이트스탠드',boom:'붐암',reflector:'반사판',flag:'플래그프레임'},
     warehouseTitle:'장비 창고', catPrompt:'카테고리를 선택하세요',
     builderTitle:'라이트 빌더', saveBtn:'저장 후 돌아가기',
     addCatTile:'카테고리 추가', tapToSet:'탭하여 설정',
@@ -226,12 +232,25 @@ const VISIBLE_COUNT = 5; // 最初に表示する件数
 //  デフォルトデータ
 // ══════════════════════════════════════════════
 const DEFAULT_CATS = [
-  { id:'strobe',    icon:'⚡', imgPath:'icons/strobe.png', get label(){ return T.cats.strobe; } },
-  { id:'video',     icon:'💡', get label(){ return T.cats.video; } },
-  { id:'modifier',  icon:'⬡',  get label(){ return T.cats.modifier; } },
-  { id:'stand',     icon:'△',  get label(){ return T.cats.stand; } },
-  { id:'boom',      icon:'┐',  get label(){ return T.cats.boom; } },
-  { id:'reflector', icon:'◻',  get label(){ return T.cats.reflector; } },
+  { id:'strobe',    icon:'⚡', imgPath:'icons/strobe.png',    get label(){ return T.cats.strobe; } },
+  { id:'video',     icon:'💡', imgPath:'icons/video.png',     get label(){ return T.cats.video; },
+    subs:[
+      { id:'video',       icon:'💡', imgPath:'icons/video.png',       get label(){ return T.cats.video; } },
+      { id:'video_stick', icon:'💡', imgPath:'icons/video_stick.png', get label(){ return T.cats.video_stick; } },
+    ]
+  },
+  { id:'modifier',  icon:'⬡',  imgPath:'icons/softbox.png',  get label(){ return T.cats.modifier; },
+    subs:[
+      { id:'softbox',      icon:'⬡', imgPath:'icons/softbox.png',      get label(){ return T.cats.softbox; } },
+      { id:'umbrella',     icon:'⬡', imgPath:'icons/umbrella.png',     get label(){ return T.cats.umbrella; } },
+      { id:'beauty_dish',  icon:'⬡', imgPath:'icons/beauty_dish.png',  get label(){ return T.cats.beauty_dish; } },
+      { id:'snoot',        icon:'⬡', imgPath:'icons/snoot.png',        get label(){ return T.cats.snoot; } },
+    ]
+  },
+  { id:'stand',     icon:'△',  imgPath:'icons/stand.png',    get label(){ return T.cats.stand; } },
+  { id:'boom',      icon:'┐',  imgPath:'icons/boom.png',     get label(){ return T.cats.boom; } },
+  { id:'reflector', icon:'◻',  imgPath:'icons/reflector.png',get label(){ return T.cats.reflector; } },
+  { id:'flag',      icon:'▬',  imgPath:'icons/flag.png',     get label(){ return T.cats.flag; } },
 ];
 
 // デフォルト機材：{ maker, model } 形式
@@ -245,11 +264,23 @@ const DEFAULT_DB = {
     {maker:'Godox', model:'Forza300'},{maker:'Godox', model:'Forza500'},
     {maker:'Aputure', model:'300D'},{maker:'Aputure', model:'600D'},
   ],
-  modifier:  [
+  video_stick:[
+    {maker:'Godox', model:'TL60'},{maker:'Godox', model:'TL120'},
+    {maker:'Aputure', model:'MT Pro'},{maker:'Nanlite', model:'PavoTube II 15X'},
+  ],
+  softbox:   [
     {maker:'', model:'120cm Octa'},{maker:'', model:'90cm Octa'},
-    {maker:'', model:'60cm Octa'},{maker:'', model:'Beauty Dish'},
-    {maker:'', model:'Umbrella'},{maker:'', model:'Softbox'},
-    {maker:'', model:'Snoot'},{maker:'', model:'Grid'},
+    {maker:'', model:'60cm Octa'},{maker:'', model:'Softbox 60x90'},
+  ],
+  umbrella:  [
+    {maker:'', model:'White Umbrella 85cm'},{maker:'', model:'Silver Umbrella 85cm'},
+    {maker:'', model:'Shoot-through Umbrella'},
+  ],
+  beauty_dish:[
+    {maker:'', model:'Beauty Dish 55cm'},{maker:'', model:'Beauty Dish 70cm'},
+  ],
+  snoot:     [
+    {maker:'', model:'Snoot'},{maker:'', model:'Grid Snoot'},
   ],
   stand:     [
     {maker:'Godox', model:'1052BAC'},{maker:'Godox', model:'Nano Stand'},
@@ -260,10 +291,15 @@ const DEFAULT_DB = {
     {maker:'', model:'白レフ'},{maker:'', model:'黒レフ'},
     {maker:'', model:'シルバーレフ'},{maker:'', model:'トランスルーセント'},
   ],
+  flag:      [
+    {maker:'', model:'Flag Frame S'},{maker:'', model:'Flag Frame M'},
+    {maker:'', model:'Flag Frame L'},
+  ],
 };
 
-// ══════════════════════════════════════════════
-//  状態
+// デフォルトDB各カテゴリの初期件数（追加分との区別用）
+const ORIGINAL_DB_COUNTS = {};
+Object.keys(DEFAULT_DB).forEach(k => { ORIGINAL_DB_COUNTS[k] = DEFAULT_DB[k].length; });
 // ══════════════════════════════════════════════
 let customCats  = loadCustomCats();   // [{id, icon, label, items:[{maker,model}]}]
 let pendingCats = loadPendingCats();  // グリッドに表示されているが未設定のダミー枠 [{id}]
@@ -372,8 +408,17 @@ async function loadAllItemImgs(){
 // ══════════════════════════════════════════════
 //  ヘルパー
 // ══════════════════════════════════════════════
+// メインカテゴリ一覧（サブカテゴリ持ちは親のみ）
 function allCats()  { return [...DEFAULT_CATS, ...customCats]; }
-function getCat(id) { return allCats().find(c => c.id === id); }
+
+// id でカテゴリ検索（サブカテゴリも含めて探す）
+function getCat(id) {
+  for(const c of allCats()){
+    if(c.id===id) return c;
+    if(c.subs){ const s=c.subs.find(s=>s.id===id); if(s) return s; }
+  }
+  return null;
+}
 
 function getItems(id) {
   if (DEFAULT_DB[id]) return DEFAULT_DB[id];
@@ -409,28 +454,60 @@ function guessIcon(name) {
   return '📦';
 }
 
-// ══════════════════════════════════════════════
-//  カテゴリグリッド描画
-// ══════════════════════════════════════════════
+// 展開中の親カテゴリID
+let expandedCatId = null;
+
+function iconHtml(cat, cls='icon-img') {
+  if(cat.imgPath){
+    return `<img class="${cls}" src="${cat.imgPath}" alt="${cat.label}" onerror="this.style.display='none';this.nextSibling&&(this.nextSibling.style.display='block')"><span class="icon" style="display:none">${cat.icon}</span>`;
+  }
+  return `<span class="icon">${cat.icon}</span>`;
+}
+
 function renderCats() {
   const grid = document.getElementById('catGrid');
   grid.innerHTML = '';
 
-  // 確定済みカテゴリ
   allCats().forEach(cat => {
+    const hasSubs = cat.subs && cat.subs.length > 0;
+    const isExpanded = expandedCatId === cat.id;
+    const isActive = cat.id === activeCatId;
+
+    // 親タイル
     const tile = document.createElement('div');
-    tile.className = 'tile' + (cat.id === activeCatId ? ' active-cat' : '');
+    tile.className = 'tile' + (isActive && !hasSubs ? ' active-cat' : '') + (isExpanded ? ' active-cat' : '');
     tile.id = 'cat-' + cat.id;
-    const iconHtml = cat.imgPath
-      ? `<img class="icon-img" src="${cat.imgPath}" alt="${cat.label}" onerror="this.style.display='none';this.nextSibling.style.display='block'">`
-        + `<span class="icon" style="display:none">${cat.icon}</span>`
-      : `<span class="icon">${cat.icon}</span>`;
-    tile.innerHTML = iconHtml + cat.label;
-    tile.onclick = () => selectCat(cat.id);
+    tile.innerHTML = iconHtml(cat) + cat.label + (hasSubs ? ' <span style="font-size:9px">▼</span>' : '');
+    tile.onclick = () => {
+      if(hasSubs){
+        expandedCatId = isExpanded ? null : cat.id;
+        renderCats();
+      } else {
+        expandedCatId = null;
+        selectCat(cat.id);
+      }
+    };
     grid.appendChild(tile);
+
+    // サブカテゴリパネル（展開時、3列グリッドの直後に全幅で挿入）
+    if(hasSubs && isExpanded){
+      const panel = document.createElement('div');
+      panel.className = 'subcat-panel';
+      const subGrid = document.createElement('div');
+      subGrid.className = 'subcat-grid';
+      cat.subs.forEach(sub => {
+        const subTile = document.createElement('div');
+        subTile.className = 'tile-sub' + (sub.id === activeCatId ? ' active-cat' : '');
+        subTile.innerHTML = iconHtml(sub, 'icon-img') + sub.label;
+        subTile.onclick = () => { selectCat(sub.id); renderCats(); };
+        subGrid.appendChild(subTile);
+      });
+      panel.appendChild(subGrid);
+      grid.appendChild(panel);
+    }
   });
 
-  // 未設定のカスタム枠（タップで編集ダイアログ）
+  // 未設定カスタム枠
   pendingCats.forEach(p => {
     const tile = document.createElement('div');
     tile.className = 'tile tile-new';
