@@ -56,8 +56,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
 .exif-names{display:flex;margin-top:4px;border:1px solid #e8e8e8;border-radius:8px;overflow:hidden}
 .exif-names .cell{flex:1;padding:6px 4px;font-size:11px;text-align:center}
 /* キャンバス */
-.lighting-wrap{position:relative;overflow:hidden;border-radius:12px;touch-action:none}
-#canvas{width:100%;aspect-ratio:1/1;border:1px solid #e0e0e0;border-radius:12px;background:#fafafa;position:relative;overflow:hidden;touch-action:none}
+.lighting-wrap{position:relative;overflow:hidden;border-radius:12px;touch-action:none;width:100%;aspect-ratio:1/1}
+#canvas{width:100%;height:100%;border:1px solid #e0e0e0;border-radius:12px;background:#fafafa;position:absolute;top:0;left:0;overflow:hidden;touch-action:none;transform-origin:top left}
 .subject{position:absolute;left:50%;top:42%;transform:translate(-50%,-50%);font-size:28px;pointer-events:none;user-select:none}
 .camera-icon{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);font-size:22px;pointer-events:none;user-select:none}
 .height-legend{position:absolute;right:8px;top:25%;bottom:25%;width:10px;border-radius:6px;background:linear-gradient(to bottom,rgb(10,60,180),rgb(80,160,240),rgb(180,220,255));opacity:.8}
@@ -841,23 +841,33 @@ function renderAll(){renderCanvas();}
 // ══════════════════════════════════════
 //  ピンチズーム
 // ══════════════════════════════════════
+// ══════════════════════════════════════
+//  ピンチで作業領域を拡大
+// ══════════════════════════════════════
 let canvasScale=1;
 let isPinching=false;
-const SCALE_MIN=0.3, SCALE_MAX=1;
+const SCALE_MIN=1, SCALE_MAX=3;
 
 function applyCanvasScale(){
   const canvas=document.getElementById('canvas');
-  canvas.style.transformOrigin='center center';
-  canvas.style.transform=`scale(${canvasScale})`;
+  const wrap=document.querySelector('.lighting-wrap');
+  const wrapSize=wrap.getBoundingClientRect().width;
+  // キャンバスの実サイズを変更、top-leftを起点に拡大
+  canvas.style.width=(wrapSize*canvasScale)+'px';
+  canvas.style.height=(wrapSize*canvasScale)+'px';
+  renderBg();
+  renderBeams();
 }
 
 (()=>{
   const wrap=document.querySelector('.lighting-wrap');
   let lastDist=null;
+  let startScale=1;
 
   wrap.addEventListener('touchstart',e=>{
     if(e.touches.length===2){
       isPinching=true;
+      startScale=canvasScale;
       lastDist=Math.hypot(
         e.touches[0].clientX-e.touches[1].clientX,
         e.touches[0].clientY-e.touches[1].clientY
@@ -873,11 +883,10 @@ function applyCanvasScale(){
         e.touches[0].clientY-e.touches[1].clientY
       );
       if(lastDist){
-        const delta=dist/lastDist;
-        canvasScale=Math.min(SCALE_MAX,Math.max(SCALE_MIN,canvasScale*delta));
+        const ratio=dist/lastDist;
+        canvasScale=Math.min(SCALE_MAX,Math.max(SCALE_MIN,startScale*ratio));
         applyCanvasScale();
       }
-      lastDist=dist;
       e.preventDefault();
     }
   },{passive:false});
@@ -886,10 +895,11 @@ function applyCanvasScale(){
     if(e.touches.length<2){
       isPinching=false;
       lastDist=null;
+      startScale=canvasScale;
     }
   });
 
-  // ダブルタップでズームリセット
+  // ダブルタップでリセット
   let lastTap=0;
   wrap.addEventListener('touchend',e=>{
     if(e.touches.length===0){
@@ -906,7 +916,7 @@ function applyCanvasScale(){
 function makeDraggable(node,canvas,idx){
   let sx,sy,sl,st;
   const mv=(ex,ey)=>{
-    if(isPinching)return; // ズーム中はドラッグ無効
+    if(isPinching)return;
     const rect=canvas.getBoundingClientRect();
     lights[idx].x=Math.max(0,Math.min(100,sl+(ex-sx)/rect.width*100));
     lights[idx].y=Math.max(0,Math.min(100,st+(ey-sy)/rect.height*100));
@@ -914,14 +924,14 @@ function makeDraggable(node,canvas,idx){
     renderBg();renderBeams();
   };
   node.addEventListener('mousedown',e=>{
-    if(canvasScale>1)return; // ズーム中はドラッグ無効
+    if(isPinching)return;
     e.preventDefault();sx=e.clientX;sy=e.clientY;sl=lights[idx].x??20;st=lights[idx].y??30;
     const up=()=>{document.removeEventListener('mousemove',mvM);document.removeEventListener('mouseup',up);};
     const mvM=e=>mv(e.clientX,e.clientY);
     document.addEventListener('mousemove',mvM);document.addEventListener('mouseup',up);
   });
   node.addEventListener('touchstart',e=>{
-    if(isPinching||canvasScale>1)return; // ズーム中はドラッグ無効
+    if(isPinching)return;
     const t=e.touches[0];sx=t.clientX;sy=t.clientY;sl=lights[idx].x??20;st=lights[idx].y??30;
     const mvT=e=>{if(isPinching)return;const t=e.touches[0];mv(t.clientX,t.clientY);};
     const up=()=>{document.removeEventListener('touchmove',mvT);document.removeEventListener('touchend',up);};
