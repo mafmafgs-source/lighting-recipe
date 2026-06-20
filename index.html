@@ -734,6 +734,12 @@ function renderBg(){
 // ══════════════════════════════════════
 //  光パーツ
 // ══════════════════════════════════════
+
+// ライトが光源を含むか判定
+function hasLightSource(items){
+  return items.some(n=>getItemRole(n)==='light');
+}
+
 function renderBeams(){
   const svg=document.getElementById('lightSvg');
   const canvas=document.getElementById('canvas');
@@ -746,13 +752,28 @@ function renderBeams(){
   defs.innerHTML='';
   svg.querySelectorAll('.beam-group').forEach(el=>el.remove());
 
-  // ノード高さ145px、光源は上端から約10px → ノード中心から約-62px
-  const LIGHT_OFFSET_RATIO = 62 / H;
+  // 光源のy位置オフセット（ノード上端の光源画像中心）
+  const LIGHT_OFFSET_RATIO=62/H;
 
   lights.forEach((l,i)=>{
     if(!l.items||!l.items.length)return;
-    const cx=(l.x??20)/100*W;
-    // 光源の高さ＝ノードのy位置からライトスタンド分上にオフセット
+    // 光源がないライトはスキップ
+    if(!hasLightSource(l.items))return;
+
+    const modifiers=l.items.filter(n=>getItemRole(n)==='modifier');
+    const modCount=modifiers.length;
+
+    // 起点X：モディファイアがあればノード中心から右にずらす
+    // モディファイア1枚=36px、重なり=-18px、初期オフセット=-30px
+    // ノード幅80px の半分=40px が中心、そこからモディファイア分右へ
+    let beamOffsetX=0;
+    if(modCount>0){
+      // 光源ブロック幅の半分（約21px/2）＋モディファイア幅の合計
+      const modWidth=36+(modCount-1)*(36-18); // 重なり考慮
+      beamOffsetX=(modWidth*0.9)/W*100; // %に変換
+    }
+
+    const cx=(l.x??20)/100*W + beamOffsetX/100*W;
     const cy=(l.y??30)/100*H - LIGHT_OFFSET_RATIO*H;
     const beam=l.beam??40,angleDeg=l.angle??270;
     const spreadDeg=beam/100*360;
@@ -919,11 +940,15 @@ function updateBeamPanel(){
   const bs=document.getElementById('beamSlider'),as=document.getElementById('angleSlider');
   const bv=document.getElementById('beamVal'),av=document.getElementById('angleVal');
   const hint=document.getElementById('beamHint');
-  if(selected===null){
+  // 光源なし or 未選択 → 無効
+  const l=selected!==null?lights[selected]:null;
+  const active=l&&hasLightSource(l.items);
+  if(!active){
     bs.disabled=true;as.disabled=true;bs.style.opacity='.4';as.style.opacity='.4';
-    if(hint)hint.style.display='block';return;
+    if(hint)hint.style.display='block';
+    if(hint)hint.textContent=selected===null?T.beamHint:'光源（ストロボ・ビデオライト）がないため光パーツは使用できません';
+    return;
   }
-  const l=lights[selected];
   bs.disabled=false;as.disabled=false;bs.style.opacity='1';as.style.opacity='1';
   if(hint)hint.style.display='none';
   bs.value=l.beam??40;as.value=l.angle??270;
