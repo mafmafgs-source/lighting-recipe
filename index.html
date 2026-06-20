@@ -56,13 +56,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
 .exif-names{display:flex;margin-top:4px;border:1px solid #e8e8e8;border-radius:8px;overflow:hidden}
 .exif-names .cell{flex:1;padding:6px 4px;font-size:11px;text-align:center}
 /* キャンバス */
-.lighting-wrap{position:relative;overflow:hidden;border-radius:12px;touch-action:none;width:100%;aspect-ratio:1/1}
-#canvas{width:100%;height:100%;border:1px solid #e0e0e0;border-radius:12px;background:#fafafa;position:absolute;top:0;left:0;overflow:hidden;touch-action:none;transform-origin:top left}
+.lighting-wrap{position:relative;display:flex;align-items:stretch;gap:6px}
+#canvas{flex:1;aspect-ratio:1/1;border:1px solid #e0e0e0;border-radius:12px;background:#fafafa;position:relative;overflow:hidden;touch-action:none}
+/* 縦ズームスライダー */
+.zoom-slider-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;width:24px;flex-shrink:0}
+.zoom-slider-wrap span{font-size:9px;color:#999}
+#zoomSlider{-webkit-appearance:slider-vertical;appearance:slider-vertical;width:24px;height:140px;accent-color:#1a73e8;cursor:pointer}
+/* 高さバー（削除） */
 .subject{position:absolute;left:50%;top:42%;transform:translate(-50%,-50%);font-size:28px;pointer-events:none;user-select:none}
 .camera-icon{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);font-size:22px;pointer-events:none;user-select:none}
-.height-legend{position:absolute;right:8px;top:25%;width:10px;height:50%;border-radius:6px;background:linear-gradient(to bottom,rgb(10,60,180),rgb(80,160,240),rgb(180,220,255));opacity:.8}
-.legend-label{position:absolute;right:22px;font-size:9px;color:#999}
-.legend-top{top:25%}.legend-btm{top:75%}
 #lightSvg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}
 /* ライトノード */
 .light-node{position:absolute;width:80px;height:145px;background:transparent;border:none;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;cursor:grab;user-select:none;touch-action:none;transition:filter .15s}
@@ -174,9 +176,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
         <svg id="lightSvg" xmlns="http://www.w3.org/2000/svg"><g id="bgGroup"></g></svg>
         <div class="subject">👤</div>
         <div class="camera-icon">📷</div>
-        <div class="height-legend"></div>
-        <span class="legend-label legend-top" id="legendTop">高い</span>
-        <span class="legend-label legend-btm" id="legendBtm">低い</span>
+      </div>
+      <div class="zoom-slider-wrap">
+        <span>＋</span>
+        <input type="range" id="zoomSlider" min="100" max="300" value="100" step="5" orient="vertical">
+        <span>－</span>
       </div>
     </div>
     <div id="panel"></div>
@@ -839,82 +843,20 @@ function renderCanvas(){
 function renderAll(){renderCanvas();}
 
 // ══════════════════════════════════════
-//  ピンチで作業領域を拡大
+//  ズームスライダー
 // ══════════════════════════════════════
 let canvasScale=1;
 let isPinching=false;
-const SCALE_MIN=1, SCALE_MAX=3;
 
 function applyCanvasScale(){
   const canvas=document.getElementById('canvas');
-  const wrap=document.querySelector('.lighting-wrap');
+  const wrap=canvas.parentElement;
   const wrapSize=wrap.getBoundingClientRect().width||wrap.offsetWidth||300;
-  const newSize=wrapSize*canvasScale;
+  const newSize=Math.round(wrapSize*canvasScale);
   canvas.style.width=newSize+'px';
   canvas.style.height=newSize+'px';
-
-  // 高さバー・ラベルをcanvasサイズに追従
-  const legend=canvas.querySelector('.height-legend');
-  const lblTop=canvas.querySelector('.legend-top');
-  const lblBtm=canvas.querySelector('.legend-btm');
-  if(legend){
-    legend.style.top=(newSize*0.25)+'px';
-    legend.style.bottom='auto';
-    legend.style.height=(newSize*0.5)+'px';
-  }
-  if(lblTop) lblTop.style.top=(newSize*0.25)+'px';
-  if(lblBtm){ lblBtm.style.bottom='auto'; lblBtm.style.top=(newSize*0.75-12)+'px'; }
-
   renderBg();
   renderBeams();
-}
-
-function initPinch(){
-  const wrap=document.querySelector('.lighting-wrap');
-  let startDist=null;
-  let startScale=1;
-  let lastTap=0;
-
-  wrap.addEventListener('touchstart',e=>{
-    if(e.touches.length===2){
-      isPinching=true;
-      startScale=canvasScale;
-      startDist=Math.hypot(
-        e.touches[0].clientX-e.touches[1].clientX,
-        e.touches[0].clientY-e.touches[1].clientY
-      );
-      e.preventDefault();
-    }
-  },{passive:false});
-
-  wrap.addEventListener('touchmove',e=>{
-    if(e.touches.length===2&&isPinching&&startDist){
-      e.preventDefault();
-      const dist=Math.hypot(
-        e.touches[0].clientX-e.touches[1].clientX,
-        e.touches[0].clientY-e.touches[1].clientY
-      );
-      canvasScale=Math.min(SCALE_MAX,Math.max(SCALE_MIN,startScale*(dist/startDist)));
-      applyCanvasScale();
-    }
-  },{passive:false});
-
-  wrap.addEventListener('touchend',e=>{
-    if(e.touches.length<2){
-      isPinching=false;
-      startDist=null;
-      startScale=canvasScale;
-    }
-    // ダブルタップでリセット
-    if(e.touches.length===0){
-      const now=Date.now();
-      if(now-lastTap<300){
-        canvasScale=1;
-        applyCanvasScale();
-      }
-      lastTap=now;
-    }
-  },{passive:true});
 }
 
 function makeDraggable(node,canvas,idx){
@@ -1024,7 +966,19 @@ lights=loadLights();
 
 // 初回ロード
 restoreSession();
-requestAnimationFrame(()=>{renderCanvas();renderPanel();initPinch();});
+requestAnimationFrame(()=>{
+  renderCanvas();
+  renderPanel();
+  // ズームスライダー初期化
+  const zs=document.getElementById('zoomSlider');
+  if(zs){
+    zs.addEventListener('input',()=>{
+      canvasScale=Number(zs.value)/100;
+      applyCanvasScale();
+      renderCanvas();
+    });
+  }
+});
 
 // Builder等から戻った時（pageshow は初回ロードでも発火するためフラグで制御）
 let _firstPageshow=true;
