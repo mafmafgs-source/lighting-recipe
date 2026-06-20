@@ -874,56 +874,57 @@ function renderLights() {
     const previewHTML = (() => {
       if (!l.items.length) return '<span style="color:#ccc;font-size:13px;align-self:center">' + T.empty + '</span>';
 
-      let html = '';
-
-      // 【左ブロック】光源をスタンドの真上に縦積み（1つのシルエット）
       const hasBase  = bases.length > 0;
       const hasLight = lights_.length > 0;
+      const hasMod   = modifiers.length > 0;
 
+      // 全体を横並びのflex、下端揃えで包む
+      let html = '<div style="display:flex;align-items:flex-end;justify-content:center;gap:3px;width:100%">';
+
+      // 【左】光源＋スタンドの縦積みシルエット
       if (hasLight || hasBase) {
-        html += '<div class="preview-base-col">';
-        // 光源（上）
+        html += '<div style="display:flex;flex-direction:column;align-items:center;gap:0">';
         if (hasLight) {
           const src = getItemImgSrc(lights_[0]);
           html += src
-            ? `<img src="${src}" style="width:42px;height:42px;object-fit:contain;margin-bottom:-4px;">`
+            ? `<img src="${src}" style="width:40px;height:40px;object-fit:contain;margin-bottom:-2px;">`
             : `<span style="font-size:22px;line-height:1">${guessIcon(lights_[0])}</span>`;
         }
-        // スタンド（下・光源に密着）
         if (hasBase) {
           const src = getItemImgSrc(bases[0]);
           html += src
-            ? `<img src="${src}" style="width:36px;height:56px;object-fit:contain;">`
+            ? `<img src="${src}" style="width:34px;height:54px;object-fit:contain;">`
             : `<span style="font-size:22px;line-height:1">${guessIcon(bases[0])}</span>`;
         }
         html += '</div>';
       }
 
-      // 【右ブロック】モディファイア（下端を光源に合わせる）
-      if (modifiers.length) {
+      // 【右】モディファイア：光源と下端を揃えるため光源と同じ高さ(40px)で表示
+      if (hasMod) {
         modifiers.forEach(name => {
           const src = getItemImgSrc(name);
-          html += '<div class="preview-mod-col">';
-          // モディファイアはスタンド分の高さを空けて光源と同じ高さに揃える
-          const standOffset = hasBase ? 56 : 0;
-          html += `<div style="flex:1;min-height:${standOffset}px"></div>`;
+          // スタンド分(54px)だけ底上げして光源の横に来るようmargin-bottomで調整
+          const mb = hasBase ? 54 : 0;
+          html += `<div style="margin-bottom:${mb}px">`;
           html += src
-            ? `<img src="${src}" style="width:34px;height:34px;object-fit:contain;">`
+            ? `<img src="${src}" style="width:36px;height:36px;object-fit:contain;">`
             : `<span style="font-size:18px">${guessIcon(name)}</span>`;
           html += '</div>';
         });
       }
 
       // 光源もスタンドもない（モディファイアのみ）
-      if (!hasLight && !hasBase && modifiers.length) {
-        html = modifiers.map(name => {
+      if (!hasLight && !hasBase && hasMod) {
+        html = '<div style="display:flex;align-items:center;justify-content:center;gap:3px;width:100%">';
+        modifiers.forEach(name => {
           const src = getItemImgSrc(name);
-          return src
+          html += src
             ? `<img src="${src}" style="width:38px;height:38px;object-fit:contain;">`
             : `<span style="font-size:20px">${guessIcon(name)}</span>`;
-        }).join('');
+        });
       }
 
+      html += '</div>';
       return html;
     })();
 
@@ -938,17 +939,6 @@ function renderLights() {
       </div>
       <div class="preview">${previewHTML}</div>
       <div>${l.items.map(v => `<span class="tag">${v}</span>`).join('')}</div>
-      ${l.items.length ? `
-      <div style="margin-top:5px;padding-top:5px;border-top:1px solid #eee">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px">
-          <span style="font-size:9px;color:#888">出力</span>
-          <span id="outDisp_${i}" style="font-size:9px;font-weight:700;color:#1a73e8">${outDisp}</span>
-        </div>
-        <input type="range" style="width:100%;accent-color:#1a73e8;height:14px"
-          min="0" max="${strobe?8:100}" value="${outVal}" step="1"
-          onclick="event.stopPropagation()"
-          oninput="event.stopPropagation();updateOutput(${i},this.value)">
-      </div>` : ''}
     `;
     card.onclick = () => { currentLight = i; renderLights(); };
     row.appendChild(card);
