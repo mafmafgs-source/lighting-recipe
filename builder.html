@@ -887,7 +887,7 @@ function renderLights() {
         if (hasLight) {
           const src = getItemImgSrc(lights_[0]);
           html += src
-            ? `<img src="${src}" style="width:21px;height:21px;object-fit:contain;margin-bottom:-8px;">`
+            ? `<img src="${src}" style="width:21px;height:21px;object-fit:contain;margin-bottom:-15px;">`
             : `<span style="font-size:14px;line-height:1">${guessIcon(lights_[0])}</span>`;
         }
         if (hasBase) {
@@ -905,7 +905,7 @@ function renderLights() {
           const src = getItemImgSrc(name);
           const mb = hasBase ? 113 : 0;
           // 2枚目以降は左に重ねる
-          const ml = idx === 0 ? -4 : -18;
+          const ml = idx === 0 ? -30 : -18;
           html += `<div style="margin-bottom:${mb}px;margin-left:${ml}px;">`;
           html += src
             ? `<img src="${src}" style="width:36px;height:36px;object-fit:contain;">`
