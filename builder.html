@@ -63,7 +63,7 @@ body{-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%;font-
 .lc-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
 .lc-label{font-weight:700;font-size:13px}
 .btn-clear{background:#e53935;color:#fff;border:none;border-radius:50%;width:22px;height:22px;font-size:13px;cursor:pointer;line-height:1}
-.preview{font-size:24px;min-height:130px;display:flex;align-items:flex-end;justify-content:center;gap:3px;margin-bottom:6px;padding:4px 2px;overflow:hidden}
+.preview{font-size:24px;min-height:190px;display:flex;align-items:flex-end;justify-content:center;gap:3px;margin-bottom:6px;padding:4px 2px;overflow:hidden}
 /* 光源＋スタンドの縦積みブロック */
 .preview-base-col{display:flex;flex-direction:column;align-items:center;gap:0;flex-shrink:0}
 .preview-base-col img{display:block}
@@ -887,14 +887,14 @@ function renderLights() {
         if (hasLight) {
           const src = getItemImgSrc(lights_[0]);
           html += src
-            ? `<img src="${src}" style="width:40px;height:40px;object-fit:contain;margin-bottom:-2px;">`
-            : `<span style="font-size:22px;line-height:1">${guessIcon(lights_[0])}</span>`;
+            ? `<img src="${src}" style="width:14px;height:14px;object-fit:contain;margin-bottom:-2px;">`
+            : `<span style="font-size:10px;line-height:1">${guessIcon(lights_[0])}</span>`;
         }
         if (hasBase) {
           const src = getItemImgSrc(bases[0]);
           html += src
-            ? `<img src="${src}" style="width:34px;height:54px;object-fit:contain;">`
-            : `<span style="font-size:22px;line-height:1">${guessIcon(bases[0])}</span>`;
+            ? `<img src="${src}" style="width:102px;height:162px;object-fit:contain;">`
+            : `<span style="font-size:60px;line-height:1">${guessIcon(bases[0])}</span>`;
         }
         html += '</div>';
       }
@@ -903,7 +903,7 @@ function renderLights() {
       if (hasMod) {
         modifiers.forEach((name, idx) => {
           const src = getItemImgSrc(name);
-          const mb = hasBase ? 54 : 0;
+          const mb = hasBase ? 162 : 0;
           // 2枚目以降は左に重ねる
           const ml = idx === 0 ? 0 : -18;
           html += `<div style="margin-bottom:${mb}px;margin-left:${ml}px;">`;
