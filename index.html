@@ -56,13 +56,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
 .exif-names{display:flex;margin-top:4px;border:1px solid #e8e8e8;border-radius:8px;overflow:hidden}
 .exif-names .cell{flex:1;padding:6px 4px;font-size:11px;text-align:center}
 /* キャンバス */
-.lighting-wrap{position:relative;display:flex;align-items:stretch;gap:6px}
-#canvas{flex:1;aspect-ratio:1/1;border:1px solid #e0e0e0;border-radius:12px;background:#fafafa;position:relative;overflow:hidden;touch-action:none}
-/* 縦ズームスライダー */
-.zoom-slider-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;width:24px;flex-shrink:0}
-.zoom-slider-wrap span{font-size:9px;color:#999}
-#zoomSlider{-webkit-appearance:slider-vertical;appearance:slider-vertical;width:24px;height:140px;accent-color:#1a73e8;cursor:pointer}
-/* 高さバー（削除） */
+.lighting-wrap{position:relative}
+#canvas{width:100%;aspect-ratio:1/1;border:1px solid #e0e0e0;border-radius:12px;background:#fafafa;position:relative;overflow:hidden;touch-action:none}
+
 .subject{position:absolute;left:50%;top:42%;transform:translate(-50%,-50%);font-size:28px;pointer-events:none;user-select:none}
 .camera-icon{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);font-size:22px;pointer-events:none;user-select:none}
 #lightSvg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}
@@ -176,11 +172,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
         <svg id="lightSvg" xmlns="http://www.w3.org/2000/svg"><g id="bgGroup"></g></svg>
         <div class="subject">👤</div>
         <div class="camera-icon">📷</div>
-      </div>
-      <div class="zoom-slider-wrap">
-        <span>＋</span>
-        <input type="range" id="zoomSlider" min="100" max="300" value="100" step="5" orient="vertical">
-        <span>－</span>
       </div>
     </div>
     <div id="panel"></div>
@@ -842,27 +833,11 @@ function renderCanvas(){
 
 function renderAll(){renderCanvas();}
 
-// ══════════════════════════════════════
-//  ズームスライダー
-// ══════════════════════════════════════
-let canvasScale=1;
-let isPinching=false;
 
-function applyCanvasScale(){
-  const canvas=document.getElementById('canvas');
-  const wrap=canvas.parentElement;
-  const wrapSize=wrap.getBoundingClientRect().width||wrap.offsetWidth||300;
-  const newSize=Math.round(wrapSize*canvasScale);
-  canvas.style.width=newSize+'px';
-  canvas.style.height=newSize+'px';
-  renderBg();
-  renderBeams();
-}
 
 function makeDraggable(node,canvas,idx){
   let sx,sy,sl,st;
   const mv=(ex,ey)=>{
-    if(isPinching)return;
     const rect=canvas.getBoundingClientRect();
     lights[idx].x=Math.max(0,Math.min(100,sl+(ex-sx)/rect.width*100));
     lights[idx].y=Math.max(0,Math.min(100,st+(ey-sy)/rect.height*100));
@@ -870,16 +845,14 @@ function makeDraggable(node,canvas,idx){
     renderBg();renderBeams();
   };
   node.addEventListener('mousedown',e=>{
-    if(isPinching)return;
     e.preventDefault();sx=e.clientX;sy=e.clientY;sl=lights[idx].x??20;st=lights[idx].y??30;
     const up=()=>{document.removeEventListener('mousemove',mvM);document.removeEventListener('mouseup',up);};
     const mvM=e=>mv(e.clientX,e.clientY);
     document.addEventListener('mousemove',mvM);document.addEventListener('mouseup',up);
   });
   node.addEventListener('touchstart',e=>{
-    if(isPinching)return;
     const t=e.touches[0];sx=t.clientX;sy=t.clientY;sl=lights[idx].x??20;st=lights[idx].y??30;
-    const mvT=e=>{if(isPinching)return;const t=e.touches[0];mv(t.clientX,t.clientY);};
+    const mvT=e=>{const t=e.touches[0];mv(t.clientX,t.clientY);};
     const up=()=>{document.removeEventListener('touchmove',mvT);document.removeEventListener('touchend',up);};
     document.addEventListener('touchmove',mvT,{passive:true});document.addEventListener('touchend',up);
   },{passive:true});
@@ -966,19 +939,7 @@ lights=loadLights();
 
 // 初回ロード
 restoreSession();
-requestAnimationFrame(()=>{
-  renderCanvas();
-  renderPanel();
-  // ズームスライダー初期化
-  const zs=document.getElementById('zoomSlider');
-  if(zs){
-    zs.addEventListener('input',()=>{
-      canvasScale=Number(zs.value)/100;
-      applyCanvasScale();
-      renderCanvas();
-    });
-  }
-});
+requestAnimationFrame(()=>{renderCanvas();renderPanel();});
 
 // Builder等から戻った時（pageshow は初回ロードでも発火するためフラグで制御）
 let _firstPageshow=true;
