@@ -906,7 +906,7 @@ function renderLights() {
         if(hasLight){
           const src = getItemImgSrc(lights_[0]);
           const lx = tipX - lightW/2;
-          const ly = tipY - lightH + 2;
+          const ly = tipY - lightH + 7;
           html += src
             ? `<img src="${src}" style="position:absolute;left:${lx}px;top:${ly}px;width:${lightW}px;height:${lightH}px;object-fit:contain;">`
             : `<span style="position:absolute;left:${lx}px;top:${ly}px;font-size:12px">⚡</span>`;
@@ -914,7 +914,7 @@ function renderLights() {
         if(hasMod){
           modifiers.forEach((name,idx)=>{
             const src = getItemImgSrc(name);
-            const mx = tipX + lightW/2 - 2 + idx*(modW-10);
+            const mx = tipX + lightW/2 - 7 + idx*(modW-10);
             const my = tipY - modH/2 - lightH/2 + 2;
             html += src
               ? `<img src="${src}" style="position:absolute;left:${mx}px;top:${my}px;width:${modW}px;height:${modH}px;object-fit:contain;">`
