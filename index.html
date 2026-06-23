@@ -1019,21 +1019,18 @@ async function doExport(){
   const canvas=document.createElement('canvas');
   const ctx=canvas.getContext('2d');
 
-  // ── セクションごとの高さを計算してから総高を決める ──
   const PADDING=28;
   const CARD_R=14;
   const GOLD='#c8a96e';
   const BG='#0f0f0f';
   const CARD_BG='#1a1a1a';
   const TEXT='#e8e8e8';
-  const SUB='#888888';
+  const SUB='#666666';
+  const BORDER='#2e2e2e';
 
-  // 写真
+  // データ取得
   const photoImg=document.getElementById('photoImg');
   const hasPhoto=photoImg&&photoImg.classList.contains('loaded');
-  const PHOTO_H=hasPhoto?Math.round(W*0.6):0;
-
-  // EXIF
   const exCamera=document.getElementById('exCamera')?.textContent||'–';
   const exLens  =document.getElementById('exLens')?.textContent||'–';
   const exDate  =document.getElementById('exDate')?.textContent||'–';
@@ -1042,25 +1039,21 @@ async function doExport(){
   const exISO   =document.getElementById('exISO')?.textContent||'–';
   const exFL    =document.getElementById('exFL')?.textContent||'–';
   const loc     =document.getElementById('locInput')?.value||'';
-  const memo    =document.getElementById('memoInput')?.value||'';
 
-  // ライティング図
+  const activeLights=lights.filter(l=>l.items&&l.items.length>0);
+
+  // 各セクション高さ
+  const HEADER_H=56;
+  const PHOTO_H=hasPhoto?420:0; // 縦写真も収まる固定高
+  const EXIF_H=80;
   const DIAG_W=W-PADDING*2;
   const DIAG_H=DIAG_W;
+  const CARD_W=activeLights.length>0?Math.min(180,Math.floor((W-PADDING*2-(activeLights.length-1)*10)/activeLights.length)):0;
+  const CARD_H=activeLights.length>0?220:0;
 
-  // ライトカード
-  const activeLights=lights.filter(l=>l.items&&l.items.length>0);
-  const CARD_W=Math.min(160,Math.floor((W-PADDING*2-(activeLights.length-1)*10)/activeLights.length));
-  const CARD_H=220;
-
-  // 総高計算
-  let totalH=PADDING;
+  let totalH=HEADER_H+PADDING;
   if(hasPhoto) totalH+=PHOTO_H+16;
-  // EXIF行
-  totalH+=22*3+8+16; // カメラ・レンズ・日付 + F値行 + gap
-  if(showLoc&&loc) totalH+=28;
-  if(showDate&&exDate!=='–') totalH+=28;
-  if((showLoc&&loc)||(showDate&&exDate!=='–')) totalH+=8; // 下余白
+  totalH+=EXIF_H+16;
   totalH+=DIAG_H+16;
   if(activeLights.length>0) totalH+=CARD_H+16;
   totalH+=PADDING;
@@ -1072,7 +1065,21 @@ async function doExport(){
   ctx.fillStyle=BG;
   ctx.fillRect(0,0,W,totalH);
 
-  let y=PADDING;
+  // ── ヘッダー ──
+  ctx.fillStyle='#141414';
+  ctx.fillRect(0,0,W,HEADER_H);
+  ctx.strokeStyle=BORDER;ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(0,HEADER_H);ctx.lineTo(W,HEADER_H);ctx.stroke();
+  ctx.font=`700 18px -apple-system,sans-serif`;
+  ctx.fillStyle=GOLD;
+  ctx.fillText('LIGHTING RECIPE',PADDING,HEADER_H/2+7);
+  ctx.font=`400 12px -apple-system,sans-serif`;
+  ctx.fillStyle=SUB;
+  const appUrl='lighting-recipe.app';
+  const urlW=ctx.measureText(appUrl).width;
+  ctx.fillText(appUrl,W-PADDING-urlW,HEADER_H/2+5);
+
+  let y=HEADER_H+PADDING;
 
   // ── 写真 ──
   if(hasPhoto){
@@ -1082,11 +1089,11 @@ async function doExport(){
       img.onload=()=>{
         roundRect(ctx,PADDING,y,DIAG_W,PHOTO_H,CARD_R);
         ctx.save();ctx.clip();
-        // object-fit:contain
+        ctx.fillStyle='#111';ctx.fillRect(PADDING,y,DIAG_W,PHOTO_H);
+        // object-fit:contain（縦横どちらでも全体表示）
         const scale=Math.min(DIAG_W/img.naturalWidth,PHOTO_H/img.naturalHeight);
         const iw=img.naturalWidth*scale,ih=img.naturalHeight*scale;
         const ix=PADDING+(DIAG_W-iw)/2,iy=y+(PHOTO_H-ih)/2;
-        ctx.fillStyle='#111';ctx.fillRect(PADDING,y,DIAG_W,PHOTO_H);
         ctx.drawImage(img,ix,iy,iw,ih);
         ctx.restore();
         res();
@@ -1097,43 +1104,58 @@ async function doExport(){
     y+=PHOTO_H+16;
   }
 
-  // ── EXIF ──
-  ctx.font=`600 12px -apple-system,sans-serif`;
-  ctx.fillStyle=SUB; ctx.fillText('カメラ',PADDING,y+12);
-  ctx.fillStyle=TEXT; ctx.font=`400 14px -apple-system,sans-serif`;
-  ctx.fillText(exCamera,PADDING,y+28);
-  ctx.font=`600 12px -apple-system,sans-serif`;
-  ctx.fillStyle=SUB; ctx.fillText('レンズ',W/2,y+12);
-  ctx.fillStyle=TEXT; ctx.font=`400 14px -apple-system,sans-serif`;
-  ctx.fillText(exLens,W/2,y+28);
-  y+=40;
+  // ── EXIF ＋ ロケーション/日付（左右2カラム） ──
+  const LEFT_W=Math.round(W*0.55)-PADDING;
+  const RIGHT_X=PADDING+LEFT_W+20;
+  const RIGHT_W=W-RIGHT_X-PADDING;
 
-  // F値・SS・ISO・焦点距離
-  const exifItems=[['F値',exF],['SS',exSS],['ISO',exISO],['焦点距離',exFL]];
-  const colW=(W-PADDING*2)/4;
+  // 左カラム：カメラ・レンズ
+  ctx.font=`600 11px -apple-system,sans-serif`;
+  ctx.fillStyle=SUB; ctx.fillText('CAMERA',PADDING,y+12);
+  ctx.font=`400 13px -apple-system,sans-serif`;
+  ctx.fillStyle=TEXT; ctx.fillText(exCamera,PADDING,y+27);
+
+  ctx.font=`600 11px -apple-system,sans-serif`;
+  ctx.fillStyle=SUB; ctx.fillText('LENS',PADDING+LEFT_W/2,y+12);
+  ctx.font=`400 13px -apple-system,sans-serif`;
+  ctx.fillStyle=TEXT; ctx.fillText(exLens,PADDING+LEFT_W/2,y+27);
+
+  // F値・SS・ISO・焦点距離（4列、左カラム内）
+  const exifItems=[['F値',exF],['SS',exSS],['ISO',exISO],['焦距',exFL]];
+  const eColW=LEFT_W/4;
   exifItems.forEach(([label,val],i)=>{
-    const x=PADDING+colW*i;
-    ctx.font=`600 11px -apple-system,sans-serif`;
-    ctx.fillStyle=SUB; ctx.fillText(label,x,y+12);
-    ctx.font=`400 13px -apple-system,sans-serif`;
-    ctx.fillStyle=TEXT; ctx.fillText(val,x,y+28);
+    const x=PADDING+eColW*i;
+    ctx.font=`600 10px -apple-system,sans-serif`;
+    ctx.fillStyle=SUB; ctx.fillText(label,x,y+46);
+    ctx.font=`400 12px -apple-system,sans-serif`;
+    ctx.fillStyle=TEXT; ctx.fillText(val,x,y+60);
   });
-  y+=40;
 
-  // ロケーション・撮影日（縦並び）
+  // 右カラム：ロケーション・撮影日（縦並び）
+  let ry=y+12;
   if(showLoc&&loc){
-    ctx.font=`400 13px -apple-system,sans-serif`;
+    ctx.font=`600 11px -apple-system,sans-serif`;
+    ctx.fillStyle=SUB; ctx.fillText('LOCATION',RIGHT_X,ry);
+    ry+=16;
+    ctx.font=`400 12px -apple-system,sans-serif`;
     ctx.fillStyle=GOLD;
-    ctx.fillText('📍  '+loc,PADDING,y+16);
-    y+=28;
+    // 長い場合は省略
+    const maxLocW=RIGHT_W;
+    let locText=loc;
+    while(ctx.measureText(locText).width>maxLocW&&locText.length>1) locText=locText.slice(0,-1);
+    if(locText!==loc) locText=locText.slice(0,-1)+'…';
+    ctx.fillText(locText,RIGHT_X,ry);
+    ry+=24;
   }
   if(showDate&&exDate!=='–'){
-    ctx.font=`400 13px -apple-system,sans-serif`;
-    ctx.fillStyle=GOLD;
-    ctx.fillText('📅  '+exDate,PADDING,y+16);
-    y+=28;
+    ctx.font=`600 11px -apple-system,sans-serif`;
+    ctx.fillStyle=SUB; ctx.fillText('DATE',RIGHT_X,ry);
+    ry+=16;
+    ctx.font=`400 12px -apple-system,sans-serif`;
+    ctx.fillStyle=GOLD; ctx.fillText(exDate,RIGHT_X,ry);
   }
-  if((showLoc&&loc)||(showDate&&exDate!=='–')) y+=8;
+
+  y+=EXIF_H+16;
 
   // ── ライティング図 ──
   await new Promise(res=>{
@@ -1141,9 +1163,7 @@ async function doExport(){
     html2canvas(diagCanvas,{
       backgroundColor:'#f8f8f8',
       scale:DIAG_W/diagCanvas.offsetWidth,
-      useCORS:true,
-      allowTaint:true,
-      logging:false,
+      useCORS:true,allowTaint:true,logging:false,
     }).then(c=>{
       roundRect(ctx,PADDING,y,DIAG_W,DIAG_H,CARD_R);
       ctx.save();ctx.clip();
@@ -1158,34 +1178,36 @@ async function doExport(){
   if(activeLights.length>0){
     activeLights.forEach((l,i)=>{
       const x=PADDING+i*(CARD_W+10);
-      // カード背景
       roundRect(ctx,x,y,CARD_W,CARD_H,10);
       ctx.fillStyle=CARD_BG;ctx.fill();
-      ctx.strokeStyle='#2e2e2e';ctx.lineWidth=1;ctx.stroke();
+      ctx.strokeStyle=BORDER;ctx.lineWidth=1;ctx.stroke();
 
       // ラベル
-      ctx.font=`700 13px -apple-system,sans-serif`;
+      ctx.font=`700 14px -apple-system,sans-serif`;
       ctx.fillStyle=GOLD;
-      ctx.fillText(['A','B','C','D','E'][lights.indexOf(l)],x+10,y+20);
+      ctx.fillText(['A','B','C','D','E'][lights.indexOf(l)],x+12,y+22);
 
       // 機材名
       ctx.font=`400 11px -apple-system,sans-serif`;
       ctx.fillStyle=TEXT;
-      let ty=y+38;
-      l.items.slice(0,6).forEach(name=>{
-        ctx.fillText(name.length>16?name.slice(0,15)+'…':name,x+10,ty);
-        ty+=16;
+      let ty=y+44;
+      l.items.slice(0,7).forEach(name=>{
+        const n=name.length>18?name.slice(0,17)+'…':name;
+        ctx.fillText(n,x+12,ty);
+        ty+=17;
       });
 
       // 出力
       const outTxt=outputLabel(l);
       if(outTxt){
-        ctx.font=`700 14px -apple-system,sans-serif`;
+        // 仕切り線
+        ctx.strokeStyle=BORDER;ctx.lineWidth=1;
+        ctx.beginPath();ctx.moveTo(x+12,y+CARD_H-34);ctx.lineTo(x+CARD_W-12,y+CARD_H-34);ctx.stroke();
+        ctx.font=`700 15px -apple-system,sans-serif`;
         ctx.fillStyle=GOLD;
-        ctx.fillText(outTxt,x+10,y+CARD_H-14);
+        ctx.fillText(outTxt,x+12,y+CARD_H-14);
       }
     });
-    y+=CARD_H+16;
   }
 
   // ── Web Share API（カメラロール）or フォールバック ──
