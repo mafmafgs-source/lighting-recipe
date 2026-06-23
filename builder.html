@@ -898,16 +898,15 @@ function renderLights() {
       let html;
 
       if(hasBoom){
-        // ブーム先端：画像内の約55%横・28%縦
-        const tipX = Math.round(baseW * 0.55);
+        const tipX = Math.round(baseW * 0.45);
         const tipY = Math.round(baseH * 0.28);
         const lightW = 21, lightH = 21, modW = 36, modH = 36;
-        html = `<div style="position:relative;width:${baseW + modW + 10}px;height:${baseH}px;flex-shrink:0">`;
+        html = `<div style="position:relative;width:${baseW + modW + 4}px;height:${baseH}px;flex-shrink:0">`;
         html += `<img src="${baseImgSrc}" style="position:absolute;left:0;top:0;width:${baseW}px;height:${baseH}px;object-fit:contain;">`;
         if(hasLight){
           const src = getItemImgSrc(lights_[0]);
           const lx = tipX - lightW/2;
-          const ly = tipY - lightH;
+          const ly = tipY - lightH + 2;
           html += src
             ? `<img src="${src}" style="position:absolute;left:${lx}px;top:${ly}px;width:${lightW}px;height:${lightH}px;object-fit:contain;">`
             : `<span style="position:absolute;left:${lx}px;top:${ly}px;font-size:12px">⚡</span>`;
@@ -915,8 +914,8 @@ function renderLights() {
         if(hasMod){
           modifiers.forEach((name,idx)=>{
             const src = getItemImgSrc(name);
-            const mx = tipX + lightW/2 - idx*10;
-            const my = tipY - modH/2 - lightH/2;
+            const mx = tipX + lightW/2 - 2 + idx*(modW-10);
+            const my = tipY - modH/2 - lightH/2 + 2;
             html += src
               ? `<img src="${src}" style="position:absolute;left:${mx}px;top:${my}px;width:${modW}px;height:${modH}px;object-fit:contain;">`
               : `<span style="position:absolute;left:${mx}px;top:${my}px;font-size:18px">⬡</span>`;
