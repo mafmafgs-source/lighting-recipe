@@ -548,7 +548,7 @@ function buildNodeHTML(l){
   const hasBase  =bases.length>0;
   const hasLight =lights_.length>0;
   const hasMod   =modifiers.length>0;
-  const hasBoom  =l.items.some(n=>getItemRole(n)==='base'&&getCatImgByItemName(n)==='icons/boom.png');
+  const hasBoom  =l.items.some(n=>getItemRole(n)==='base'&&(n.includes('Boom')||n.includes('boom')||n==='Boom Arm'||n==='Mini Boom'));
 
   // ベース画像：ブームあり→boom_stand.png左寄せ
   const baseImgSrc=hasBoom?'icons/boom_stand.png':(hasBase?getItemImgSrc(bases[0]):null);
