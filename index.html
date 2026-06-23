@@ -1104,25 +1104,23 @@ async function doExport(){
     y+=PHOTO_H+16;
   }
 
-  // ── EXIF ＋ ロケーション/日付（左右2カラム） ──
-  const LEFT_W=Math.round(W*0.55)-PADDING;
-  const RIGHT_X=PADDING+LEFT_W+20;
-  const RIGHT_W=W-RIGHT_X-PADDING;
+  // ── EXIF 2行レイアウト ──
+  // 行1: カメラ（左半分）・レンズ（右半分）
+  const HALF=Math.round((W-PADDING*2)/2);
 
-  // 左カラム：カメラ・レンズ
   ctx.font=`600 11px -apple-system,sans-serif`;
   ctx.fillStyle=SUB; ctx.fillText('CAMERA',PADDING,y+12);
   ctx.font=`400 13px -apple-system,sans-serif`;
-  ctx.fillStyle=TEXT; ctx.fillText(exCamera,PADDING,y+27);
+  ctx.fillStyle=TEXT; ctx.fillText(exCamera,PADDING,y+28);
 
   ctx.font=`600 11px -apple-system,sans-serif`;
-  ctx.fillStyle=SUB; ctx.fillText('LENS',PADDING+LEFT_W/2,y+12);
+  ctx.fillStyle=SUB; ctx.fillText('LENS',PADDING+HALF,y+12);
   ctx.font=`400 13px -apple-system,sans-serif`;
-  ctx.fillStyle=TEXT; ctx.fillText(exLens,PADDING+LEFT_W/2,y+27);
+  ctx.fillStyle=TEXT; ctx.fillText(exLens,PADDING+HALF,y+28);
 
-  // F値・SS・ISO・焦点距離（4列、左カラム内）
+  // 行2: F値・SS・ISO・焦距（左4列）＋ロケーション・日付（右側）
   const exifItems=[['F値',exF],['SS',exSS],['ISO',exISO],['焦距',exFL]];
-  const eColW=LEFT_W/4;
+  const eColW=Math.round((W-PADDING*2)*0.12); // 各列幅
   exifItems.forEach(([label,val],i)=>{
     const x=PADDING+eColW*i;
     ctx.font=`600 10px -apple-system,sans-serif`;
@@ -1131,28 +1129,22 @@ async function doExport(){
     ctx.fillStyle=TEXT; ctx.fillText(val,x,y+60);
   });
 
-  // 右カラム：ロケーション・撮影日（縦並び）
-  let ry=y+12;
+  // ロケーション（EXIF4列の右隣）
+  const locX=PADDING+eColW*4+16;
   if(showLoc&&loc){
-    ctx.font=`600 11px -apple-system,sans-serif`;
-    ctx.fillStyle=SUB; ctx.fillText('LOCATION',RIGHT_X,ry);
-    ry+=16;
+    ctx.font=`600 10px -apple-system,sans-serif`;
+    ctx.fillStyle=SUB; ctx.fillText('LOCATION',locX,y+46);
     ctx.font=`400 12px -apple-system,sans-serif`;
-    ctx.fillStyle=GOLD;
-    // 長い場合は省略
-    const maxLocW=RIGHT_W;
-    let locText=loc;
-    while(ctx.measureText(locText).width>maxLocW&&locText.length>1) locText=locText.slice(0,-1);
-    if(locText!==loc) locText=locText.slice(0,-1)+'…';
-    ctx.fillText(locText,RIGHT_X,ry);
-    ry+=24;
+    ctx.fillStyle=GOLD; ctx.fillText(loc,locX,y+60);
   }
+
+  // 日付（ロケーションの右隣 or ロケなしならEXIFの右隣）
+  const dateX=showLoc&&loc ? locX+ctx.measureText(loc).width+24 : locX;
   if(showDate&&exDate!=='–'){
-    ctx.font=`600 11px -apple-system,sans-serif`;
-    ctx.fillStyle=SUB; ctx.fillText('DATE',RIGHT_X,ry);
-    ry+=16;
+    ctx.font=`600 10px -apple-system,sans-serif`;
+    ctx.fillStyle=SUB; ctx.fillText('DATE',dateX,y+46);
     ctx.font=`400 12px -apple-system,sans-serif`;
-    ctx.fillStyle=GOLD; ctx.fillText(exDate,RIGHT_X,ry);
+    ctx.fillStyle=GOLD; ctx.fillText(exDate,dateX,y+60);
   }
 
   y+=EXIF_H+16;
