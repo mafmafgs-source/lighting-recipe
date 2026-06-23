@@ -836,8 +836,8 @@ function renderCanvas(){
     // 高さ→色・border幅（低い=細い1px、高い=太い5px）
     const h=l.height??HEIGHT_DEFAULT;
     const col=heightToColor(h);
-    const borderW=Math.round(1+(h/HEIGHT_MAX)*4); // 1〜5px
-    const outTxt=outputLabel(l);
+    const borderW=Math.round(1+(h/HEIGHT_MAX)*4);
+    const outTxt=hasLightSource(l.items)?outputLabel(l):'';
     const LABELS=['A','B','C','D','E'];
 
     node.innerHTML=
