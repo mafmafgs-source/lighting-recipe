@@ -94,10 +94,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
 #exportModal.open{display:flex}
 .export-sheet{background:#1a1a1a;border-radius:20px 20px 0 0;padding:20px;width:100%;max-width:430px;border-top:1px solid #333}
 .export-sheet h3{font-size:15px;font-weight:700;color:#e8e8e8;margin-bottom:16px;text-align:center}
-.export-toggles{display:flex;gap:10px;margin-bottom:20px;justify-content:center}
-.export-toggle{display:flex;align-items:center;gap:6px;padding:8px 14px;border:1px solid #333;border-radius:10px;background:#141414;cursor:pointer;font-size:13px;color:#aaa;-webkit-tap-highlight-color:transparent}
-.export-toggle.on{border-color:#c8a96e;color:#c8a96e;background:#2a2218}
-.export-toggle input{display:none}
+.export-checks{display:flex;flex-direction:column;gap:12px;margin-bottom:20px}
+.export-check-row{display:flex;align-items:center;gap:10px;cursor:pointer}
+.export-check-row input[type=checkbox]{width:18px;height:18px;accent-color:#c8a96e;cursor:pointer;flex-shrink:0}
+.export-check-row span{font-size:13px;color:#e8e8e8}
 .btn-export-go{width:100%;padding:14px;border:none;border-radius:12px;background:#c8a96e;color:#0f0f0f;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:10px}
 .btn-export-cancel{width:100%;padding:12px;border:1px solid #333;border-radius:12px;background:transparent;color:#888;font-size:14px;cursor:pointer}
 .btn-builder{display:block;width:100%;padding:14px;border:none;border-radius:12px;background:#c8a96e;color:#0f0f0f;font-size:15px;font-weight:700;cursor:pointer;text-align:center;text-decoration:none;-webkit-tap-highlight-color:transparent;letter-spacing:.02em}
@@ -1009,15 +1009,6 @@ function closeExportModal(){
   document.getElementById('exportModal').classList.remove('open');
 }
 
-// トグルのON/OFF切り替え
-['toggleLoc','toggleDate'].forEach(id=>{
-  document.getElementById(id).addEventListener('click',function(){
-    const cb=this.querySelector('input');
-    cb.checked=!cb.checked;
-    this.classList.toggle('on',cb.checked);
-  });
-});
-
 async function doExport(){
   closeExportModal();
   const showLoc =document.getElementById('exportLoc').checked;
@@ -1194,11 +1185,29 @@ async function doExport(){
     y+=CARD_H+16;
   }
 
-  // ── ダウンロード ──
-  const link=document.createElement('a');
-  link.download='lighting-recipe.png';
-  link.href=canvas.toDataURL('image/png');
-  link.click();
+  // ── Web Share API（カメラロール）or フォールバック ──
+  canvas.toBlob(async blob=>{
+    const file=new File([blob],'lighting-recipe.png',{type:'image/png'});
+    if(navigator.canShare&&navigator.canShare({files:[file]})){
+      try{
+        await navigator.share({files:[file],title:'Lighting Recipe'});
+      }catch(e){
+        if(e.name!=='AbortError'){
+          // シェアキャンセル以外のエラーはダウンロードへ
+          const link=document.createElement('a');
+          link.download='lighting-recipe.png';
+          link.href=URL.createObjectURL(blob);
+          link.click();
+        }
+      }
+    } else {
+      // Web Share API非対応ブラウザはダウンロード
+      const link=document.createElement('a');
+      link.download='lighting-recipe.png';
+      link.href=URL.createObjectURL(blob);
+      link.click();
+    }
+  },'image/png');
 }
 
 function roundRect(ctx,x,y,w,h,r){
@@ -1215,15 +1224,17 @@ function roundRect(ctx,x,y,w,h,r){
 <div id="exportModal">
   <div class="export-sheet">
     <h3>📷 レシピを出力</h3>
-    <div class="export-toggles">
-      <label class="export-toggle on" id="toggleLoc">
-        <input type="checkbox" id="exportLoc" checked> 📍 ロケーション
+    <div class="export-checks">
+      <label class="export-check-row">
+        <input type="checkbox" id="exportLoc" checked>
+        <span>📍 ロケーションを含める</span>
       </label>
-      <label class="export-toggle on" id="toggleDate">
-        <input type="checkbox" id="exportDate" checked> 📅 撮影日
+      <label class="export-check-row">
+        <input type="checkbox" id="exportDate" checked>
+        <span>📅 撮影日を含める</span>
       </label>
     </div>
-    <button class="btn-export-go" onclick="doExport()">PNG で保存</button>
+    <button class="btn-export-go" onclick="doExport()">📸 カメラロールに保存</button>
     <button class="btn-export-cancel" onclick="closeExportModal()">キャンセル</button>
   </div>
 </div>
