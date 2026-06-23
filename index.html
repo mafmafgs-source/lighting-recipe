@@ -1058,8 +1058,9 @@ async function doExport(){
   if(hasPhoto) totalH+=PHOTO_H+16;
   // EXIF行
   totalH+=22*3+8+16; // カメラ・レンズ・日付 + F値行 + gap
-  if(showLoc&&loc) totalH+=20;
-  if(memo) totalH+=20;
+  if(showLoc&&loc) totalH+=28;
+  if(showDate&&exDate!=='–') totalH+=28;
+  if((showLoc&&loc)||(showDate&&exDate!=='–')) totalH+=8; // 下余白
   totalH+=DIAG_H+16;
   if(activeLights.length>0) totalH+=CARD_H+16;
   totalH+=PADDING;
@@ -1119,18 +1120,20 @@ async function doExport(){
   });
   y+=40;
 
-  // ロケーション・撮影日
+  // ロケーション・撮影日（縦並び）
   if(showLoc&&loc){
-    ctx.font=`400 12px -apple-system,sans-serif`;
-    ctx.fillStyle=GOLD; ctx.fillText('📍 '+loc,PADDING,y+12);
-    y+=20;
+    ctx.font=`400 13px -apple-system,sans-serif`;
+    ctx.fillStyle=GOLD;
+    ctx.fillText('📍  '+loc,PADDING,y+16);
+    y+=28;
   }
   if(showDate&&exDate!=='–'){
-    ctx.font=`400 12px -apple-system,sans-serif`;
-    ctx.fillStyle=GOLD; ctx.fillText('📅 '+exDate,showLoc&&loc?PADDING+200:PADDING,y-(showLoc&&loc?20:0)+12);
-    if(!(showLoc&&loc)) y+=20;
+    ctx.font=`400 13px -apple-system,sans-serif`;
+    ctx.fillStyle=GOLD;
+    ctx.fillText('📅  '+exDate,PADDING,y+16);
+    y+=28;
   }
-  y+=8;
+  if((showLoc&&loc)||(showDate&&exDate!=='–')) y+=8;
 
   // ── ライティング図 ──
   await new Promise(res=>{
