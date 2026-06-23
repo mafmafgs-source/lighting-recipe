@@ -162,7 +162,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
         <input type="color" id="bgColor" value="#ffffff"
           style="width:28px;height:28px;border:1px solid #ddd;border-radius:6px;cursor:pointer;padding:2px;background:none;display:none"
           oninput="saveSession();renderBg()">
-        <button onclick="openExportModal()" style="padding:6px 12px;border:1px solid #c8a96e;border-radius:8px;background:transparent;color:#c8a96e;font-size:12px;font-weight:600;cursor:pointer">↑ 出力</button>
         <a class="btn-builder" href="builder.html" style="width:auto;padding:6px 14px;font-size:13px"><span id="editBtnText">＋ 機材編集</span></a>
       </div>
     </div>
@@ -1185,21 +1184,37 @@ async function doExport(){
       // メモをライティング図右下に描画
       const memo=getCanvasMemo();
       if(memo){
-        const memoLines=memo.split('\n');
         const memoFontSize=18;
         const memoPad=14;
-        const memoLineH=memoFontSize*1.5;
-        const memoH=memoLines.length*memoLineH+memoPad*2;
-        const memoW=Math.min(DIAG_W*0.45,400);
+        const memoLineH=memoFontSize*1.6;
+        const memoMaxW=Math.min(DIAG_W*0.55,460);
+        ctx.font=`400 ${memoFontSize}px -apple-system,sans-serif`;
+
+        // 折り返し処理
+        const wrappedLines=[];
+        memo.split('\n').forEach(paragraph=>{
+          const words=paragraph.split('');
+          let line='';
+          for(const ch of words){
+            const test=line+ch;
+            if(ctx.measureText(test).width>memoMaxW-memoPad*2){
+              wrappedLines.push(line);
+              line=ch;
+            } else {
+              line=test;
+            }
+          }
+          wrappedLines.push(line);
+        });
+
+        const memoH=wrappedLines.length*memoLineH+memoPad*2;
+        const memoW=memoMaxW;
         const mx=PADDING+DIAG_W-memoW-16;
         const my=y+DIAG_H-memoH-16;
-        // 半透明背景
         ctx.fillStyle='rgba(0,0,0,0.55)';
         roundRect(ctx,mx,my,memoW,memoH,8);ctx.fill();
-        // テキスト
-        ctx.font=`400 ${memoFontSize}px -apple-system,sans-serif`;
         ctx.fillStyle='#ffffff';
-        memoLines.forEach((line,i)=>{
+        wrappedLines.forEach((line,i)=>{
           ctx.fillText(line,mx+memoPad,my+memoPad+memoFontSize+i*memoLineH);
         });
       }
