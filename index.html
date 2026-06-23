@@ -556,52 +556,74 @@ function buildNodeHTML(l){
   const baseH=hasBoom?113:113;
 
   const flipStyle=flipped?'transform:scaleX(-1);':'';
-  let html=`<div style="display:flex;align-items:flex-end;justify-content:${hasBoom?'flex-start':'center'};gap:1px;width:100%;height:100%;padding-left:${hasBoom?'4px':'0'};${flipStyle}">`;
 
-  // 光源＋スタンドの縦積み
-  if(hasLight||hasBase||hasBoom){
-    html+='<div style="display:flex;flex-direction:column;align-items:center;gap:0">';
+  let html;
+
+  if(hasBoom){
+    const tipX=Math.round(baseW*0.55);
+    const tipY=Math.round(baseH*0.28);
+    const lightW=21,lightH=21,modW=36,modH=36;
+    html=`<div style="position:relative;width:${baseW+modW+10}px;height:${baseH}px;flex-shrink:0;${flipStyle}">`;
+    html+=`<img src="${baseImgSrc}" style="position:absolute;left:0;top:0;width:${baseW}px;height:${baseH}px;object-fit:contain;">`;
     if(hasLight){
       const src=getItemImgSrc(lights_[0]);
-      const lightMb=hasBoom?-75:-21;
+      const lx=tipX-lightW/2;
+      const ly=tipY-lightH;
       html+=src
-        ?`<img src="${src}" style="width:21px;height:21px;object-fit:contain;margin-bottom:${lightMb}px;">`
-        :`<span style="font-size:12px">⚡</span>`;
+        ?`<img src="${src}" style="position:absolute;left:${lx}px;top:${ly}px;width:${lightW}px;height:${lightH}px;object-fit:contain;">`
+        :`<span style="position:absolute;left:${lx}px;top:${ly}px;font-size:12px">⚡</span>`;
     }
-    if(baseImgSrc){
-      html+=`<img src="${baseImgSrc}" style="width:${baseW}px;height:${baseH}px;object-fit:contain;">`;
-    }else if(hasBase){
-      html+=`<span style="font-size:30px">△</span>`;
+    if(hasMod){
+      modifiers.forEach((name,idx)=>{
+        const src=getItemImgSrc(name);
+        const mx=tipX+lightW/2-idx*10;
+        const my=tipY-modH/2-lightH/2;
+        html+=src
+          ?`<img src="${src}" style="position:absolute;left:${mx}px;top:${my}px;width:${modW}px;height:${modH}px;object-fit:contain;">`
+          :`<span style="position:absolute;left:${mx}px;top:${my}px;font-size:16px">⬡</span>`;
+      });
+    }
+    html+='</div>';
+  } else {
+    html=`<div style="display:flex;align-items:flex-end;justify-content:center;gap:1px;width:100%;height:100%;${flipStyle}">`;
+    if(hasLight||hasBase){
+      html+='<div style="display:flex;flex-direction:column;align-items:center;gap:0">';
+      if(hasLight){
+        const src=getItemImgSrc(lights_[0]);
+        html+=src
+          ?`<img src="${src}" style="width:21px;height:21px;object-fit:contain;margin-bottom:-21px;">`
+          :`<span style="font-size:12px">⚡</span>`;
+      }
+      if(baseImgSrc){
+        html+=`<img src="${baseImgSrc}" style="width:${baseW}px;height:${baseH}px;object-fit:contain;">`;
+      }else if(hasBase){
+        html+=`<span style="font-size:30px">△</span>`;
+      }
+      html+='</div>';
+    }
+    if(hasMod){
+      modifiers.forEach((name,idx)=>{
+        const src=getItemImgSrc(name);
+        const mb=hasBase?90:0;
+        const ml=idx===0?-30:-18;
+        html+=`<div style="margin-bottom:${mb}px;margin-left:${ml}px;">`;
+        html+=src
+          ?`<img src="${src}" style="width:36px;height:36px;object-fit:contain;">`
+          :`<span style="font-size:16px">⬡</span>`;
+        html+='</div>';
+      });
+    }
+    if(!hasLight&&!hasBase&&hasMod){
+      html='<div style="display:flex;align-items:center;justify-content:center;gap:2px;width:100%;height:100%">';
+      modifiers.forEach(name=>{
+        const src=getItemImgSrc(name);
+        html+=src
+          ?`<img src="${src}" style="width:38px;height:38px;object-fit:contain;">`
+          :`<span style="font-size:18px">⬡</span>`;
+      });
     }
     html+='</div>';
   }
-
-  // モディファイア（光源の右横）
-  if(hasMod){
-    modifiers.forEach((name,idx)=>{
-      const src=getItemImgSrc(name);
-      const mb=hasBoom?15:(hasBase?90:0);
-      const ml=idx===0?-30:-18;
-      html+=`<div style="margin-bottom:${mb}px;margin-left:${ml}px;">`;
-      html+=src
-        ?`<img src="${src}" style="width:36px;height:36px;object-fit:contain;">`
-        :`<span style="font-size:16px">⬡</span>`;
-      html+='</div>';
-    });
-  }
-
-  // 機材なし・モディファイアのみ
-  if(!hasLight&&!hasBase&&hasMod){
-    html='<div style="display:flex;align-items:center;justify-content:center;gap:2px;width:100%;height:100%">';
-    modifiers.forEach(name=>{
-      const src=getItemImgSrc(name);
-      html+=src
-        ?`<img src="${src}" style="width:38px;height:38px;object-fit:contain;">`
-        :`<span style="font-size:18px">⬡</span>`;
-    });
-  }
-
-  html+='</div>';
   return html;
 }
 
