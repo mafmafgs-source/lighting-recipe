@@ -64,8 +64,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
 .ln-label{position:absolute;top:-5px;left:50%;transform:translateX(-50%);width:22px;height:22px;border-radius:50%;border:2.5px solid #555;background:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#1a1a1a;line-height:1}
 /* 出力ラベル */
 .ln-output{position:absolute;top:19px;left:50%;transform:translateX(-50%);font-size:9px;font-weight:700;color:#c8a96e;white-space:nowrap;line-height:1}
-/* キャンバス内メモ */
-.canvas-memo{position:absolute;right:8px;bottom:8px;max-width:45%;background:rgba(0,0,0,0.55);color:#fff;font-size:10px;line-height:1.5;padding:5px 8px;border-radius:7px;pointer-events:none;white-space:pre-wrap;word-break:break-all;backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px)}
+/* キャンバス内メモ（直接入力） */
+.canvas-memo{position:absolute;right:8px;bottom:8px;min-width:80px;max-width:50%;min-height:28px;background:rgba(0,0,0,0.55);color:#fff;font-size:11px;line-height:1.5;padding:6px 9px;border-radius:7px;white-space:pre-wrap;word-break:break-all;backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);outline:none;cursor:text;-webkit-user-select:text;user-select:text}
+.canvas-memo:empty:before{content:attr(data-placeholder);color:rgba(255,255,255,0.4);pointer-events:none}
 /* 反転ボタン */
 .btn-flip{display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border:1px solid #333;border-radius:8px;background:#222;font-size:12px;font-weight:600;color:#aaa;cursor:pointer;margin-top:6px;-webkit-tap-highlight-color:transparent}
 .btn-flip:active{background:#2a2a2a}
@@ -122,9 +123,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
     <input type="file" id="fileInput" accept="image/*" style="display:none">
 
     <div class="meta-row">
-      <div class="info-box info-loc">
+      <div class="info-box info-loc" style="flex:1">
         <label id="locLabel">📍 ロケーション</label>
-        <!-- サジェストをloc-wrapの中に（absolute配置） -->
         <div class="loc-wrap loc-suggestions-wrap">
           <div class="loc-input-row">
             <input id="locInput" placeholder="場所を検索" autocomplete="off" autocorrect="off" autocapitalize="off">
@@ -136,10 +136,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
             <div class="loc-powered">Powered by Google</div>
           </div>
         </div>
-      </div>
-      <div class="info-box info-memo">
-        <label id="memoLabel">📝 メモ</label>
-        <textarea id="memoInput" placeholder="撮影メモ"></textarea>
       </div>
     </div>
     <div class="exif-names">
@@ -175,7 +171,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
         <svg id="lightSvg" xmlns="http://www.w3.org/2000/svg"><g id="bgGroup"></g></svg>
         <div class="subject">👤</div>
         <div class="camera-icon">📷</div>
-        <div class="canvas-memo" id="canvasMemo"></div>
+        <div class="canvas-memo" id="canvasMemo" contenteditable="true" data-placeholder="📝 メモを入力"></div>
       </div>
     </div>
     <div id="panel"></div>
@@ -196,7 +192,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
       </div>
       <div style="font-size:11px;color:#888;margin-top:4px" id="beamHint">ライトを選択すると光パーツが表示されます</div>
     </div>
-    <a class="btn-builder" href="builder.html"><span id="builderBtnText">機材を設定する (Builder)</span></a>
+    <button class="btn-builder" onclick="openExportModal()">↑ 出力</button>
   </div>
 </div>
 
@@ -222,7 +218,7 @@ function applyI18n(){
   document.getElementById('locInput').placeholder=T.locPlaceholder;
   sh('locHint',T.locHint);
   s('memoLabel',T.memoLabel);
-  document.getElementById('memoInput').placeholder=T.memoPlaceholder;
+  
   s('lightingTitle',T.lightingTitle);
   s('bgToggleText',T.bgBtn);
   s('editBtnText',T.editBtn);
@@ -283,7 +279,7 @@ function showSuggestions(items){
   locSuggestions.classList.add('open');
 }
 function closeSuggestions(){locSuggestions.classList.remove('open');}
-document.getElementById('memoInput').addEventListener('input',()=>saveSession());
+
 document.addEventListener('touchstart',e=>{
   if(!locInput.contains(e.target)&&!locSuggestions.contains(e.target))closeSuggestions();
 },{passive:true});
@@ -403,7 +399,7 @@ function saveSession(){
   try{
     const s={
       loc:document.getElementById('locInput').value,
-      memo:document.getElementById('memoInput').value,
+      memo:getCanvasMemo(),
       bgOn:bgOn,
       bgColor:document.getElementById('bgColor').value,
     };
@@ -457,7 +453,7 @@ function restoreSession(){
 
   if(s){
     if(s.loc)    document.getElementById('locInput').value=s.loc;
-    if(s.memo)   document.getElementById('memoInput').value=s.memo;
+    if(s.memo)   setCanvasMemo(s.memo);
     if(s.bgColor)document.getElementById('bgColor').value=s.bgColor;
     if(s.bgOn){
       bgOn=true;
@@ -653,7 +649,7 @@ function resetAll(){
   // ロケ・メモ
   document.getElementById('locInput').value='';
   document.getElementById('locClear').classList.remove('visible');
-  document.getElementById('memoInput').value='';
+  setCanvasMemo('');
 
   // 背景
   bgOn=false;
@@ -984,18 +980,15 @@ window.addEventListener('resize',()=>{renderBg();renderBeams();});
 
 applyI18n();
 lights=loadLights();
-  const memo=document.getElementById('memoInput')?.value||'';
-  const el=document.getElementById('canvasMemo');
-  if(el){ el.textContent=memo; el.style.display=memo?'block':'none'; }
-}
-document.getElementById('memoInput')?.addEventListener('input',()=>{
-  updateCanvasMemo();
-  saveSession();
-});
+
+// キャンバス内メモ（contenteditable）の保存・取得
+function getCanvasMemo(){ return document.getElementById('canvasMemo')?.innerText||''; }
+function setCanvasMemo(text){ const el=document.getElementById('canvasMemo'); if(el) el.innerText=text||''; }
+document.getElementById('canvasMemo')?.addEventListener('input',()=>saveSession());
 
 // 初回ロード
 restoreSession();
-requestAnimationFrame(()=>{renderCanvas();renderPanel();updateCanvasMemo();});
+requestAnimationFrame(()=>{renderCanvas();renderPanel();});
 
 // Builder等から戻った時（pageshow は初回ロードでも発火するためフラグで制御）
 let _firstPageshow=true;
@@ -1095,22 +1088,34 @@ async function doExport(){
   // ── 写真 ──
   if(hasPhoto){
     await new Promise(res=>{
-      const img=new Image();
-      img.crossOrigin='anonymous';
-      img.onload=()=>{
+      // すでにDOMに表示済みのimgを直接canvasに描画
+      try{
         roundRect(ctx,PADDING,y,DIAG_W,PHOTO_H,CARD_R);
         ctx.save();ctx.clip();
         ctx.fillStyle='#111';ctx.fillRect(PADDING,y,DIAG_W,PHOTO_H);
-        // object-fit:contain（縦横どちらでも全体表示）
-        const scale=Math.min(DIAG_W/img.naturalWidth,PHOTO_H/img.naturalHeight);
-        const iw=img.naturalWidth*scale,ih=img.naturalHeight*scale;
+        const scale=Math.min(DIAG_W/photoImg.naturalWidth,PHOTO_H/photoImg.naturalHeight);
+        const iw=photoImg.naturalWidth*scale,ih=photoImg.naturalHeight*scale;
         const ix=PADDING+(DIAG_W-iw)/2,iy=y+(PHOTO_H-ih)/2;
-        ctx.drawImage(img,ix,iy,iw,ih);
+        ctx.drawImage(photoImg,ix,iy,iw,ih);
         ctx.restore();
         res();
-      };
-      img.onerror=res;
-      img.src=photoImg.src;
+      }catch(e){
+        // fallback: 新しいImageで再試行（crossOriginなし）
+        const img=new Image();
+        img.onload=()=>{
+          roundRect(ctx,PADDING,y,DIAG_W,PHOTO_H,CARD_R);
+          ctx.save();ctx.clip();
+          ctx.fillStyle='#111';ctx.fillRect(PADDING,y,DIAG_W,PHOTO_H);
+          const scale=Math.min(DIAG_W/img.naturalWidth,PHOTO_H/img.naturalHeight);
+          const iw=img.naturalWidth*scale,ih=img.naturalHeight*scale;
+          const ix=PADDING+(DIAG_W-iw)/2,iy=y+(PHOTO_H-ih)/2;
+          ctx.drawImage(img,ix,iy,iw,ih);
+          ctx.restore();
+          res();
+        };
+        img.onerror=res;
+        img.src=photoImg.src;
+      }
     });
     y+=PHOTO_H+16;
   }
@@ -1172,7 +1177,7 @@ async function doExport(){
       ctx.save();ctx.clip();
       ctx.drawImage(c,PADDING,y,DIAG_W,DIAG_H);
       // メモをライティング図右下に描画
-      const memo=document.getElementById('memoInput')?.value||'';
+      const memo=getCanvasMemo();
       if(memo){
         const memoLines=memo.split('\n');
         const memoFontSize=18;
