@@ -72,7 +72,9 @@ body{-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%;font-
 .item-amz{background:none;border:1px solid #c8a96e;color:#c8a96e;border-radius:6px;font-size:9px;font-weight:700;padding:3px 5px;cursor:pointer;flex-shrink:0;line-height:1.2;white-space:nowrap;text-decoration:none;display:flex;align-items:center;gap:2px}
 .item-amz:active{background:#2a2218}
 
-/* ── 保存ボタン ── */
+/* トースト通知 */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:#1e1e1e;color:#e8e8e8;border:1px solid #c8a96e;border-radius:12px;padding:12px 20px;font-size:13px;font-weight:600;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,.5);opacity:0;transition:opacity .25s,transform .25s;z-index:999;pointer-events:none}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 .btn-save{width:100%;padding:14px;border:none;border-radius:12px;background:#c8a96e;color:#0f0f0f;font-size:16px;font-weight:700;cursor:pointer;letter-spacing:.02em}
 .btn-save:active{background:#b8956a}
 
@@ -813,6 +815,22 @@ function showAddItemDialog(catId) {
 function addItemToLight(name) {
   lights[currentLight].items.push(name);
   renderLights();
+  showToast(`${name} を追加しました`);
+}
+
+let _toastTimer=null;
+function showToast(msg){
+  let el=document.getElementById('toast');
+  if(!el){
+    el=document.createElement('div');
+    el.id='toast';
+    el.className='toast';
+    document.body.appendChild(el);
+  }
+  el.textContent=msg;
+  el.classList.add('show');
+  clearTimeout(_toastTimer);
+  _toastTimer=setTimeout(()=>el.classList.remove('show'),2000);
 }
 
 // ══════════════════════════════════════════════
