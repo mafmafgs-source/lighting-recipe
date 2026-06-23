@@ -95,6 +95,12 @@ body{-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%;font-
 .icon-picker{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
 .icon-opt{font-size:22px;cursor:pointer;padding:6px;border-radius:8px;border:2px solid transparent;transition:border-color .1s}
 .icon-opt.selected{border-color:#c8a96e;background:#2a2218}
+/* タブバー */
+.tab-bar{position:fixed;bottom:0;left:0;right:0;display:flex;background:#111;border-top:1px solid #2e2e2e;z-index:500;max-width:100%}
+.tab-bar a{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 0 env(safe-area-inset-bottom,6px);text-decoration:none;font-size:10px;color:#666;gap:2px;-webkit-tap-highlight-color:transparent;transition:color .15s}
+.tab-bar a.active{color:#c8a96e}
+.tab-bar a .tab-icon{font-size:18px;line-height:1}
+.tab-spacer{height:70px}
 </style>
 </head>
 <body>
@@ -1047,5 +1053,14 @@ loadAllItemImgs().then(imgs=>{
   renderLights();
 });
 </script>
+
+<!-- タブバー -->
+<div class="tab-spacer"></div>
+<nav class="tab-bar">
+  <a href="index.html"><span class="tab-icon">📷</span>レシピ</a>
+  <a href="builder.html" class="active"><span class="tab-icon">📦</span>機材</a>
+  <a href="mypage.html"><span class="tab-icon">👤</span>マイページ</a>
+</nav>
+
 </body>
 </html>
