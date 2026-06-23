@@ -89,7 +89,17 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
 .btn-reset{position:absolute;top:8px;left:8px;z-index:10;background:rgba(0,0,0,0.7);color:#aaa;border:1px solid #333;border-radius:6px;padding:4px 8px;font-size:11px;font-weight:600;cursor:pointer;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);display:none}
 .btn-reset.visible{display:block}
 .btn-reset:active{background:rgba(180,0,0,0.7);color:#fff}
-/* Builderボタン */
+/* ── 出力モーダル ── */
+#exportModal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:300;align-items:flex-end;justify-content:center;padding:0}
+#exportModal.open{display:flex}
+.export-sheet{background:#1a1a1a;border-radius:20px 20px 0 0;padding:20px;width:100%;max-width:430px;border-top:1px solid #333}
+.export-sheet h3{font-size:15px;font-weight:700;color:#e8e8e8;margin-bottom:16px;text-align:center}
+.export-toggles{display:flex;gap:10px;margin-bottom:20px;justify-content:center}
+.export-toggle{display:flex;align-items:center;gap:6px;padding:8px 14px;border:1px solid #333;border-radius:10px;background:#141414;cursor:pointer;font-size:13px;color:#aaa;-webkit-tap-highlight-color:transparent}
+.export-toggle.on{border-color:#c8a96e;color:#c8a96e;background:#2a2218}
+.export-toggle input{display:none}
+.btn-export-go{width:100%;padding:14px;border:none;border-radius:12px;background:#c8a96e;color:#0f0f0f;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:10px}
+.btn-export-cancel{width:100%;padding:12px;border:1px solid #333;border-radius:12px;background:transparent;color:#888;font-size:14px;cursor:pointer}
 .btn-builder{display:block;width:100%;padding:14px;border:none;border-radius:12px;background:#c8a96e;color:#0f0f0f;font-size:15px;font-weight:700;cursor:pointer;text-align:center;text-decoration:none;-webkit-tap-highlight-color:transparent;letter-spacing:.02em}
 .btn-builder:active{background:#b8956a}
 </style>
@@ -154,6 +164,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
         <input type="color" id="bgColor" value="#ffffff"
           style="width:28px;height:28px;border:1px solid #ddd;border-radius:6px;cursor:pointer;padding:2px;background:none;display:none"
           oninput="saveSession();renderBg()">
+        <button onclick="openExportModal()" style="padding:6px 12px;border:1px solid #c8a96e;border-radius:8px;background:transparent;color:#c8a96e;font-size:12px;font-weight:600;cursor:pointer">↑ 出力</button>
         <a class="btn-builder" href="builder.html" style="width:auto;padding:6px 14px;font-size:13px"><span id="editBtnText">＋ 機材編集</span></a>
       </div>
     </div>
@@ -986,5 +997,236 @@ window.addEventListener('pageshow',(e)=>{
   renderPanel();
 });
 </script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script>
+// ══════════════════════════════════════
+//  出力機能
+// ══════════════════════════════════════
+function openExportModal(){
+  document.getElementById('exportModal').classList.add('open');
+}
+function closeExportModal(){
+  document.getElementById('exportModal').classList.remove('open');
+}
+
+// トグルのON/OFF切り替え
+['toggleLoc','toggleDate'].forEach(id=>{
+  document.getElementById(id).addEventListener('click',function(){
+    const cb=this.querySelector('input');
+    cb.checked=!cb.checked;
+    this.classList.toggle('on',cb.checked);
+  });
+});
+
+async function doExport(){
+  closeExportModal();
+  const showLoc =document.getElementById('exportLoc').checked;
+  const showDate=document.getElementById('exportDate').checked;
+
+  // ── オフスクリーンキャンバスで描画 ──
+  const W=800;
+  const canvas=document.createElement('canvas');
+  const ctx=canvas.getContext('2d');
+
+  // ── セクションごとの高さを計算してから総高を決める ──
+  const PADDING=28;
+  const CARD_R=14;
+  const GOLD='#c8a96e';
+  const BG='#0f0f0f';
+  const CARD_BG='#1a1a1a';
+  const TEXT='#e8e8e8';
+  const SUB='#888888';
+
+  // 写真
+  const photoImg=document.getElementById('photoImg');
+  const hasPhoto=photoImg&&photoImg.classList.contains('loaded');
+  const PHOTO_H=hasPhoto?Math.round(W*0.6):0;
+
+  // EXIF
+  const exCamera=document.getElementById('exCamera')?.textContent||'–';
+  const exLens  =document.getElementById('exLens')?.textContent||'–';
+  const exDate  =document.getElementById('exDate')?.textContent||'–';
+  const exF     =document.getElementById('exF')?.textContent||'–';
+  const exSS    =document.getElementById('exSS')?.textContent||'–';
+  const exISO   =document.getElementById('exISO')?.textContent||'–';
+  const exFL    =document.getElementById('exFL')?.textContent||'–';
+  const loc     =document.getElementById('locInput')?.value||'';
+  const memo    =document.getElementById('memoInput')?.value||'';
+
+  // ライティング図
+  const DIAG_W=W-PADDING*2;
+  const DIAG_H=DIAG_W;
+
+  // ライトカード
+  const activeLights=lights.filter(l=>l.items&&l.items.length>0);
+  const CARD_W=Math.min(160,Math.floor((W-PADDING*2-(activeLights.length-1)*10)/activeLights.length));
+  const CARD_H=220;
+
+  // 総高計算
+  let totalH=PADDING;
+  if(hasPhoto) totalH+=PHOTO_H+16;
+  // EXIF行
+  totalH+=22*3+8+16; // カメラ・レンズ・日付 + F値行 + gap
+  if(showLoc&&loc) totalH+=20;
+  if(memo) totalH+=20;
+  totalH+=DIAG_H+16;
+  if(activeLights.length>0) totalH+=CARD_H+16;
+  totalH+=PADDING;
+
+  canvas.width=W;
+  canvas.height=totalH;
+
+  // 背景
+  ctx.fillStyle=BG;
+  ctx.fillRect(0,0,W,totalH);
+
+  let y=PADDING;
+
+  // ── 写真 ──
+  if(hasPhoto){
+    await new Promise(res=>{
+      const img=new Image();
+      img.crossOrigin='anonymous';
+      img.onload=()=>{
+        roundRect(ctx,PADDING,y,DIAG_W,PHOTO_H,CARD_R);
+        ctx.save();ctx.clip();
+        // object-fit:contain
+        const scale=Math.min(DIAG_W/img.naturalWidth,PHOTO_H/img.naturalHeight);
+        const iw=img.naturalWidth*scale,ih=img.naturalHeight*scale;
+        const ix=PADDING+(DIAG_W-iw)/2,iy=y+(PHOTO_H-ih)/2;
+        ctx.fillStyle='#111';ctx.fillRect(PADDING,y,DIAG_W,PHOTO_H);
+        ctx.drawImage(img,ix,iy,iw,ih);
+        ctx.restore();
+        res();
+      };
+      img.onerror=res;
+      img.src=photoImg.src;
+    });
+    y+=PHOTO_H+16;
+  }
+
+  // ── EXIF ──
+  ctx.font=`600 12px -apple-system,sans-serif`;
+  ctx.fillStyle=SUB; ctx.fillText('カメラ',PADDING,y+12);
+  ctx.fillStyle=TEXT; ctx.font=`400 14px -apple-system,sans-serif`;
+  ctx.fillText(exCamera,PADDING,y+28);
+  ctx.font=`600 12px -apple-system,sans-serif`;
+  ctx.fillStyle=SUB; ctx.fillText('レンズ',W/2,y+12);
+  ctx.fillStyle=TEXT; ctx.font=`400 14px -apple-system,sans-serif`;
+  ctx.fillText(exLens,W/2,y+28);
+  y+=40;
+
+  // F値・SS・ISO・焦点距離
+  const exifItems=[['F値',exF],['SS',exSS],['ISO',exISO],['焦点距離',exFL]];
+  const colW=(W-PADDING*2)/4;
+  exifItems.forEach(([label,val],i)=>{
+    const x=PADDING+colW*i;
+    ctx.font=`600 11px -apple-system,sans-serif`;
+    ctx.fillStyle=SUB; ctx.fillText(label,x,y+12);
+    ctx.font=`400 13px -apple-system,sans-serif`;
+    ctx.fillStyle=TEXT; ctx.fillText(val,x,y+28);
+  });
+  y+=40;
+
+  // ロケーション・撮影日
+  if(showLoc&&loc){
+    ctx.font=`400 12px -apple-system,sans-serif`;
+    ctx.fillStyle=GOLD; ctx.fillText('📍 '+loc,PADDING,y+12);
+    y+=20;
+  }
+  if(showDate&&exDate!=='–'){
+    ctx.font=`400 12px -apple-system,sans-serif`;
+    ctx.fillStyle=GOLD; ctx.fillText('📅 '+exDate,showLoc&&loc?PADDING+200:PADDING,y-(showLoc&&loc?20:0)+12);
+    if(!(showLoc&&loc)) y+=20;
+  }
+  y+=8;
+
+  // ── ライティング図 ──
+  await new Promise(res=>{
+    const diagCanvas=document.getElementById('canvas');
+    html2canvas(diagCanvas,{
+      backgroundColor:'#f8f8f8',
+      scale:DIAG_W/diagCanvas.offsetWidth,
+      useCORS:true,
+      allowTaint:true,
+      logging:false,
+    }).then(c=>{
+      roundRect(ctx,PADDING,y,DIAG_W,DIAG_H,CARD_R);
+      ctx.save();ctx.clip();
+      ctx.drawImage(c,PADDING,y,DIAG_W,DIAG_H);
+      ctx.restore();
+      res();
+    }).catch(res);
+  });
+  y+=DIAG_H+16;
+
+  // ── ライトカード ──
+  if(activeLights.length>0){
+    activeLights.forEach((l,i)=>{
+      const x=PADDING+i*(CARD_W+10);
+      // カード背景
+      roundRect(ctx,x,y,CARD_W,CARD_H,10);
+      ctx.fillStyle=CARD_BG;ctx.fill();
+      ctx.strokeStyle='#2e2e2e';ctx.lineWidth=1;ctx.stroke();
+
+      // ラベル
+      ctx.font=`700 13px -apple-system,sans-serif`;
+      ctx.fillStyle=GOLD;
+      ctx.fillText(['A','B','C','D','E'][lights.indexOf(l)],x+10,y+20);
+
+      // 機材名
+      ctx.font=`400 11px -apple-system,sans-serif`;
+      ctx.fillStyle=TEXT;
+      let ty=y+38;
+      l.items.slice(0,6).forEach(name=>{
+        ctx.fillText(name.length>16?name.slice(0,15)+'…':name,x+10,ty);
+        ty+=16;
+      });
+
+      // 出力
+      const outTxt=outputLabel(l);
+      if(outTxt){
+        ctx.font=`700 14px -apple-system,sans-serif`;
+        ctx.fillStyle=GOLD;
+        ctx.fillText(outTxt,x+10,y+CARD_H-14);
+      }
+    });
+    y+=CARD_H+16;
+  }
+
+  // ── ダウンロード ──
+  const link=document.createElement('a');
+  link.download='lighting-recipe.png';
+  link.href=canvas.toDataURL('image/png');
+  link.click();
+}
+
+function roundRect(ctx,x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);
+  ctx.lineTo(x+w-r,y);ctx.arcTo(x+w,y,x+w,y+r,r);
+  ctx.lineTo(x+w,y+h-r);ctx.arcTo(x+w,y+h,x+w-r,y+h,r);
+  ctx.lineTo(x+r,y+h);ctx.arcTo(x,y+h,x,y+h-r,r);
+  ctx.lineTo(x,y+r);ctx.arcTo(x,y,x+r,y,r);
+  ctx.closePath();
+}
+</script>
+
+<div id="exportModal">
+  <div class="export-sheet">
+    <h3>📷 レシピを出力</h3>
+    <div class="export-toggles">
+      <label class="export-toggle on" id="toggleLoc">
+        <input type="checkbox" id="exportLoc" checked> 📍 ロケーション
+      </label>
+      <label class="export-toggle on" id="toggleDate">
+        <input type="checkbox" id="exportDate" checked> 📅 撮影日
+      </label>
+    </div>
+    <button class="btn-export-go" onclick="doExport()">PNG で保存</button>
+    <button class="btn-export-cancel" onclick="closeExportModal()">キャンセル</button>
+  </div>
+</div>
+
 </body>
 </html>
