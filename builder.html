@@ -35,6 +35,16 @@ body{-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%;font-
 .tile-new{border:1.5px dashed #333;color:#555;background:#141414;position:relative}
 .tile-new .icon{font-size:20px;display:block;margin-bottom:4px}
 
+/* カテゴリヘッダー */
+.cat-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.cat-header h3{margin-bottom:0}
+.cat-actions{display:flex;gap:6px}
+.btn-cat-edit,.btn-cat-del{background:none;border:1px solid #333;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:600;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.btn-cat-edit{color:#c8a96e;border-color:#c8a96e}
+.btn-cat-edit:active{background:#2a2218}
+.btn-cat-del{color:#888;border-color:#444}
+.btn-cat-del:active{color:#c0392b;border-color:#c0392b}
+
 /* ── 機材リスト ── */
 .item{display:flex;align-items:center;gap:10px;padding:10px 6px;border-bottom:1px solid #222;cursor:pointer;transition:background .1s}
 .item:last-child{border-bottom:none}
@@ -114,7 +124,10 @@ body{-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%;font-
 
   <!-- 機材リスト -->
   <div class="card" id="itemCard" style="display:none">
-    <h3 id="catTitle"></h3>
+    <div class="cat-header">
+      <h3 id="catTitle"></h3>
+      <div class="cat-actions" id="catActions"></div>
+    </div>
     <div id="itemList"></div>
   </div>
 
@@ -617,6 +630,17 @@ function selectCat(catId) {
   document.getElementById('catTitle').textContent = cat ? cat.label : '';
   document.getElementById('itemCard').style.display = 'block';
 
+  // カスタムカテゴリの場合のみ編集・削除ボタンを表示
+  const actionsEl = document.getElementById('catActions');
+  if (isCustom) {
+    actionsEl.innerHTML = `
+      <button class="btn-cat-edit" onclick="editCategory('${catId}')">✏️ 編集</button>
+      <button class="btn-cat-del" onclick="deleteCategory('${catId}')">🗑 削除</button>
+    `;
+  } else {
+    actionsEl.innerHTML = '';
+  }
+
   const list = document.getElementById('itemList');
   list.innerHTML = '';
 
@@ -732,6 +756,65 @@ function deleteItem(catId, item, name, showAll, rerenderFn) {
     okBtn.style.background = '';
     closeOverlay();
     // onclickを元に戻す
+    document.getElementById('dlgCancel').onclick = closeOverlay;
+  };
+}
+
+// ══════════════════════════════════════════════
+//  カテゴリ編集
+// ══════════════════════════════════════════════
+function editCategory(catId) {
+  const cat = customCats.find(c => c.id === catId);
+  if (!cat) return;
+
+  document.getElementById('dlgTitle').textContent = 'カテゴリを編集';
+  document.getElementById('dlgBody').innerHTML =
+    '<div class="dlg-field">' +
+      '<label>カテゴリ名</label>' +
+      '<input id="editCatName" value="' + (cat.label || '') + '">' +
+    '</div>';
+
+  showOverlay(() => {
+    const newName = document.getElementById('editCatName').value.trim();
+    if (!newName) return false;
+    cat.label = newName;
+    saveCustomCats();
+    selectCat(catId);
+    renderCats();
+    return true;
+  });
+}
+
+function deleteCategory(catId) {
+  const cat = customCats.find(c => c.id === catId);
+  if (!cat) return;
+  const catLabel = cat.label || catId;
+
+  document.getElementById('dlgTitle').textContent = `「${catLabel}」を削除しますか？`;
+  document.getElementById('dlgBody').innerHTML =
+    '<p style="font-size:13px;color:#aaa;margin-bottom:8px">このカテゴリと中の機材がすべて削除されます。</p>';
+
+  const okBtn = document.getElementById('dlgOk');
+  const origOkText = okBtn.textContent;
+  okBtn.textContent = '🗑️ 削除';
+  okBtn.style.background = '#c0392b';
+
+  showOverlay(() => {
+    customCats = customCats.filter(c => c.id !== catId);
+    saveCustomCats();
+    // 選択を解除してitemCardを非表示に
+    activeCatId = null;
+    document.getElementById('itemCard').style.display = 'none';
+    renderCats();
+    okBtn.textContent = origOkText;
+    okBtn.style.background = '';
+    return true;
+  });
+
+  document.getElementById('dlgCancel').onclick = () => {
+    okBtn.textContent = origOkText;
+    okBtn.style.background = '';
+    closeOverlay();
     document.getElementById('dlgCancel').onclick = closeOverlay;
   };
 }
