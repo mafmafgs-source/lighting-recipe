@@ -894,6 +894,7 @@ function renderPanel(){
   if(selected===null){panel.innerHTML='';updateBeamPanel();return;}
   const l=lights[selected],h=l.height??HEIGHT_DEFAULT,color=heightToColor(h);
   const strobe=isStrobe(l.items);
+  const hasLight=hasLightSource(l.items);
   const outVal=l.output!=null?l.output:(strobe?8:100);
   const flipped=l.flipped||false;
   panel.innerHTML=`
@@ -905,11 +906,12 @@ function renderPanel(){
           style="background:linear-gradient(to right,rgb(180,220,255) 0%,rgb(80,160,240) 50%,rgb(10,60,180) 100%)">
         <span style="min-width:36px;display:inline-block"></span>
       </div>
+      ${hasLight?`
       <div class="slider-row">
         <label>${T.outputLabel}</label>
         <input type="range" id="outSlider" min="0" max="${strobe?8:100}" value="${outVal}" step="1">
         <span class="slider-val" id="outVal">${strobe?strobeLabel(outVal):outVal+'%'}</span>
-      </div>
+      </div>`:''}
       <button class="btn-flip${flipped?' flipped':''}" id="btnFlip">⇆ 反転</button>
       <div class="items-list">
         ${l.items.length?l.items.map(n=>`<span class="item-tag">${n}</span>`).join(''):`<span style="font-size:12px;color:#aaa">${T.noItems}</span>`}
@@ -933,14 +935,16 @@ function renderPanel(){
     }
     saveLights();
   });
-  document.getElementById('outSlider').addEventListener('input',e=>{
-    const val=Number(e.target.value);lights[selected].output=val;
-    const strb=isStrobe(lights[selected].items);
-    document.getElementById('outVal').textContent=strb?strobeLabel(val):val+'%';
-    const nd=document.querySelector(`.light-node[data-idx="${selected}"]`);
-    if(nd){const sp=nd.querySelectorAll('span');if(sp[1])sp[1].textContent=strb?strobeLabel(val):val+'%';}
-    saveLights();
-  });
+  if(hasLight){
+    document.getElementById('outSlider').addEventListener('input',e=>{
+      const val=Number(e.target.value);lights[selected].output=val;
+      const strb=isStrobe(lights[selected].items);
+      document.getElementById('outVal').textContent=strb?strobeLabel(val):val+'%';
+      const nd=document.querySelector(`.light-node[data-idx="${selected}"]`);
+      if(nd){const sp=nd.querySelectorAll('span');if(sp[1])sp[1].textContent=strb?strobeLabel(val):val+'%';}
+      saveLights();
+    });
+  }
   document.getElementById('btnFlip').addEventListener('click',e=>{
     e.stopPropagation();
     lights[selected].flipped=!lights[selected].flipped;
