@@ -1168,11 +1168,17 @@ async function doExport(){
   // ── ライティング図 ──
   await new Promise(res=>{
     const diagCanvas=document.getElementById('canvas');
+    // メモをキャプチャから除外（後で直接描画するため一時非表示）
+    const memoEl=document.getElementById('canvasMemo');
+    const memoDisplay=memoEl?memoEl.style.display:'';
+    if(memoEl) memoEl.style.display='none';
     html2canvas(diagCanvas,{
       backgroundColor:'#f8f8f8',
       scale:DIAG_W/diagCanvas.offsetWidth,
       useCORS:true,allowTaint:true,logging:false,
     }).then(c=>{
+      // メモ表示を元に戻す
+      if(memoEl) memoEl.style.display=memoDisplay;
       roundRect(ctx,PADDING,y,DIAG_W,DIAG_H,CARD_R);
       ctx.save();ctx.clip();
       ctx.drawImage(c,PADDING,y,DIAG_W,DIAG_H);
@@ -1199,7 +1205,10 @@ async function doExport(){
       }
       ctx.restore();
       res();
-    }).catch(res);
+    }).catch(()=>{
+      if(memoEl) memoEl.style.display=memoDisplay;
+      res();
+    });
   });
   y+=DIAG_H+16;
 
