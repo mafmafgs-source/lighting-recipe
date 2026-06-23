@@ -249,7 +249,7 @@ const DEFAULT_CATS = [
     ]
   },
   { id:'stand',     icon:'△',  imgPath:'icons/stand.png',    get label(){ return T.cats.stand; } },
-  { id:'boom',      icon:'┐',  imgPath:'icons/boom.png',     get label(){ return T.cats.boom; } },
+  { id:'boom',      icon:'┐',  imgPath:'icons/boom_stand.png', get label(){ return T.cats.boom; } },
   { id:'reflector', icon:'◻',  imgPath:'icons/reflector.png',get label(){ return T.cats.reflector; } },
   { id:'flag',      icon:'▬',  imgPath:'icons/flag.png',     get label(){ return T.cats.flag; } },
 ];
@@ -889,12 +889,18 @@ function renderLights() {
       const hasBase  = bases.length > 0;
       const hasLight = lights_.length > 0;
       const hasMod   = modifiers.length > 0;
+      const hasBoom  = l.items.some(n=>getItemRole(n)==='base' && getCatImgByItemName(n)==='icons/boom.png');
+
+      // ベース画像：ブームあり→boom_stand.png左寄せ、なし→通常
+      const baseImgSrc = hasBoom ? 'icons/boom_stand.png' : (hasBase ? getItemImgSrc(bases[0]) : null);
+      const baseW = hasBoom ? 90 : 71;
+      const baseH = hasBoom ? 113 : 113;
 
       // 全体を横並びのflex、下端揃えで包む
-      let html = '<div style="display:flex;align-items:flex-end;justify-content:center;gap:1px;width:100%">';
+      let html = `<div style="display:flex;align-items:flex-end;justify-content:${hasBoom?'flex-start':'center'};gap:1px;width:100%;padding-left:${hasBoom?'4px':'0'}">`;
 
-      // 【左】光源＋スタンドの縦積みシルエット
-      if (hasLight || hasBase) {
+      // 【左】光源＋スタンド/ブームの縦積みシルエット
+      if (hasLight || hasBase || hasBoom) {
         html += '<div style="display:flex;flex-direction:column;align-items:center;gap:0">';
         if (hasLight) {
           const src = getItemImgSrc(lights_[0]);
@@ -902,11 +908,10 @@ function renderLights() {
             ? `<img src="${src}" style="width:21px;height:21px;object-fit:contain;margin-bottom:-15px;">`
             : `<span style="font-size:14px;line-height:1">${guessIcon(lights_[0])}</span>`;
         }
-        if (hasBase) {
-          const src = getItemImgSrc(bases[0]);
-          html += src
-            ? `<img src="${src}" style="width:71px;height:113px;object-fit:contain;">`
-            : `<span style="font-size:42px;line-height:1">${guessIcon(bases[0])}</span>`;
+        if (baseImgSrc) {
+          html += `<img src="${baseImgSrc}" style="width:${baseW}px;height:${baseH}px;object-fit:contain;">`;
+        } else if (hasBase) {
+          html += `<span style="font-size:42px;line-height:1">${guessIcon(bases[0])}</span>`;
         }
         html += '</div>';
       }
