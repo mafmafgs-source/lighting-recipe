@@ -560,15 +560,15 @@ function buildNodeHTML(l){
   let html;
 
   if(hasBoom){
-    const tipX=Math.round(baseW*0.55);
-    const tipY=Math.round(baseH*0.28);
+    const tipX=Math.round(baseW*0.45); // 先端X：画像左から45%
+    const tipY=Math.round(baseH*0.28); // 先端Y：画像上から28%
     const lightW=21,lightH=21,modW=36,modH=36;
-    html=`<div style="position:relative;width:${baseW+modW+10}px;height:${baseH}px;flex-shrink:0;${flipStyle}">`;
+    html=`<div style="position:relative;width:${baseW+modW+4}px;height:${baseH}px;flex-shrink:0;${flipStyle}">`;
     html+=`<img src="${baseImgSrc}" style="position:absolute;left:0;top:0;width:${baseW}px;height:${baseH}px;object-fit:contain;">`;
     if(hasLight){
       const src=getItemImgSrc(lights_[0]);
       const lx=tipX-lightW/2;
-      const ly=tipY-lightH;
+      const ly=tipY-lightH+2; // 先端に密着
       html+=src
         ?`<img src="${src}" style="position:absolute;left:${lx}px;top:${ly}px;width:${lightW}px;height:${lightH}px;object-fit:contain;">`
         :`<span style="position:absolute;left:${lx}px;top:${ly}px;font-size:12px">⚡</span>`;
@@ -576,8 +576,9 @@ function buildNodeHTML(l){
     if(hasMod){
       modifiers.forEach((name,idx)=>{
         const src=getItemImgSrc(name);
-        const mx=tipX+lightW/2-idx*10;
-        const my=tipY-modH/2-lightH/2;
+        // 光源の右に密着（光源幅の半分＋モディファイアインデックス分）
+        const mx=tipX+lightW/2-2+idx*(modW-10);
+        const my=tipY-modH/2-lightH/2+2;
         html+=src
           ?`<img src="${src}" style="position:absolute;left:${mx}px;top:${my}px;width:${modW}px;height:${modH}px;object-fit:contain;">`
           :`<span style="position:absolute;left:${mx}px;top:${my}px;font-size:16px">⬡</span>`;
@@ -789,20 +790,37 @@ function renderBeams(){
     // 光源がないライトはスキップ
     if(!hasLightSource(l.items))return;
 
+    const hasBoomLight=l.items.some(n=>getItemRole(n)==='base'&&(n.includes('Boom')||n.includes('boom')||n==='Boom Arm'||n==='Mini Boom'));
     const flipped=l.flipped||false;
     const modifiers=l.items.filter(n=>getItemRole(n)==='modifier');
     const modCount=modifiers.length;
 
-    // 起点X：モディファイアがある場合は右（反転時は左）にオフセット
-    let beamOffsetX=0;
-    if(modCount>0){
-      const modWidth=36+(modCount-1)*(36-18);
-      beamOffsetX=(modWidth*0.9)/W*100;
+    let cx,cy;
+    if(hasBoomLight){
+      // ブームあり：ノード座標＋先端オフセット（baseW=90, baseH=113, tip=45%/28%）
+      const nodeX=(l.x??20)/100*W;
+      const nodeY=(l.y??30)/100*H;
+      const baseW=90,baseH=113;
+      // ノードは中心基準なのでbaseの左上を計算
+      const nodeLeft=nodeX-baseW/2;
+      const nodeTop=nodeY-baseH/2;
+      const tipX=nodeLeft+baseW*0.45;
+      const tipY=nodeTop+baseH*0.28;
+      // 光源中心
+      const lightW=21,lightH=21;
+      cx=flipped ? nodeX-(tipX-nodeX)-lightW/2 : tipX;
+      cy=tipY-lightH/2;
+    } else {
+      // 通常：光源位置から計算
+      let beamOffsetX=0;
+      if(modCount>0){
+        const modWidth=36+(modCount-1)*(36-18);
+        beamOffsetX=(modWidth*0.9)/W*100;
+      }
+      const baseX=(l.x??20)/100*W;
+      cx=flipped ? baseX - beamOffsetX/100*W : baseX + beamOffsetX/100*W;
+      cy=(l.y??30)/100*H - LIGHT_OFFSET_RATIO*H;
     }
-
-    const baseX=(l.x??20)/100*W;
-    const cx=flipped ? baseX - beamOffsetX/100*W : baseX + beamOffsetX/100*W;
-    const cy=(l.y??30)/100*H - LIGHT_OFFSET_RATIO*H;
     const beam=l.beam??40;
     // 反転時は角度をミラー（180° - angle）
     const rawAngle=l.angle??270;
