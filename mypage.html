@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>Lighting Recipe - My Page</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-serif;background:#0f0f0f;color:#e8e8e8;-webkit-text-size-adjust:100%}
+.wrap{max-width:430px;margin:auto;padding:10px}
+
+/* ヘッダー */
+.page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding:4px 0}
+.page-title{font-size:20px;font-weight:800;color:#e8e8e8;letter-spacing:.02em}
+.btn-new{padding:8px 16px;border:none;border-radius:10px;background:#c8a96e;color:#0f0f0f;font-size:13px;font-weight:700;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.btn-new:active{background:#b8956a}
+
+/* レシピカード */
+.recipe-list{display:flex;flex-direction:column;gap:10px}
+.recipe-card{display:flex;gap:12px;background:#1a1a1a;border:1px solid #2e2e2e;border-radius:12px;padding:10px;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:background .15s}
+.recipe-card:active{background:#222}
+.recipe-thumb{width:72px;height:72px;border-radius:8px;background:#111;flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center}
+.recipe-thumb img{width:100%;height:100%;object-fit:cover}
+.recipe-thumb-empty{font-size:28px;opacity:.3}
+.recipe-info{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:4px}
+.recipe-title{font-size:14px;font-weight:700;color:#e8e8e8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.recipe-meta{font-size:11px;color:#888;display:flex;gap:8px;flex-wrap:wrap}
+.recipe-meta span{white-space:nowrap}
+.recipe-items{font-size:10px;color:#666;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.recipe-actions{display:flex;align-items:center;flex-shrink:0}
+.btn-del{background:none;border:none;font-size:18px;color:#444;cursor:pointer;padding:8px}
+.btn-del:active{color:#c0392b}
+
+/* 空状態 */
+.empty-state{text-align:center;padding:60px 20px;color:#555}
+.empty-state .empty-icon{font-size:48px;margin-bottom:16px;opacity:.4}
+.empty-state p{font-size:14px;line-height:1.7;margin-bottom:20px}
+
+/* タブバー */
+.tab-bar{position:fixed;bottom:0;left:0;right:0;display:flex;background:#111;border-top:1px solid #2e2e2e;z-index:500;max-width:100%}
+.tab-bar a{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 0 env(safe-area-inset-bottom,6px);text-decoration:none;font-size:10px;color:#666;gap:2px;-webkit-tap-highlight-color:transparent;transition:color .15s}
+.tab-bar a.active{color:#c8a96e}
+.tab-bar a .tab-icon{font-size:18px;line-height:1}
+.tab-spacer{height:70px}
+
+/* 削除確認 */
+.confirm-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:600;align-items:center;justify-content:center;padding:20px}
+.confirm-overlay.open{display:flex}
+.confirm-dlg{background:#1e1e1e;border:1px solid #333;border-radius:16px;padding:24px;text-align:center;max-width:300px;width:100%}
+.confirm-dlg p{font-size:14px;color:#e8e8e8;margin-bottom:20px}
+.confirm-btns{display:flex;gap:10px}
+.confirm-btns button{flex:1;padding:12px;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer}
+.btn-confirm-cancel{background:#252525;border:1px solid #333;color:#aaa}
+.btn-confirm-del{background:#c0392b;border:none;color:#fff}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="page-header">
+    <span class="page-title">MY RECIPES</span>
+    <button class="btn-new" onclick="newRecipe()">＋ 新規作成</button>
+  </div>
+  <div class="recipe-list" id="recipeList"></div>
+</div>
+
+<!-- 削除確認 -->
+<div class="confirm-overlay" id="confirmOverlay">
+  <div class="confirm-dlg">
+    <p id="confirmMsg">このレシピを削除しますか？</p>
+    <div class="confirm-btns">
+      <button class="btn-confirm-cancel" onclick="closeConfirm()">キャンセル</button>
+      <button class="btn-confirm-del" id="btnConfirmDel">削除</button>
+    </div>
+  </div>
+</div>
+
+<!-- タブバー -->
+<div class="tab-spacer"></div>
+<nav class="tab-bar">
+  <a href="index.html"><span class="tab-icon">📷</span>レシピ</a>
+  <a href="builder.html"><span class="tab-icon">📦</span>機材</a>
+  <a href="mypage.html" class="active"><span class="tab-icon">👤</span>マイページ</a>
+</nav>
+
+<script>
+// ══════════════════════════════════════
+//  IndexedDB：レシピ保存用
+// ══════════════════════════════════════
+const DB_NAME='lr_recipes_db';
+const DB_VER=1;
+const STORE='recipes';
+
+function openDB(){
+  return new Promise((resolve,reject)=>{
+    const req=indexedDB.open(DB_NAME,DB_VER);
+    req.onupgradeneeded=e=>{
+      const db=e.target.result;
+      if(!db.objectStoreNames.contains(STORE)){
+        const store=db.createObjectStore(STORE,{keyPath:'id'});
+        store.createIndex('updatedAt','updatedAt',{unique:false});
+      }
+    };
+    req.onsuccess=e=>resolve(e.target.result);
+    req.onerror=e=>reject(e.target.error);
+  });
+}
+
+async function getAllRecipes(){
+  const db=await openDB();
+  return new Promise((resolve,reject)=>{
+    const tx=db.transaction(STORE,'readonly');
+    const store=tx.objectStore(STORE);
+    const req=store.index('updatedAt').getAll();
+    req.onsuccess=()=>resolve(req.result.reverse()); // 新しい順
+    req.onerror=e=>reject(e.target.error);
+  });
+}
+
+async function deleteRecipe(id){
+  const db=await openDB();
+  return new Promise((resolve,reject)=>{
+    const tx=db.transaction(STORE,'readwrite');
+    tx.objectStore(STORE).delete(id);
+    tx.oncomplete=resolve;
+    tx.onerror=e=>reject(e.target.error);
+  });
+}
+
+// ══════════════════════════════════════
+//  レシピ一覧描画
+// ══════════════════════════════════════
+async function renderList(){
+  const list=document.getElementById('recipeList');
+  let recipes=[];
+  try{ recipes=await getAllRecipes(); }catch(e){ console.error(e); }
+
+  if(!recipes.length){
+    list.innerHTML=`
+      <div class="empty-state">
+        <div class="empty-icon">📷</div>
+        <p>保存されたレシピがありません<br>レシピ画面で撮影情報を入力し<br>保存してください</p>
+        <button class="btn-new" onclick="newRecipe()">＋ 新規レシピを作成</button>
+      </div>`;
+    return;
+  }
+
+  list.innerHTML=recipes.map(r=>{
+    const date=r.session?.exDate||r.updatedAt?.split('T')[0]||'';
+    const loc=r.session?.loc||'';
+    const title=r.title||'無題のレシピ';
+    const itemCount=(r.lights||[]).filter(l=>l.items&&l.items.length).length;
+    const items=(r.lights||[]).flatMap(l=>l.items||[]).slice(0,3).join(', ');
+    const thumbSrc=r.photoData||'';
+
+    return `
+      <div class="recipe-card" onclick="loadRecipe('${r.id}')">
+        <div class="recipe-thumb">
+          ${thumbSrc?`<img src="${thumbSrc}">`:'<span class="recipe-thumb-empty">📷</span>'}
+        </div>
+        <div class="recipe-info">
+          <div class="recipe-title">${title}</div>
+          <div class="recipe-meta">
+            ${date?`<span>📅 ${date}</span>`:''}
+            ${loc?`<span>📍 ${loc}</span>`:''}
+            <span>💡 ${itemCount}灯</span>
+          </div>
+          <div class="recipe-items">${items||'機材なし'}</div>
+        </div>
+        <div class="recipe-actions">
+          <button class="btn-del" onclick="event.stopPropagation();confirmDelete('${r.id}','${title.replace(/'/g,"\\'")}')">🗑</button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════
+//  アクション
+// ══════════════════════════════════════
+function newRecipe(){
+  // 現在のセッションをクリアして新規作成→レシピ画面へ
+  localStorage.removeItem('lr_session');
+  localStorage.removeItem('lr_lights');
+  localStorage.setItem('lr_current_recipe_id','');
+  window.location.href='index.html';
+}
+
+function loadRecipe(id){
+  localStorage.setItem('lr_current_recipe_id',id);
+  window.location.href='index.html?recipe='+id;
+}
+
+// 削除確認
+let deleteTargetId=null;
+function confirmDelete(id,title){
+  deleteTargetId=id;
+  document.getElementById('confirmMsg').textContent=`「${title}」を削除しますか？`;
+  document.getElementById('confirmOverlay').classList.add('open');
+}
+function closeConfirm(){
+  document.getElementById('confirmOverlay').classList.remove('open');
+  deleteTargetId=null;
+}
+document.getElementById('btnConfirmDel').addEventListener('click',async()=>{
+  if(deleteTargetId){
+    await deleteRecipe(deleteTargetId);
+    // 現在編集中のレシピが削除された場合
+    if(localStorage.getItem('lr_current_recipe_id')===deleteTargetId){
+      localStorage.removeItem('lr_current_recipe_id');
+    }
+    closeConfirm();
+    renderList();
+  }
+});
+
+// 初期化
+renderList();
+</script>
+</body>
+</html>
