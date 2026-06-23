@@ -92,6 +92,20 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
 .btn-reset{position:absolute;top:8px;left:8px;z-index:10;background:rgba(0,0,0,0.7);color:#aaa;border:1px solid #333;border-radius:6px;padding:4px 8px;font-size:11px;font-weight:600;cursor:pointer;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);display:none}
 .btn-reset.visible{display:block}
 .btn-reset:active{background:rgba(180,0,0,0.7);color:#fff}
+/* 保存ボタン */
+.btn-save-recipe{position:absolute;top:8px;right:8px;z-index:10;background:rgba(200,169,110,0.85);color:#0f0f0f;border:none;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
+.btn-save-recipe:active{background:rgba(200,169,110,1)}
+/* 保存ダイアログ */
+#saveDialog{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:600;align-items:center;justify-content:center;padding:20px}
+#saveDialog.open{display:flex}
+.save-dlg{background:#1e1e1e;border:1px solid #333;border-radius:16px;padding:20px;width:100%;max-width:340px}
+.save-dlg h3{font-size:16px;font-weight:700;color:#e8e8e8;margin-bottom:14px}
+.save-dlg input{width:100%;padding:10px;border:1px solid #333;border-radius:8px;font-size:14px;outline:none;background:#141414;color:#e8e8e8;margin-bottom:16px}
+.save-dlg input:focus{border-color:#c8a96e}
+.save-dlg-btns{display:flex;gap:8px}
+.save-dlg-btns button{flex:1;padding:12px;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer}
+.btn-save-cancel{background:#252525;border:1px solid #333;color:#aaa}
+.btn-save-ok{background:#c8a96e;border:none;color:#0f0f0f}
 /* ── 出力モーダル ── */
 #exportModal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:300;align-items:flex-end;justify-content:center;padding:0}
 #exportModal.open{display:flex}
@@ -105,6 +119,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
 .btn-export-cancel{width:100%;padding:12px;border:1px solid #333;border-radius:12px;background:transparent;color:#888;font-size:14px;cursor:pointer}
 .btn-builder{display:block;width:100%;padding:14px;border:none;border-radius:12px;background:#c8a96e;color:#0f0f0f;font-size:15px;font-weight:700;cursor:pointer;text-align:center;text-decoration:none;-webkit-tap-highlight-color:transparent;letter-spacing:.02em}
 .btn-builder:active{background:#b8956a}
+/* タブバー */
+.tab-bar{position:fixed;bottom:0;left:0;right:0;display:flex;background:#111;border-top:1px solid #2e2e2e;z-index:500;max-width:100%}
+.tab-bar a{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 0 env(safe-area-inset-bottom,6px);text-decoration:none;font-size:10px;color:#666;gap:2px;-webkit-tap-highlight-color:transparent;transition:color .15s}
+.tab-bar a.active{color:#c8a96e}
+.tab-bar a .tab-icon{font-size:18px;line-height:1}
+.tab-spacer{height:70px}
 </style>
 </head>
 <body>
@@ -113,6 +133,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
     <!-- 写真エリア（リセットボタン付き） -->
     <div style="position:relative">
       <button class="btn-reset" id="btnReset" type="button" onclick="resetAll()">🔄 新規</button>
+      <button class="btn-save-recipe" id="btnSave" type="button" onclick="saveRecipeDialog()">💾 保存</button>
       <label for="fileInput" style="display:block;cursor:pointer">
         <div class="photo-box">
           <img id="photoImg" alt="">
@@ -1040,13 +1061,138 @@ requestAnimationFrame(()=>{renderCanvas();renderPanel();});
 // Builder等から戻った時（pageshow は初回ロードでも発火するためフラグで制御）
 let _firstPageshow=true;
 window.addEventListener('pageshow',(e)=>{
-  if(_firstPageshow){_firstPageshow=false;return;} // 初回は初期化済みなのでスキップ
-  // Builderから戻った場合、またはbfcache復元時
+  if(_firstPageshow){_firstPageshow=false;return;}
   lights=loadLights();
   restoreSession();
   renderCanvas();
   renderPanel();
 });
+
+// ══════════════════════════════════════
+//  レシピ保存・読み込み（IndexedDB）
+// ══════════════════════════════════════
+const RDB_NAME='lr_recipes_db';
+const RDB_VER=1;
+const RSTORE='recipes';
+let currentRecipeId=localStorage.getItem('lr_current_recipe_id')||'';
+
+function openRecipeDB(){
+  return new Promise((resolve,reject)=>{
+    const req=indexedDB.open(RDB_NAME,RDB_VER);
+    req.onupgradeneeded=e=>{
+      const db=e.target.result;
+      if(!db.objectStoreNames.contains(RSTORE)){
+        const store=db.createObjectStore(RSTORE,{keyPath:'id'});
+        store.createIndex('updatedAt','updatedAt',{unique:false});
+      }
+    };
+    req.onsuccess=e=>resolve(e.target.result);
+    req.onerror=e=>reject(e.target.error);
+  });
+}
+
+function saveRecipeDialog(){
+  const input=document.getElementById('recipeTitleInput');
+  input.value=localStorage.getItem('lr_recipe_title')||'';
+  document.getElementById('saveDialog').classList.add('open');
+  setTimeout(()=>input.focus(),100);
+}
+function closeSaveDialog(){
+  document.getElementById('saveDialog').classList.remove('open');
+}
+
+async function doSaveRecipe(){
+  const title=document.getElementById('recipeTitleInput').value.trim()||'無題のレシピ';
+  const id=currentRecipeId||('r_'+Date.now());
+  const now=new Date().toISOString();
+
+  let photoData='';
+  const photoImg=document.getElementById('photoImg');
+  if(photoImg&&photoImg.classList.contains('loaded')){
+    try{
+      const c=document.createElement('canvas'),ctx=c.getContext('2d');
+      const maxW=200,scale=Math.min(maxW/photoImg.naturalWidth,maxW/photoImg.naturalHeight);
+      c.width=photoImg.naturalWidth*scale;c.height=photoImg.naturalHeight*scale;
+      ctx.drawImage(photoImg,0,0,c.width,c.height);
+      photoData=c.toDataURL('image/jpeg',0.6);
+    }catch(e){}
+  }
+
+  const recipe={
+    id, title, updatedAt:now, photoData,
+    lights:JSON.parse(JSON.stringify(lights)),
+    session:{
+      loc:document.getElementById('locInput')?.value||'',
+      memo:getCanvasMemo(),
+      bgOn, bgColor:document.getElementById('bgColor')?.value||'#ffffff',
+      exDate:document.getElementById('exDate')?.textContent||'',
+      exCamera:document.getElementById('exCamera')?.textContent||'',
+      exLens:document.getElementById('exLens')?.textContent||'',
+    }
+  };
+
+  try{
+    const db=await openRecipeDB();
+    await new Promise((res,rej)=>{
+      const tx=db.transaction(RSTORE,'readwrite');
+      tx.objectStore(RSTORE).put(recipe);
+      tx.oncomplete=res;tx.onerror=e=>rej(e.target.error);
+    });
+    currentRecipeId=id;
+    localStorage.setItem('lr_current_recipe_id',id);
+    localStorage.setItem('lr_recipe_title',title);
+    closeSaveDialog();
+    showSaveToast('保存しました');
+  }catch(e){ console.error(e); alert('保存に失敗しました'); }
+}
+
+let _saveToastTimer=null;
+function showSaveToast(msg){
+  let el=document.getElementById('saveToast');
+  if(!el){
+    el=document.createElement('div');el.id='saveToast';
+    el.style.cssText='position:fixed;top:50%;left:50%;transform:translate(-50%,-40%);background:#1e1e1e;color:#e8e8e8;border:1px solid #c8a96e;border-radius:14px;padding:18px 28px;font-size:14px;font-weight:600;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,.6);opacity:0;transition:opacity .2s,transform .2s;z-index:999;pointer-events:none';
+    document.body.appendChild(el);
+  }
+  el.textContent=msg;el.style.opacity='1';el.style.transform='translate(-50%,-50%)';
+  clearTimeout(_saveToastTimer);
+  _saveToastTimer=setTimeout(()=>{el.style.opacity='0';el.style.transform='translate(-50%,-40%)';},1500);
+}
+
+async function loadRecipeFromURL(){
+  const params=new URLSearchParams(window.location.search);
+  const recipeId=params.get('recipe');
+  if(!recipeId)return;
+  try{
+    const db=await openRecipeDB();
+    const recipe=await new Promise((res,rej)=>{
+      const tx=db.transaction(RSTORE,'readonly');
+      const req=tx.objectStore(RSTORE).get(recipeId);
+      req.onsuccess=()=>res(req.result);req.onerror=e=>rej(e.target.error);
+    });
+    if(!recipe)return;
+    lights=recipe.lights||[];saveLights();
+    const s=recipe.session||{};
+    if(s.loc) document.getElementById('locInput').value=s.loc;
+    if(s.memo) setCanvasMemo(s.memo);
+    if(s.bgOn!==undefined){bgOn=s.bgOn;document.getElementById('bgToggle').checked=bgOn;toggleBg();}
+    if(s.bgColor) document.getElementById('bgColor').value=s.bgColor;
+    if(s.exCamera) document.getElementById('exCamera').textContent=s.exCamera;
+    if(s.exLens) document.getElementById('exLens').textContent=s.exLens;
+    if(s.exDate) document.getElementById('exDate').textContent=s.exDate;
+    if(recipe.photoData){
+      const img=document.getElementById('photoImg');
+      img.onload=()=>{img.classList.add('loaded');document.getElementById('photoHint').style.display='none';document.getElementById('btnReset').classList.add('visible');};
+      img.src=recipe.photoData;
+    }
+    currentRecipeId=recipeId;
+    localStorage.setItem('lr_current_recipe_id',recipeId);
+    localStorage.setItem('lr_recipe_title',recipe.title||'');
+    saveSession();renderCanvas();renderPanel();
+    history.replaceState(null,'',window.location.pathname);
+  }catch(e){console.error('Load recipe error:',e);}
+}
+loadRecipeFromURL();
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script>
@@ -1364,6 +1510,26 @@ function roundRect(ctx,x,y,w,h,r){
     <button class="btn-export-cancel" onclick="closeExportModal()">キャンセル</button>
   </div>
 </div>
+
+<!-- 保存ダイアログ -->
+<div id="saveDialog">
+  <div class="save-dlg">
+    <h3>💾 レシピを保存</h3>
+    <input type="text" id="recipeTitleInput" placeholder="レシピのタイトル（例：ポートレート撮影）">
+    <div class="save-dlg-btns">
+      <button class="btn-save-cancel" onclick="closeSaveDialog()">キャンセル</button>
+      <button class="btn-save-ok" onclick="doSaveRecipe()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- タブバー -->
+<div class="tab-spacer"></div>
+<nav class="tab-bar">
+  <a href="index.html" class="active"><span class="tab-icon">📷</span>レシピ</a>
+  <a href="builder.html"><span class="tab-icon">📦</span>機材</a>
+  <a href="mypage.html"><span class="tab-icon">👤</span>マイページ</a>
+</nav>
 
 </body>
 </html>
