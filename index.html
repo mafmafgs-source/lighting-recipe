@@ -548,14 +548,18 @@ function buildNodeHTML(l){
   const hasBase  =bases.length>0;
   const hasLight =lights_.length>0;
   const hasMod   =modifiers.length>0;
+  const hasBoom  =l.items.some(n=>getItemRole(n)==='base'&&getCatImgByItemName(n)==='icons/boom.png');
 
-  // 反転時はscaleX(-1)でミラー、ただしラベル・出力は反転しない
+  // ベース画像：ブームあり→boom_stand.png左寄せ
+  const baseImgSrc=hasBoom?'icons/boom_stand.png':(hasBase?getItemImgSrc(bases[0]):null);
+  const baseW=hasBoom?90:71;
+  const baseH=hasBoom?113:113;
+
   const flipStyle=flipped?'transform:scaleX(-1);':'';
-
-  let html=`<div style="display:flex;align-items:flex-end;justify-content:center;gap:1px;width:100%;height:100%;${flipStyle}">`;
+  let html=`<div style="display:flex;align-items:flex-end;justify-content:${hasBoom?'flex-start':'center'};gap:1px;width:100%;height:100%;padding-left:${hasBoom?'4px':'0'};${flipStyle}">`;
 
   // 光源＋スタンドの縦積み
-  if(hasLight||hasBase){
+  if(hasLight||hasBase||hasBoom){
     html+='<div style="display:flex;flex-direction:column;align-items:center;gap:0">';
     if(hasLight){
       const src=getItemImgSrc(lights_[0]);
@@ -563,11 +567,10 @@ function buildNodeHTML(l){
         ?`<img src="${src}" style="width:21px;height:21px;object-fit:contain;margin-bottom:-15px;">`
         :`<span style="font-size:12px">⚡</span>`;
     }
-    if(hasBase){
-      const src=getItemImgSrc(bases[0]);
-      html+=src
-        ?`<img src="${src}" style="width:71px;height:113px;object-fit:contain;">`
-        :`<span style="font-size:30px">△</span>`;
+    if(baseImgSrc){
+      html+=`<img src="${baseImgSrc}" style="width:${baseW}px;height:${baseH}px;object-fit:contain;">`;
+    }else if(hasBase){
+      html+=`<span style="font-size:30px">△</span>`;
     }
     html+='</div>';
   }
