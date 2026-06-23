@@ -563,7 +563,7 @@ function buildNodeHTML(l){
     html+='<div style="display:flex;flex-direction:column;align-items:center;gap:0">';
     if(hasLight){
       const src=getItemImgSrc(lights_[0]);
-      const lightMb=hasBoom?-1:-21;
+      const lightMb=hasBoom?-60:-21;
       html+=src
         ?`<img src="${src}" style="width:21px;height:21px;object-fit:contain;margin-bottom:${lightMb}px;">`
         :`<span style="font-size:12px">⚡</span>`;
@@ -580,7 +580,7 @@ function buildNodeHTML(l){
   if(hasMod){
     modifiers.forEach((name,idx)=>{
       const src=getItemImgSrc(name);
-      const mb=hasBoom?70:(hasBase?90:0);
+      const mb=hasBoom?30:(hasBase?90:0);
       const ml=idx===0?-30:-18;
       html+=`<div style="margin-bottom:${mb}px;margin-left:${ml}px;">`;
       html+=src
