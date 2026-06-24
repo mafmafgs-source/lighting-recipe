@@ -107,13 +107,15 @@ function openDB(){
 
 async function getAllRecipes(){
   const db=await openDB();
-  return new Promise((resolve,reject)=>{
+  const result=await new Promise((resolve,reject)=>{
     const tx=db.transaction(STORE,'readonly');
     const store=tx.objectStore(STORE);
     const req=store.index('updatedAt').getAll();
-    req.onsuccess=()=>resolve(req.result.reverse()); // 新しい順
+    req.onsuccess=()=>resolve(req.result.reverse());
     req.onerror=e=>reject(e.target.error);
   });
+  db.close();
+  return result;
 }
 
 async function deleteRecipe(id){
@@ -151,23 +153,25 @@ async function renderList(){
     const itemCount=(r.lights||[]).filter(l=>l.items&&l.items.length).length;
     const items=(r.lights||[]).flatMap(l=>l.items||[]).slice(0,3).join(', ');
     const thumbSrc=r.photoData||'';
+    // IDとタイトルはdata属性で渡す（onclick文字列埋め込みを避ける）
+    const safeId=encodeURIComponent(r.id);
 
     return `
-      <div class="recipe-card" onclick="loadRecipe('${r.id}')">
+      <div class="recipe-card" data-id="${safeId}" onclick="handleCardClick(this)">
         <div class="recipe-thumb">
           ${thumbSrc?`<img src="${thumbSrc}">`:'<span class="recipe-thumb-empty">📷</span>'}
         </div>
         <div class="recipe-info">
-          <div class="recipe-title">${title}</div>
+          <div class="recipe-title">${title.replace(/</g,'&lt;')}</div>
           <div class="recipe-meta">
             ${date?`<span>📅 ${date}</span>`:''}
-            ${loc?`<span>📍 ${loc}</span>`:''}
+            ${loc?`<span>📍 ${loc.replace(/</g,'&lt;')}</span>`:''}
             <span>💡 ${itemCount}灯</span>
           </div>
-          <div class="recipe-items">${items||'機材なし'}</div>
+          <div class="recipe-items">${(items||'機材なし').replace(/</g,'&lt;')}</div>
         </div>
         <div class="recipe-actions">
-          <button class="btn-del" onclick="event.stopPropagation();confirmDelete('${r.id}','${title.replace(/'/g,"\\'")}')">🗑</button>
+          <button class="btn-del" data-id="${safeId}" onclick="event.stopPropagation();handleDelClick(this)">🗑</button>
         </div>
       </div>`;
   }).join('');
@@ -179,14 +183,27 @@ async function renderList(){
 function newRecipe(){
   // 現在のセッションをクリアして新規作成→レシピ画面へ
   localStorage.removeItem('lr_session');
-  localStorage.removeItem('lr_lights');
-  localStorage.setItem('lr_current_recipe_id','');
+  localStorage.removeItem('lightingRecipeLights'); // 正しいキー
+  localStorage.removeItem('lr_direct_items');
+  localStorage.removeItem('lr_current_recipe_id');
+  localStorage.removeItem('lr_recipe_title');
   window.location.href='index.html';
 }
 
 function loadRecipe(id){
   localStorage.setItem('lr_current_recipe_id',id);
   window.location.href='index.html?recipe='+id;
+}
+
+function handleCardClick(el){
+  const id=decodeURIComponent(el.dataset.id);
+  loadRecipe(id);
+}
+function handleDelClick(btn){
+  const id=decodeURIComponent(btn.dataset.id);
+  const card=btn.closest('.recipe-card');
+  const title=card?.querySelector('.recipe-title')?.textContent||'このレシピ';
+  confirmDelete(id,title);
 }
 
 // 削除確認
