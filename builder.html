@@ -831,6 +831,11 @@ function showAddItemDialog(catId) {
 
   document.getElementById('dlgTitle').textContent = T.dlgItemTitle;
   document.getElementById('dlgBody').innerHTML =
+    '<div style="margin-bottom:14px">' +
+      '<button id="btnAmzSearch" style="width:100%;padding:10px;border:1px solid #c8a96e;border-radius:10px;background:#2a2218;color:#c8a96e;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">' +
+        '🔍 Amazonで検索して確認' +
+      '</button>' +
+    '</div>' +
     '<div class="dlg-field">' +
       '<label>' + T.dlgMakerLabel + '</label>' +
       '<input id="newMaker" placeholder="' + T.dlgMakerPh + '">' +
@@ -840,15 +845,23 @@ function showAddItemDialog(catId) {
       '<input id="newModel" placeholder="' + T.dlgModelPh + '">' +
     '</div>' +
     '<div class="dlg-field">' +
-      '<label style="display:block;margin-bottom:6px;font-size:12px;color:#555;font-weight:600">機材写真（省略可）</label>' +
+      '<label style="display:block;margin-bottom:6px;font-size:12px;color:#888;font-weight:600">機材写真（省略可）</label>' +
       '<div style="display:flex;align-items:center;gap:8px">' +
-        '<div id="imgPreview" style="width:48px;height:48px;border-radius:8px;background:#e8e8e8;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;overflow:hidden">' + catIcon + '</div>' +
-        '<label style="flex:1;padding:8px;border:1px dashed #bbb;border-radius:8px;text-align:center;cursor:pointer;font-size:12px;color:#888">' +
+        '<div id="imgPreview" style="width:48px;height:48px;border-radius:8px;background:#252525;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;overflow:hidden">' + catIcon + '</div>' +
+        '<label style="flex:1;padding:8px;border:1px dashed #444;border-radius:8px;text-align:center;cursor:pointer;font-size:12px;color:#888">' +
           '📷 写真を選択' +
           '<input type="file" id="newItemPhoto" accept="image/*" style="display:none">' +
         '</label>' +
       '</div>' +
     '</div>';
+
+  // Amazon検索ボタン
+  document.getElementById('btnAmzSearch').onclick = () => {
+    const maker = document.getElementById('newMaker').value.trim();
+    const model = document.getElementById('newModel').value.trim();
+    const query = (maker + ' ' + model).trim() || (catObj ? catObj.label : '');
+    window.open(amazonUrl(query), '_blank');
+  };
 
   // フォーカス
   const makerEl = document.getElementById('newMaker');
