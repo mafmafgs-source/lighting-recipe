@@ -99,19 +99,19 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
 /* 太陽ボタンON状態 */
 #sunToggleBtn.sun-on{background:#2a1e00;border-color:#c8a96e;color:#c8a96e}
 /* 背景選択シート */
-#bgSheet{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:400;align-items:flex-end;justify-content:center}
+#bgSheet{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:510;align-items:flex-end;justify-content:center}
 #bgSheet.open{display:flex}
-.bg-sheet-inner{background:#1a1a1a;border-radius:20px 20px 0 0;padding:16px 16px calc(env(safe-area-inset-bottom,0px) + 16px);width:100%;max-width:430px;border-top:1px solid #333}
+.bg-sheet-inner{background:#1a1a1a;border-radius:20px 20px 0 0;padding:16px 16px 0;width:100%;max-width:430px;border-top:1px solid #333;padding-bottom:calc(env(safe-area-inset-bottom,0px) + 80px)}
 .bg-sheet-title{font-size:13px;font-weight:700;color:#888;letter-spacing:.06em;text-transform:uppercase;margin-bottom:12px;text-align:center}
-.bg-options{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px}
+.bg-options{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
 .bg-opt{border:1.5px solid #333;border-radius:10px;padding:8px 4px;text-align:center;cursor:pointer;background:#141414;-webkit-tap-highlight-color:transparent}
 .bg-opt.active{border-color:#c8a96e;background:#2a2218}
 .bg-opt-preview{width:100%;aspect-ratio:1/1;border-radius:6px;margin-bottom:5px;overflow:hidden;display:flex;align-items:center;justify-content:center}
 .bg-opt-label{font-size:10px;color:#aaa;font-weight:600}
 .bg-opt.active .bg-opt-label{color:#c8a96e}
-.bg-color-row{display:flex;align-items:center;gap:10px;padding:8px 0 2px;border-top:1px solid #2a2a2a}
+.bg-color-row{display:flex;align-items:center;gap:10px;padding:8px 0 10px;border-top:1px solid #2a2a2a}
 .bg-color-row label{font-size:12px;color:#888;flex:1}
-.bg-sheet-close{width:100%;padding:12px;border:1px solid #333;border-radius:12px;background:transparent;color:#888;font-size:14px;cursor:pointer}
+.bg-sheet-close{width:100%;padding:12px;border:1px solid #333;border-radius:12px;background:transparent;color:#888;font-size:14px;cursor:pointer;margin-bottom:4px}
 /* 背景トグル */
 .bg-toggle input[type=checkbox]{display:none}
 .bg-toggle-btn{display:inline-block;padding:5px 10px;border:1px solid #333;border-radius:8px;font-size:12px;font-weight:600;color:#888;background:#222;cursor:pointer;transition:background .15s,color .15s;user-select:none}
@@ -869,12 +869,12 @@ function openBgSheet(){
       bgType=bt.id;
       document.querySelectorAll('.bg-opt').forEach(el=>el.classList.remove('active'));
       div.classList.add('active');
-      document.getElementById('bgColorRow').style.display=bgType==='paper'?'flex':'none';
+      document.getElementById('bgColorRow').style.display=(bgType==='paper'||bgType==='table')?'flex':'none';
       saveSession(); renderBg();
     };
     opts.appendChild(div);
   });
-  document.getElementById('bgColorRow').style.display=bgType==='paper'?'flex':'none';
+  document.getElementById('bgColorRow').style.display=(bgType==='paper'||bgType==='table')?'flex':'none';
   document.getElementById('bgSheet').classList.add('open');
 }
 
@@ -894,18 +894,19 @@ function makeBgPreviewSvg(type){
     </svg>`;
   }
   if(type==='table'){
+    const color=document.getElementById('bgColor')?.value||'#ffffff';
     return `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">
-      <rect width="${W}" height="${H}" fill="#ddd"/>
-      <ellipse cx="30" cy="34" rx="20" ry="10" fill="#c8a96e" opacity="0.5" stroke="#a07840" stroke-width="1"/>
-      <ellipse cx="30" cy="30" rx="20" ry="10" fill="#e8c88a" stroke="#a07840" stroke-width="1"/>
+      <rect width="${W}" height="${H}" fill="#e8e8e8"/>
+      <polygon points="14,42 46,42 52,54 8,54" fill="${color}" stroke="rgba(0,0,0,0.18)" stroke-width="1"/>
+      <polygon points="14,42 46,42 46,44 14,44" fill="rgba(0,0,0,0.08)"/>
     </svg>`;
   }
   if(type==='mountain'){
     return `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">
-      <rect width="${W}" height="${H}" fill="#b8d4f0"/>
-      <polygon points="0,60 20,20 40,45 60,60" fill="#7a9e6e"/>
-      <polygon points="20,60 38,18 56,60" fill="#6a8e5e"/>
-      <polygon points="28,60 38,10 48,60" fill="#d8e8f8"/>
+      <rect width="${W}" height="${H}" fill="#ddeef8"/>
+      <polygon points="0,40 18,18 34,30 50,14 60,24 60,40" fill="#c8d8e8" opacity="0.8"/>
+      <polygon points="0,40 12,26 26,34 40,22 54,30 60,26 60,40" fill="#a8c4a0" opacity="0.7"/>
+      <rect x="0" y="40" width="60" height="20" fill="#c8dab8" opacity="0.6"/>
     </svg>`;
   }
   return '';
@@ -966,69 +967,84 @@ function renderBg(){
     g.appendChild(bar);
 
   } else if(bgType==='table'){
-    // ── テーブル：斜め上から見下ろした楕円テーブル ──
-    const tcx=W*0.5, tcy=H*0.52;
-    const trx=W*0.38, try_=H*0.20; // 楕円の半径
+    // ── テーブル：斜め上から見下ろした四角テーブル（パース付き）──
+    // 30%縮小：元幅W*0.76 → W*0.53、奥行H*0.28→H*0.20
+    const bgColorVal=document.getElementById('bgColor')?.value||'#ffffff';
+    const hex=bgColorVal.replace('#','');
+    const tr=parseInt(hex.slice(0,2),16)||255;
+    const tg=parseInt(hex.slice(2,4),16)||255;
+    const tb=parseInt(hex.slice(4,6),16)||255;
+    const tdarker=`rgb(${Math.max(0,tr-28)},${Math.max(0,tg-28)},${Math.max(0,tb-28)})`;
+    const tside  =`rgb(${Math.max(0,tr-55)},${Math.max(0,tg-55)},${Math.max(0,tb-55)})`;
+
+    // テーブル中心：人物の少し手前（y=58%）
+    const tcy=H*0.58;
+    const tHalfW=W*0.265; // 幅の半分（53%/2）
+    const tDepth=H*0.20;  // 奥行き
+    const vanishX=W*0.5, vanishY=H*0.30; // 消失点（上方）
+
+    // 四隅（パース）：奥2点は消失点方向に縮む
+    const nearL=W*0.5-tHalfW, nearR=W*0.5+tHalfW;
+    const nearY=tcy;
+    const farL =W*0.5-tHalfW*0.6, farR=W*0.5+tHalfW*0.6;
+    const farY =tcy-tDepth;
 
     const defs=document.createElementNS(ns,'defs');
     const gid='tblGrad_'+Date.now();
-    const grad=document.createElementNS(ns,'radialGradient');
-    grad.setAttribute('id',gid);grad.setAttribute('cx','45%');grad.setAttribute('cy','40%');
-    grad.setAttribute('r','60%');grad.setAttribute('gradientUnits','objectBoundingBox');
-    const s0=document.createElementNS(ns,'stop');s0.setAttribute('offset','0%');s0.setAttribute('stop-color','#f5ead8');
-    const s1=document.createElementNS(ns,'stop');s1.setAttribute('offset','100%');s1.setAttribute('stop-color','#c8a56a');
+    const grad=document.createElementNS(ns,'linearGradient');
+    grad.setAttribute('id',gid);grad.setAttribute('x1','0');grad.setAttribute('y1','0');
+    grad.setAttribute('x2','0');grad.setAttribute('y2','1');
+    const s0=document.createElementNS(ns,'stop');s0.setAttribute('offset','0%');s0.setAttribute('stop-color',bgColorVal);
+    const s1=document.createElementNS(ns,'stop');s1.setAttribute('offset','100%');s1.setAttribute('stop-color',tdarker);
     grad.appendChild(s0);grad.appendChild(s1);defs.appendChild(grad);g.appendChild(defs);
 
-    // テーブル天板（楕円）
-    const ellipse=document.createElementNS(ns,'ellipse');
-    ellipse.setAttribute('cx',tcx);ellipse.setAttribute('cy',tcy);
-    ellipse.setAttribute('rx',trx);ellipse.setAttribute('ry',try_);
-    ellipse.setAttribute('fill',`url(#${gid})`);
-    ellipse.setAttribute('stroke','rgba(120,80,20,0.25)');ellipse.setAttribute('stroke-width','1.5');
-    g.appendChild(ellipse);
+    // 天板
+    const top=document.createElementNS(ns,'polygon');
+    top.setAttribute('points',`${nearL},${nearY} ${nearR},${nearY} ${farR},${farY} ${farL},${farY}`);
+    top.setAttribute('fill',`url(#${gid})`);
+    top.setAttribute('stroke','rgba(0,0,0,0.12)');top.setAttribute('stroke-width','1');
+    g.appendChild(top);
 
-    // テーブルの縁（前面の厚み）
-    const thick=H*0.035;
-    const frontPath=`M${tcx-trx},${tcy} Q${tcx-trx},${tcy+thick} ${tcx-trx+thick*0.5},${tcy+thick} L${tcx+trx-thick*0.5},${tcy+thick} Q${tcx+trx},${tcy+thick} ${tcx+trx},${tcy}`;
-    const front=document.createElementNS(ns,'path');
-    front.setAttribute('d',frontPath);
-    front.setAttribute('fill','#a07840');front.setAttribute('stroke','rgba(80,50,10,0.3)');front.setAttribute('stroke-width','1');
+    // 前面（厚み）
+    const thick=H*0.025;
+    const front=document.createElementNS(ns,'polygon');
+    front.setAttribute('points',`${nearL},${nearY} ${nearR},${nearY} ${nearR},${nearY+thick} ${nearL},${nearY+thick}`);
+    front.setAttribute('fill',tside);
+    front.setAttribute('stroke','rgba(0,0,0,0.12)');front.setAttribute('stroke-width','0.5');
     g.appendChild(front);
 
-    // テーブルの木目線（3本）
-    ['0.3','0.5','0.7'].forEach(t=>{
-      const lx=tcx-trx+trx*2*Number(t);
-      const topY=tcy-try_*Math.sqrt(1-Math.pow((lx-tcx)/trx,2));
-      const botY=tcy+try_*Math.sqrt(1-Math.pow((lx-tcx)/trx,2));
-      const line=document.createElementNS(ns,'line');
-      line.setAttribute('x1',lx);line.setAttribute('y1',topY);
-      line.setAttribute('x2',lx);line.setAttribute('y2',botY);
-      line.setAttribute('stroke','rgba(150,100,30,0.12)');line.setAttribute('stroke-width','1');
-      g.appendChild(line);
+    // 木目線（奥→手前方向 3本）
+    [0.3,0.5,0.7].forEach(t=>{
+      const lx1=farL+(farR-farL)*t, ly1=farY;
+      const lx2=nearL+(nearR-nearL)*t, ly2=nearY;
+      const ln=document.createElementNS(ns,'line');
+      ln.setAttribute('x1',lx1);ln.setAttribute('y1',ly1);ln.setAttribute('x2',lx2);ln.setAttribute('y2',ly2);
+      ln.setAttribute('stroke','rgba(0,0,0,0.06)');ln.setAttribute('stroke-width','1');
+      g.appendChild(ln);
     });
 
   } else if(bgType==='mountain'){
-    // ── 山脈：遠景の山並み + 空グラデーション ──
-    const horizonY=H*0.55; // 地平線の高さ
+    // ── 山脈：地平線=人物下線(H*0.58)に合わせ、全体を淡く ──
+    const horizonY=H*0.58; // .subject top:42% + 人物高さ分
 
     const defs=document.createElementNS(ns,'defs');
 
-    // 空グラデーション
+    // 空グラデーション（淡い水色）
     const skyId='skyGrad_'+Date.now();
     const skyGrad=document.createElementNS(ns,'linearGradient');
     skyGrad.setAttribute('id',skyId);skyGrad.setAttribute('x1','0');skyGrad.setAttribute('y1','0');
     skyGrad.setAttribute('x2','0');skyGrad.setAttribute('y2','1');
-    const sk0=document.createElementNS(ns,'stop');sk0.setAttribute('offset','0%');sk0.setAttribute('stop-color','#c8dff5');
-    const sk1=document.createElementNS(ns,'stop');sk1.setAttribute('offset','100%');sk1.setAttribute('stop-color','#e8f2fb');
+    const sk0=document.createElementNS(ns,'stop');sk0.setAttribute('offset','0%');sk0.setAttribute('stop-color','#daeef8');
+    const sk1=document.createElementNS(ns,'stop');sk1.setAttribute('offset','100%');sk1.setAttribute('stop-color','#edf6fc');
     skyGrad.appendChild(sk0);skyGrad.appendChild(sk1);defs.appendChild(skyGrad);
 
-    // 地面グラデーション
+    // 地面グラデーション（淡い緑）
     const gndId='gndGrad_'+Date.now();
     const gndGrad=document.createElementNS(ns,'linearGradient');
     gndGrad.setAttribute('id',gndId);gndGrad.setAttribute('x1','0');gndGrad.setAttribute('y1','0');
     gndGrad.setAttribute('x2','0');gndGrad.setAttribute('y2','1');
-    const gn0=document.createElementNS(ns,'stop');gn0.setAttribute('offset','0%');gn0.setAttribute('stop-color','#8aaa70');
-    const gn1=document.createElementNS(ns,'stop');gn1.setAttribute('offset','100%');gn1.setAttribute('stop-color','#6a8a55');
+    const gn0=document.createElementNS(ns,'stop');gn0.setAttribute('offset','0%');gn0.setAttribute('stop-color','#c8dab8');
+    const gn1=document.createElementNS(ns,'stop');gn1.setAttribute('offset','100%');gn1.setAttribute('stop-color','#b4c8a4');
     gndGrad.appendChild(gn0);gndGrad.appendChild(gn1);defs.appendChild(gndGrad);
 
     g.appendChild(defs);
@@ -1039,24 +1055,34 @@ function renderBg(){
     sky.setAttribute('fill',`url(#${skyId})`);
     g.appendChild(sky);
 
-    // 遠景山（薄い青紫）
+    // 遠景山（ごく薄い青灰）
+    const farPts=[
+      [0,horizonY],[W*0.12,horizonY*0.48],[W*0.28,horizonY*0.68],
+      [W*0.46,horizonY*0.36],[W*0.62,horizonY*0.58],[W*0.78,horizonY*0.44],
+      [W,horizonY*0.62],[W,horizonY]
+    ].map(p=>p.join(',')).join(' ');
     const farMtn=document.createElementNS(ns,'polygon');
-    farMtn.setAttribute('points',`0,${horizonY} ${W*0.15},${H*0.25} ${W*0.32},${H*0.38} ${W*0.5},${H*0.18} ${W*0.68},${H*0.32} ${W*0.82},${H*0.22} ${W},${H*0.36} ${W},${horizonY}`);
-    farMtn.setAttribute('fill','#9ab0cc');farMtn.setAttribute('opacity','0.7');
+    farMtn.setAttribute('points',farPts);
+    farMtn.setAttribute('fill','#c4d4e4');farMtn.setAttribute('opacity','0.65');
     g.appendChild(farMtn);
 
-    // 前景山（濃い緑）
+    // 前景山（淡い青緑）
+    const nearPts=[
+      [0,horizonY],[W*0.08,horizonY*0.72],[W*0.24,horizonY*0.60],
+      [W*0.42,horizonY*0.76],[W*0.58,horizonY*0.56],[W*0.74,horizonY*0.74],
+      [W*0.88,horizonY*0.64],[W,horizonY*0.76],[W,horizonY]
+    ].map(p=>p.join(',')).join(' ');
     const nearMtn=document.createElementNS(ns,'polygon');
-    nearMtn.setAttribute('points',`0,${horizonY} ${W*0.1},${H*0.38} ${W*0.28},${H*0.3} ${W*0.45},${H*0.42} ${W*0.6},${H*0.28} ${W*0.78},${H*0.40} ${W*0.9},${H*0.33} ${W},${H*0.42} ${W},${horizonY}`);
-    nearMtn.setAttribute('fill','#5a8048');
+    nearMtn.setAttribute('points',nearPts);
+    nearMtn.setAttribute('fill','#a8c0a8');nearMtn.setAttribute('opacity','0.75');
     g.appendChild(nearMtn);
 
-    // 雪（前景山の頂上付近）
-    [{cx:W*0.28,r:W*0.04},{cx:W*0.6,r:W*0.05},{cx:W*0.9,r:W*0.035}].forEach(({cx,r})=>{
+    // 雪（薄め）
+    [{x:W*0.46,y:horizonY*0.36,r:W*0.038},{x:W*0.78,y:horizonY*0.44,r:W*0.03},{x:W*0.12,y:horizonY*0.48,r:W*0.025}].forEach(({x,y,r})=>{
       const snow=document.createElementNS(ns,'ellipse');
-      snow.setAttribute('cx',cx);snow.setAttribute('cy',horizonY*0.56);
-      snow.setAttribute('rx',r);snow.setAttribute('ry',r*0.5);
-      snow.setAttribute('fill','white');snow.setAttribute('opacity','0.75');
+      snow.setAttribute('cx',x);snow.setAttribute('cy',y+r*0.3);
+      snow.setAttribute('rx',r);snow.setAttribute('ry',r*0.45);
+      snow.setAttribute('fill','white');snow.setAttribute('opacity','0.55');
       g.appendChild(snow);
     });
 
@@ -1065,13 +1091,6 @@ function renderBg(){
     gnd.setAttribute('x',0);gnd.setAttribute('y',horizonY);gnd.setAttribute('width',W);gnd.setAttribute('height',H-horizonY);
     gnd.setAttribute('fill',`url(#${gndId})`);
     g.appendChild(gnd);
-
-    // 地平線
-    const horizon=document.createElementNS(ns,'line');
-    horizon.setAttribute('x1',0);horizon.setAttribute('y1',horizonY);
-    horizon.setAttribute('x2',W);horizon.setAttribute('y2',horizonY);
-    horizon.setAttribute('stroke','rgba(100,140,80,0.3)');horizon.setAttribute('stroke-width','1');
-    g.appendChild(horizon);
   }
 }
 
