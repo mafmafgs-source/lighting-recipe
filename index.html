@@ -1272,7 +1272,7 @@ function renderCanvas(){
       buildNodeHTML(l);
 
     node.dataset.lightOffsetY = -(145/2 - 10);
-    node.addEventListener('click',e=>{e.stopPropagation();selectedDirect=null;selected=(selected===i)?null:i;renderAll();renderPanel();});
+    node.addEventListener('click',e=>{e.stopPropagation();selectedDirect=null;selectedSun=false;selected=(selected===i)?null:i;renderAll();renderPanel();});
     makeDraggable(node,canvas,i);
     canvas.appendChild(node);
   });
@@ -1328,7 +1328,7 @@ function renderDirectItems(canvas){
     el.addEventListener('click',e=>{
       if(e.target.closest('.direct-item-del'))return;
       e.stopPropagation();
-      selected=null;
+      selected=null; selectedSun=false;
       selectedDirect=(selectedDirect===idx)?null:idx;
       renderCanvas();
       renderPanel();
