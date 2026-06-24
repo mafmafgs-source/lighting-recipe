@@ -513,8 +513,9 @@ function getCatImgByItemName(name) {
 let expandedCatId = null;
 
 function iconHtml(cat, cls='icon-img') {
-  if(cat.imgPath){
-    return `<img class="${cls}" src="${cat.imgPath}" alt="${cat.label}" onerror="this.style.display='none';this.nextSibling&&(this.nextSibling.style.display='block')"><span class="icon" style="display:none">${cat.icon}</span>`;
+  const src = cat.imgData || cat.imgPath || null;
+  if(src){
+    return `<img class="${cls}" src="${src}" alt="${cat.label}" onerror="this.style.display='none';this.nextSibling&&(this.nextSibling.style.display='block')"><span class="icon" style="display:none">${cat.icon}</span>`;
   }
   return `<span class="icon">${cat.icon}</span>`;
 }
@@ -593,11 +594,23 @@ function addPendingCat() {
 // ── ブランク枠をタップ → カテゴリ設定ダイアログ ──
 function showEditPendingDialog(pendingId) {
   let pickedIcon = ICONS_LIST[0];
+  let pickedImgData = null; // base64 or null
 
   document.getElementById('dlgTitle').textContent = T.dlgCatTitle;
   document.getElementById('dlgBody').innerHTML = `
     <div class="dlg-field">
-      <label>アイコン（絵文字）</label>
+      <label style="font-size:12px;color:#888;font-weight:600;display:block;margin-bottom:6px">カテゴリ画像</label>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+        <div id="catImgPreview" style="width:52px;height:52px;border-radius:10px;background:#252525;display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0;overflow:hidden;border:1px solid #333">${pickedIcon}</div>
+        <label style="flex:1;padding:9px;border:1.5px dashed #444;border-radius:9px;text-align:center;cursor:pointer;font-size:12px;color:#888;display:block">
+          📷 画像を選択（省略可）
+          <input type="file" id="catImgFile" accept="image/*" style="display:none">
+        </label>
+        <button id="catImgClear" style="display:none;background:none;border:1px solid #444;color:#888;border-radius:6px;padding:5px 8px;font-size:11px;cursor:pointer;flex-shrink:0">✕ 消す</button>
+      </div>
+    </div>
+    <div class="dlg-field">
+      <label style="font-size:12px;color:#888;font-weight:600;display:block;margin-bottom:4px">絵文字アイコン（画像なしの場合に使用）</label>
       <div class="icon-picker" id="iconPicker">
         ${ICONS_LIST.map(ic =>
           `<span class="icon-opt${ic === pickedIcon ? ' selected' : ''}" data-icon="${ic}">${ic}</span>`
@@ -610,21 +623,52 @@ function showEditPendingDialog(pendingId) {
     </div>
   `;
 
+  // 画像選択
+  document.getElementById('catImgFile').onchange = function() {
+    const file = this.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      pickedImgData = ev.target.result;
+      const preview = document.getElementById('catImgPreview');
+      preview.innerHTML = `<img src="${pickedImgData}" style="width:100%;height:100%;object-fit:cover;border-radius:10px">`;
+      document.getElementById('catImgClear').style.display = 'block';
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // 画像クリア
+  document.getElementById('catImgClear').onclick = () => {
+    pickedImgData = null;
+    const preview = document.getElementById('catImgPreview');
+    preview.innerHTML = pickedIcon;
+    document.getElementById('catImgClear').style.display = 'none';
+    document.getElementById('catImgFile').value = '';
+  };
+
+  // 絵文字選択
   document.querySelectorAll('.icon-opt').forEach(el => {
     el.onclick = () => {
       document.querySelectorAll('.icon-opt').forEach(x => x.classList.remove('selected'));
       el.classList.add('selected');
       pickedIcon = el.dataset.icon;
+      // 画像未選択なら絵文字をプレビューに反映
+      if (!pickedImgData) document.getElementById('catImgPreview').textContent = pickedIcon;
     };
   });
 
   showOverlay(() => {
     const name = document.getElementById('newCatName').value.trim();
     if (!name) { alert(T.alertCatName); return false; }
-    // pendingCats から削除して customCats へ昇格
     pendingCats = pendingCats.filter(p => p.id !== pendingId);
     savePendingCats();
-    const newCat = { id: 'custom_' + Date.now(), icon: pickedIcon, label: name, items: [] };
+    const catId = 'custom_' + Date.now();
+    const newCat = { id: catId, icon: pickedIcon, label: name, items: [] };
+    if (pickedImgData) {
+      newCat.imgData = pickedImgData; // base64をcatオブジェクトに保持
+      // IndexedDBにも保存（カテゴリ画像用キー）
+      saveItemImg('catimg_' + catId, pickedImgData);
+    }
     customCats.push(newCat);
     saveCustomCats();
     renderCats();
@@ -788,17 +832,57 @@ function editCategory(catId) {
   const cat = customCats.find(c => c.id === catId);
   if (!cat) return;
 
+  let pickedImgData = cat.imgData || null;
+  const currentSrc = cat.imgData || cat.imgPath || null;
+  const previewContent = currentSrc
+    ? `<img src="${currentSrc}" style="width:100%;height:100%;object-fit:cover;border-radius:10px">`
+    : cat.icon;
+
   document.getElementById('dlgTitle').textContent = 'カテゴリを編集';
-  document.getElementById('dlgBody').innerHTML =
-    '<div class="dlg-field">' +
-      '<label>カテゴリ名</label>' +
-      '<input id="editCatName" value="' + (cat.label || '') + '">' +
-    '</div>';
+  document.getElementById('dlgBody').innerHTML = `
+    <div class="dlg-field">
+      <label style="font-size:12px;color:#888;font-weight:600;display:block;margin-bottom:6px">カテゴリ画像</label>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+        <div id="catImgPreviewE" style="width:52px;height:52px;border-radius:10px;background:#252525;display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0;overflow:hidden;border:1px solid #333">${previewContent}</div>
+        <label style="flex:1;padding:9px;border:1.5px dashed #444;border-radius:9px;text-align:center;cursor:pointer;font-size:12px;color:#888;display:block">
+          📷 画像を変更
+          <input type="file" id="catImgFileE" accept="image/*" style="display:none">
+        </label>
+        <button id="catImgClearE" style="${currentSrc?'':'display:none;'}background:none;border:1px solid #444;color:#888;border-radius:6px;padding:5px 8px;font-size:11px;cursor:pointer;flex-shrink:0">✕ 消す</button>
+      </div>
+    </div>
+    <div class="dlg-field">
+      <label>カテゴリ名</label>
+      <input id="editCatName" value="${cat.label || ''}">
+    </div>
+  `;
+
+  document.getElementById('catImgFileE').onchange = function() {
+    const file = this.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      pickedImgData = ev.target.result;
+      document.getElementById('catImgPreviewE').innerHTML = `<img src="${pickedImgData}" style="width:100%;height:100%;object-fit:cover;border-radius:10px">`;
+      document.getElementById('catImgClearE').style.display = 'block';
+    };
+    reader.readAsDataURL(file);
+  };
+
+  document.getElementById('catImgClearE').onclick = () => {
+    pickedImgData = null;
+    document.getElementById('catImgPreviewE').innerHTML = cat.icon;
+    document.getElementById('catImgClearE').style.display = 'none';
+  };
 
   showOverlay(() => {
     const newName = document.getElementById('editCatName').value.trim();
     if (!newName) return false;
     cat.label = newName;
+    if (pickedImgData !== (cat.imgData || null)) {
+      cat.imgData = pickedImgData || undefined;
+      if (pickedImgData) saveItemImg('catimg_' + catId, pickedImgData);
+    }
     saveCustomCats();
     selectCat(catId);
     renderCats();
@@ -1155,9 +1239,14 @@ applyI18n();
 loadDefaultAdditions();
 // IDB画像を復元してからレンダリング
 loadAllItemImgs().then(imgs=>{
+  // customCatsのカテゴリ画像を復元
+  customCats.forEach(c=>{
+    const key='catimg_'+c.id;
+    if(imgs[key]) c.imgData=imgs[key];
+  });
   // customCatsとDEFAULT_DBの機材に画像を復元
   Object.entries(imgs).forEach(([key,dataUrl])=>{
-    // catId_maker_model の形式で検索
+    if(key.startsWith('catimg_')) return; // カテゴリ画像はスキップ
     const parts=key.split('_');
     const catId=parts[0];
     const items=DEFAULT_DB[catId]||(customCats.find(c=>c.id===catId)||{}).items;
