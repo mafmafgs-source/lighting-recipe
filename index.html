@@ -92,6 +92,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
 /* 光パーツパネル */
 .light-panel-card{border:1px solid #2e2e2e;border-radius:10px;padding:10px;background:#141414;margin-bottom:10px}
 .light-panel-title{font-size:13px;font-weight:700;margin-bottom:10px;color:#888}
+/* 太陽ノード */
+.sun-node{position:absolute;width:50px;height:50px;border-radius:50%;cursor:grab;user-select:none;touch-action:none;transform:translate(-50%,-50%);transition:filter .15s;flex-shrink:0}
+.sun-node.selected{filter:drop-shadow(0 0 8px rgba(255,160,0,.95))}
+.sun-node svg{width:50px;height:50px;display:block;overflow:visible}
+/* 太陽ボタンON状態 */
+#sunToggleBtn.sun-on{background:#2a1e00;border-color:#c8a96e;color:#c8a96e}
 /* 背景トグル */
 .bg-toggle input[type=checkbox]{display:none}
 .bg-toggle-btn{display:inline-block;padding:5px 10px;border:1px solid #333;border-radius:8px;font-size:12px;font-weight:600;color:#888;background:#222;cursor:pointer;transition:background .15s,color .15s;user-select:none}
@@ -184,6 +190,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
     <div class="card-title">
       <span id="lightingTitle">ライティング図</span>
       <div style="display:flex;align-items:center;gap:6px">
+        <button class="bg-toggle-btn" id="sunToggleBtn" onclick="toggleSun()" title="太陽">☀️ 太陽</button>
         <label class="bg-toggle" title="背景">
           <input type="checkbox" id="bgToggle" onchange="toggleBg()">
           <span class="bg-toggle-btn" id="bgToggleText">背景</span>
@@ -386,6 +393,11 @@ function heightToColor(h){
 const LS_KEY='lightingRecipeLights';
 let lights=[],selected=null,selectedDirect=null;
 let bgOn=false;
+let sunOn=false;
+let sunPos={x:20,y:15};
+let sunBeam=60;   // 配光%
+let sunAngle=90;  // 角度° (下向きがデフォルト)
+let selectedSun=false;
 
 function loadLights(){
   try{
@@ -430,6 +442,10 @@ function saveSession(){
       memo:getCanvasMemo(),
       bgOn:bgOn,
       bgColor:document.getElementById('bgColor').value,
+      sunOn:sunOn,
+      sunPos:sunPos,
+      sunBeam:sunBeam,
+      sunAngle:sunAngle,
     };
     localStorage.setItem(SS_KEY,JSON.stringify(s));
   }catch(e){}
@@ -488,6 +504,11 @@ function restoreSession(){
       document.getElementById('bgToggle').checked=true;
       document.getElementById('bgColor').style.display='inline-block';
     }
+    if(s.sunOn){
+      sunOn=true;
+      document.getElementById('sunToggleBtn').classList.add('sun-on');
+    }
+    if(s.sunPos) sunPos=s.sunPos;
   }
   // EXIFは専用キーから独立して復元
   restoreExif();
@@ -712,6 +733,10 @@ function resetAll(){
   document.getElementById('bgColor').style.display='none';
   document.getElementById('bgColor').value='#ffffff';
 
+  // 太陽
+  sunOn=false; sunPos={x:20,y:15}; selectedSun=false;
+  document.getElementById('sunToggleBtn').classList.remove('sun-on');
+
   // ライト（位置・高さ・配光をリセット、機材設定はBuilderに任せるので保持）
   lights=lights.map(l=>({...l, x:20, y:30, height:HEIGHT_DEFAULT, beam:40, angle:270, output:null}));
   saveLights();
@@ -720,6 +745,86 @@ function resetAll(){
   selected=null;
   renderCanvas();
   renderPanel();
+}
+
+// ══════════════════════════════════════
+//  太陽
+// ══════════════════════════════════════
+function toggleSun(){
+  sunOn=!sunOn;
+  document.getElementById('sunToggleBtn').classList.toggle('sun-on',sunOn);
+  saveSession();
+  renderCanvas();
+  renderPanel();
+}
+
+function renderSun(canvas){
+  canvas.querySelectorAll('.sun-node').forEach(n=>n.remove());
+  if(!sunOn) return;
+
+  const node=document.createElement('div');
+  node.className='sun-node'+(selectedSun?' selected':'');
+  node.style.left=sunPos.x+'%';
+  node.style.top=sunPos.y+'%';
+
+  node.innerHTML=`<svg viewBox="-25 -25 50 50" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <radialGradient id="sunGrad" cx="50%" cy="50%" r="50%">
+        <stop offset="0%"   stop-color="#ff8c00" stop-opacity="1"/>
+        <stop offset="50%"  stop-color="#ffcc44" stop-opacity="0.9"/>
+        <stop offset="100%" stop-color="#ffffff"  stop-opacity="0.08"/>
+      </radialGradient>
+    </defs>
+    <!-- 光線 8本 -->
+    <g stroke="#ffcc44" stroke-width="2" stroke-linecap="round" opacity="0.75">
+      <line x1="0" y1="-13" x2="0"    y2="-19"/>
+      <line x1="0" y1="13"  x2="0"    y2="19"/>
+      <line x1="-13" y1="0" x2="-19"  y2="0"/>
+      <line x1="13"  y1="0" x2="19"   y2="0"/>
+      <line x1="-9.2" y1="-9.2" x2="-13.4" y2="-13.4"/>
+      <line x1="9.2"  y1="-9.2" x2="13.4"  y2="-13.4"/>
+      <line x1="-9.2" y1="9.2"  x2="-13.4" y2="13.4"/>
+      <line x1="9.2"  y1="9.2"  x2="13.4"  y2="13.4"/>
+    </g>
+    <!-- 本体 -->
+    <circle cx="0" cy="0" r="11" fill="url(#sunGrad)"/>
+    <!-- 輪郭 -->
+    <circle cx="0" cy="0" r="11" fill="none" stroke="#ffaa00" stroke-width="1" opacity="0.6"/>
+  </svg>`;
+
+  node.addEventListener('click',e=>{
+    e.stopPropagation();
+    selected=null; selectedDirect=null;
+    selectedSun=!selectedSun;
+    renderCanvas(); renderPanel();
+  });
+  makeDraggableSun(node,canvas);
+  canvas.appendChild(node);
+}
+
+function makeDraggableSun(node,canvas){
+  let sx,sy,spx,spy;
+  const mv=(ex,ey)=>{
+    const rect=canvas.getBoundingClientRect();
+    sunPos.x=Math.max(0,Math.min(100,spx+(ex-sx)/rect.width*100));
+    sunPos.y=Math.max(0,Math.min(100,spy+(ey-sy)/rect.height*100));
+    node.style.left=sunPos.x+'%';
+    node.style.top=sunPos.y+'%';
+    saveSession();
+  };
+  node.addEventListener('mousedown',e=>{
+    e.preventDefault();
+    sx=e.clientX;sy=e.clientY;spx=sunPos.x;spy=sunPos.y;
+    const up=()=>{document.removeEventListener('mousemove',mvM);document.removeEventListener('mouseup',up);};
+    const mvM=e=>mv(e.clientX,e.clientY);
+    document.addEventListener('mousemove',mvM);document.addEventListener('mouseup',up);
+  });
+  node.addEventListener('touchstart',e=>{
+    const t=e.touches[0];sx=t.clientX;sy=t.clientY;spx=sunPos.x;spy=sunPos.y;
+    const mvT=e=>{const t=e.touches[0];mv(t.clientX,t.clientY);};
+    const up=()=>{document.removeEventListener('touchmove',mvT);document.removeEventListener('touchend',up);};
+    document.addEventListener('touchmove',mvT,{passive:true});document.addEventListener('touchend',up);
+  },{passive:true});
 }
 
 // ══════════════════════════════════════
@@ -889,6 +994,46 @@ function renderBeams(){
     }
     svg.appendChild(grp);
   });
+
+  // ── 太陽の光パーツ ──
+  if(sunOn){
+    const cx=sunPos.x/100*W;
+    const cy=sunPos.y/100*H;
+    const spreadDeg=sunBeam/100*360;
+    const R=Math.min(W,H)*0.28; // ライトより少し広め
+    const gid='beam_sun_'+Date.now();
+    const grad=document.createElementNS(ns,'radialGradient');
+    grad.setAttribute('id',gid);grad.setAttribute('gradientUnits','userSpaceOnUse');
+    grad.setAttribute('cx',cx);grad.setAttribute('cy',cy);grad.setAttribute('r',R);
+    const ss0=document.createElementNS(ns,'stop');
+    ss0.setAttribute('offset','0%');ss0.setAttribute('stop-color','#ffe88a');ss0.setAttribute('stop-opacity','0.9');
+    const ss1=document.createElementNS(ns,'stop');
+    ss1.setAttribute('offset','50%');ss1.setAttribute('stop-color','#ffcc00');ss1.setAttribute('stop-opacity','0.45');
+    const ss2=document.createElementNS(ns,'stop');
+    ss2.setAttribute('offset','100%');ss2.setAttribute('stop-color','#ff8800');ss2.setAttribute('stop-opacity','0.05');
+    grad.appendChild(ss0);grad.appendChild(ss1);grad.appendChild(ss2);
+    defs.appendChild(grad);
+
+    const grp=document.createElementNS(ns,'g');
+    grp.setAttribute('class','beam-group');
+    if(spreadDeg>=359.9){
+      const circle=document.createElementNS(ns,'circle');
+      circle.setAttribute('cx',cx);circle.setAttribute('cy',cy);circle.setAttribute('r',R);
+      circle.setAttribute('fill',`url(#${gid})`);
+      grp.appendChild(circle);
+    }else{
+      const half=spreadDeg/2;
+      const a1=(sunAngle-half)*Math.PI/180,a2=(sunAngle+half)*Math.PI/180;
+      const x1=cx+R*Math.cos(a1),y1=cy+R*Math.sin(a1);
+      const x2=cx+R*Math.cos(a2),y2=cy+R*Math.sin(a2);
+      const lg=spreadDeg>180?1:0;
+      const path=document.createElementNS(ns,'path');
+      path.setAttribute('d',`M${cx},${cy} L${x1},${y1} A${R},${R} 0 ${lg},1 ${x2},${y2} Z`);
+      path.setAttribute('fill',`url(#${gid})`);
+      grp.appendChild(path);
+    }
+    svg.appendChild(grp);
+  }
 }
 
 // ══════════════════════════════════════
@@ -928,6 +1073,7 @@ function renderCanvas(){
 
   // 直接配置アイテム（レフ板・Flag等）
   renderDirectItems(canvas);
+  renderSun(canvas);
 
   renderBg();
   renderBeams();
@@ -1043,13 +1189,22 @@ function makeDraggable(node,canvas,idx){
   },{passive:true});
 }
 
-document.getElementById('canvas').addEventListener('click',()=>{selected=null;selectedDirect=null;renderCanvas();renderPanel();});
+document.getElementById('canvas').addEventListener('click',()=>{selected=null;selectedDirect=null;selectedSun=false;renderCanvas();renderPanel();});
 
 // ══════════════════════════════════════
 //  パネル
 // ══════════════════════════════════════
 function renderPanel(){
   const panel=document.getElementById('panel');
+  // 太陽が選択されている場合
+  if(selectedSun && selected===null && selectedDirect===null){
+    panel.innerHTML=`
+      <div class="panel-card" style="border-color:#ff8c00">
+        <div class="panel-title">☀️ 太陽</div>
+      </div>`;
+    updateBeamPanel();
+    return;
+  }
   // 直接配置アイテムが選択されている場合
   if(selectedDirect!==null && selected===null){
     const items=loadDirectItems();
@@ -1167,6 +1322,18 @@ function updateBeamPanel(){
   const bs=document.getElementById('beamSlider'),as=document.getElementById('angleSlider');
   const bv=document.getElementById('beamVal'),av=document.getElementById('angleVal');
   const hint=document.getElementById('beamHint');
+
+  // 太陽が選択中 → 光パーツを太陽用に接続
+  if(selectedSun){
+    bs.disabled=false;as.disabled=false;bs.style.opacity='1';as.style.opacity='1';
+    if(hint)hint.style.display='none';
+    bs.value=sunBeam; as.value=sunAngle;
+    bv.textContent=sunBeam+'%'; av.textContent=sunAngle+'°';
+    bs.oninput=e=>{sunBeam=Number(e.target.value);bv.textContent=e.target.value+'%';renderBeams();saveSession();};
+    as.oninput=e=>{sunAngle=Number(e.target.value);av.textContent=e.target.value+'°';renderBeams();saveSession();};
+    return;
+  }
+
   // 光源なし or 未選択 → 無効
   const l=selected!==null?lights[selected]:null;
   const active=l&&hasLightSource(l.items);
@@ -1266,6 +1433,7 @@ async function doSaveRecipe(){
       loc:document.getElementById('locInput')?.value||'',
       memo:getCanvasMemo(),
       bgOn, bgColor:document.getElementById('bgColor')?.value||'#ffffff',
+      sunOn, sunPos:{...sunPos}, sunBeam, sunAngle,
       exDate:document.getElementById('exDate')?.textContent||'',
       exCamera:document.getElementById('exCamera')?.textContent||'',
       exLens:document.getElementById('exLens')?.textContent||'',
@@ -1319,6 +1487,10 @@ async function loadRecipeFromURL(){
     if(s.memo) setCanvasMemo(s.memo);
     if(s.bgOn!==undefined){bgOn=s.bgOn;document.getElementById('bgToggle').checked=bgOn;toggleBg();}
     if(s.bgColor) document.getElementById('bgColor').value=s.bgColor;
+    if(s.sunOn!==undefined){sunOn=s.sunOn;document.getElementById('sunToggleBtn').classList.toggle('sun-on',sunOn);}
+    if(s.sunPos)  sunPos={...s.sunPos};
+    if(s.sunBeam!=null) sunBeam=s.sunBeam;
+    if(s.sunAngle!=null) sunAngle=s.sunAngle;
     if(s.exCamera) document.getElementById('exCamera').textContent=s.exCamera;
     if(s.exLens) document.getElementById('exLens').textContent=s.exLens;
     if(s.exDate) document.getElementById('exDate').textContent=s.exDate;
@@ -1564,6 +1736,54 @@ async function doExport(){
           ctx.textAlign='center';
           ctx.fillText(di.name,diX,diY+RING/2+Math.round(12*scaleX));
           ctx.textAlign='left';
+        }
+
+        // ── 太陽をCanvas APIで描画（光パーツビーム＋本体） ──
+        if(sunOn){
+          const sx2=PADDING+sunPos.x/100*DIAG_W;
+          const sy2=y+sunPos.y/100*DIAG_H;
+          const SR=25*scaleX; // 50px → 出力スケール換算（半径25）
+          const beamR=Math.min(DIAG_W,DIAG_H)*0.28;
+          const sunSpread=sunBeam/100*360;
+          // ビーム
+          const bg=ctx.createRadialGradient(sx2,sy2,0,sx2,sy2,beamR);
+          bg.addColorStop(0,'rgba(255,232,138,0.9)');
+          bg.addColorStop(0.5,'rgba(255,204,0,0.45)');
+          bg.addColorStop(1,'rgba(255,136,0,0.05)');
+          if(sunSpread>=359.9){
+            ctx.beginPath();ctx.arc(sx2,sy2,beamR,0,Math.PI*2);
+            ctx.fillStyle=bg;ctx.fill();
+          }else{
+            const half=sunSpread/2;
+            const ra1=(sunAngle-half)*Math.PI/180,ra2=(sunAngle+half)*Math.PI/180;
+            const lg=sunSpread>180?1:0;
+            const bx1=sx2+beamR*Math.cos(ra1),by1=sy2+beamR*Math.sin(ra1);
+            const bx2=sx2+beamR*Math.cos(ra2),by2=sy2+beamR*Math.sin(ra2);
+            ctx.beginPath();
+            ctx.moveTo(sx2,sy2);ctx.lineTo(bx1,by1);
+            ctx.arc(sx2,sy2,beamR,ra1,ra2);
+            ctx.closePath();
+            ctx.fillStyle=bg;ctx.fill();
+          }
+          // 本体グラデーション
+          const sunGrad=ctx.createRadialGradient(sx2,sy2,0,sx2,sy2,SR);
+          sunGrad.addColorStop(0,'rgba(255,140,0,1)');
+          sunGrad.addColorStop(0.5,'rgba(255,204,68,0.9)');
+          sunGrad.addColorStop(1,'rgba(255,255,255,0.05)');
+          ctx.beginPath();ctx.arc(sx2,sy2,SR,0,Math.PI*2);
+          ctx.fillStyle=sunGrad;ctx.fill();
+          // 輪郭
+          ctx.strokeStyle='rgba(255,170,0,0.6)';ctx.lineWidth=scaleX;
+          ctx.beginPath();ctx.arc(sx2,sy2,SR,0,Math.PI*2);ctx.stroke();
+          // 光線8本
+          ctx.strokeStyle='rgba(255,204,68,0.75)';ctx.lineWidth=2*scaleX;ctx.lineCap='round';
+          [[0,-1],[0,1],[-1,0],[1,0],[-0.707,-0.707],[0.707,-0.707],[-0.707,0.707],[0.707,0.707]].forEach(([dx,dy])=>{
+            ctx.beginPath();
+            ctx.moveTo(sx2+dx*SR*1.2,sy2+dy*SR*1.2);
+            ctx.lineTo(sx2+dx*SR*1.8,sy2+dy*SR*1.8);
+            ctx.stroke();
+          });
+          ctx.lineCap='butt';
         }
         // ── メモをライティング図右下に描画 ──
         const memo=getCanvasMemo();
