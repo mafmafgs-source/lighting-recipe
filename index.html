@@ -64,6 +64,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
 .ln-label{position:absolute;top:-5px;left:50%;transform:translateX(-50%);width:22px;height:22px;border-radius:50%;border:2.5px solid #555;background:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#1a1a1a;line-height:1}
 /* 出力ラベル */
 .ln-output{position:absolute;top:19px;left:50%;transform:translateX(-50%);font-size:9px;font-weight:700;color:#c8a96e;white-space:nowrap;line-height:1}
+/* 直接配置アイテム（レフ板・Flag等） */
+.direct-item{position:absolute;display:flex;flex-direction:column;align-items:center;cursor:grab;user-select:none;touch-action:none;gap:2px}
+.direct-item img{width:36px;height:36px;object-fit:contain}
+.direct-item-name{font-size:9px;color:#555;white-space:nowrap;max-width:70px;overflow:hidden;text-overflow:ellipsis;text-align:center}
+.direct-item-del{position:absolute;top:-6px;right:-6px;width:16px;height:16px;background:#c0392b;color:#fff;border:none;border-radius:50%;font-size:9px;line-height:16px;text-align:center;cursor:pointer;display:none;padding:0}
+.direct-item:active .direct-item-del,.direct-item .direct-item-del{display:block}
 /* キャンバス内メモ（直接入力） */
 .canvas-memo{position:absolute;right:8px;bottom:8px;min-width:80px;max-width:50%;min-height:28px;background:rgba(0,0,0,0.55);color:#fff;font-size:11px;line-height:1.5;padding:6px 9px;border-radius:7px;white-space:pre-wrap;word-break:break-all;backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);outline:none;cursor:text;-webkit-user-select:text;user-select:text}
 .canvas-memo:empty:before{content:attr(data-placeholder);color:rgba(255,255,255,0.4);pointer-events:none}
@@ -889,6 +895,9 @@ function renderBeams(){
 function renderCanvas(){
   const canvas=document.getElementById('canvas');
   canvas.querySelectorAll('.light-node').forEach(n=>n.remove());
+  canvas.querySelectorAll('.direct-item').forEach(n=>n.remove());
+
+  // ライトノード（A〜E）
   lights.forEach((l,i)=>{
     if(!l.items||!l.items.length)return;
     const node=document.createElement('div');
@@ -898,7 +907,6 @@ function renderCanvas(){
     node.style.top=(l.y??30)+'%';
     node.style.transform='translate(-50%,-50%)';
 
-    // 高さ→色・border幅（低い=細い1px、高い=太い5px）
     const h=l.height??HEIGHT_DEFAULT;
     const col=heightToColor(h);
     const borderW=Math.round(1+(h/HEIGHT_MAX)*4);
@@ -910,16 +918,84 @@ function renderCanvas(){
       (outTxt?`<span class="ln-output">${outTxt}</span>`:'')+
       buildNodeHTML(l);
 
-    // 光源の位置をdata属性に記録（光パーツ起点計算用）
-    // 光源はノード上部21px付近 → ノード中心より(height/2 - 21/2)px上
-    node.dataset.lightOffsetY = -(145/2 - 10); // ≒ -62px（ノード中心から光源中心まで）
-
+    node.dataset.lightOffsetY = -(145/2 - 10);
     node.addEventListener('click',e=>{e.stopPropagation();selected=(selected===i)?null:i;renderAll();renderPanel();});
     makeDraggable(node,canvas,i);
     canvas.appendChild(node);
   });
+
+  // 直接配置アイテム（レフ板・Flag等）
+  renderDirectItems(canvas);
+
   renderBg();
   renderBeams();
+}
+
+// ══════════════════════════════════════
+//  直接配置アイテム
+// ══════════════════════════════════════
+function loadDirectItems(){
+  try{ return JSON.parse(localStorage.getItem('lr_direct_items')||'[]'); }catch(e){ return []; }
+}
+function saveDirectItems(items){
+  localStorage.setItem('lr_direct_items', JSON.stringify(items));
+}
+function removeDirectItem(idx){
+  const items=loadDirectItems();
+  items.splice(idx,1);
+  saveDirectItems(items);
+  renderCanvas();
+}
+
+function renderDirectItems(canvas){
+  const items=loadDirectItems();
+  items.forEach((di,idx)=>{
+    const el=document.createElement('div');
+    el.className='direct-item';
+    el.style.left=(di.x??50)+'%';
+    el.style.top=(di.y??50)+'%';
+    el.style.transform='translate(-50%,-50%)';
+
+    const imgHtml=di.imgPath
+      ?`<img src="${di.imgPath}" onerror="this.style.display='none'">`
+      :'';
+    el.innerHTML=
+      `<button class="direct-item-del" onclick="event.stopPropagation();removeDirectItem(${idx})">×</button>`+
+      imgHtml+
+      `<span class="direct-item-name">${di.name}</span>`;
+
+    makeDraggableDirect(el,canvas,idx);
+    canvas.appendChild(el);
+  });
+}
+
+function makeDraggableDirect(node,canvas,idx){
+  let sx,sy,sl,st;
+  const mv=(ex,ey)=>{
+    const rect=canvas.getBoundingClientRect();
+    const items=loadDirectItems();
+    items[idx].x=Math.max(0,Math.min(100,sl+(ex-sx)/rect.width*100));
+    items[idx].y=Math.max(0,Math.min(100,st+(ey-sy)/rect.height*100));
+    node.style.left=items[idx].x+'%';node.style.top=items[idx].y+'%';
+    saveDirectItems(items);
+  };
+  node.addEventListener('mousedown',e=>{
+    if(e.target.closest('.direct-item-del'))return;
+    e.preventDefault();
+    const items=loadDirectItems();
+    sx=e.clientX;sy=e.clientY;sl=items[idx].x??50;st=items[idx].y??50;
+    const up=()=>{document.removeEventListener('mousemove',mvM);document.removeEventListener('mouseup',up);};
+    const mvM=e=>mv(e.clientX,e.clientY);
+    document.addEventListener('mousemove',mvM);document.addEventListener('mouseup',up);
+  });
+  node.addEventListener('touchstart',e=>{
+    if(e.target.closest('.direct-item-del'))return;
+    const items=loadDirectItems();
+    const t=e.touches[0];sx=t.clientX;sy=t.clientY;sl=items[idx].x??50;st=items[idx].y??50;
+    const mvT=e=>{const t=e.touches[0];mv(t.clientX,t.clientY);};
+    const up=()=>{document.removeEventListener('touchmove',mvT);document.removeEventListener('touchend',up);};
+    document.addEventListener('touchmove',mvT,{passive:true});document.addEventListener('touchend',up);
+  },{passive:true});
 }
 
 function renderAll(){renderCanvas();}
@@ -1121,6 +1197,7 @@ async function doSaveRecipe(){
   const recipe={
     id, title, updatedAt:now, photoData,
     lights:JSON.parse(JSON.stringify(lights)),
+    directItems:loadDirectItems(),
     session:{
       loc:document.getElementById('locInput')?.value||'',
       memo:getCanvasMemo(),
@@ -1172,6 +1249,7 @@ async function loadRecipeFromURL(){
     });
     if(!recipe)return;
     lights=recipe.lights||[];saveLights();
+    if(recipe.directItems) saveDirectItems(recipe.directItems);
     const s=recipe.session||{};
     if(s.loc) document.getElementById('locInput').value=s.loc;
     if(s.memo) setCanvasMemo(s.memo);
