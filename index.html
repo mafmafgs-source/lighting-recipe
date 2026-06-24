@@ -53,7 +53,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
 .exif-names .cell{flex:1;padding:6px 4px;font-size:11px;text-align:center;color:#e8e8e8}
 /* キャンバス */
 .lighting-wrap{position:relative}
-#canvas{width:100%;aspect-ratio:1/1;border:1px solid #2e2e2e;border-radius:12px;background:#f8f8f8;position:relative;overflow:hidden;touch-action:none}
+#canvas{width:100%;aspect-ratio:1/1;border:1px solid #2e2e2e;border-radius:12px;background:#f0f0f0;position:relative;overflow:hidden;touch-action:none}
 .subject{position:absolute;left:50%;top:42%;transform:translate(-50%,-50%);font-size:28px;pointer-events:none;user-select:none}
 .camera-icon{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);font-size:22px;pointer-events:none;user-select:none}
 #lightSvg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}
@@ -98,6 +98,20 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
 .sun-node svg{width:50px;height:50px;display:block;overflow:visible}
 /* 太陽ボタンON状態 */
 #sunToggleBtn.sun-on{background:#2a1e00;border-color:#c8a96e;color:#c8a96e}
+/* 背景選択シート */
+#bgSheet{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:400;align-items:flex-end;justify-content:center}
+#bgSheet.open{display:flex}
+.bg-sheet-inner{background:#1a1a1a;border-radius:20px 20px 0 0;padding:16px 16px calc(env(safe-area-inset-bottom,0px) + 16px);width:100%;max-width:430px;border-top:1px solid #333}
+.bg-sheet-title{font-size:13px;font-weight:700;color:#888;letter-spacing:.06em;text-transform:uppercase;margin-bottom:12px;text-align:center}
+.bg-options{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px}
+.bg-opt{border:1.5px solid #333;border-radius:10px;padding:8px 4px;text-align:center;cursor:pointer;background:#141414;-webkit-tap-highlight-color:transparent}
+.bg-opt.active{border-color:#c8a96e;background:#2a2218}
+.bg-opt-preview{width:100%;aspect-ratio:1/1;border-radius:6px;margin-bottom:5px;overflow:hidden;display:flex;align-items:center;justify-content:center}
+.bg-opt-label{font-size:10px;color:#aaa;font-weight:600}
+.bg-opt.active .bg-opt-label{color:#c8a96e}
+.bg-color-row{display:flex;align-items:center;gap:10px;padding:8px 0 2px;border-top:1px solid #2a2a2a}
+.bg-color-row label{font-size:12px;color:#888;flex:1}
+.bg-sheet-close{width:100%;padding:12px;border:1px solid #333;border-radius:12px;background:transparent;color:#888;font-size:14px;cursor:pointer}
 /* 背景トグル */
 .bg-toggle input[type=checkbox]{display:none}
 .bg-toggle-btn{display:inline-block;padding:5px 10px;border:1px solid #333;border-radius:8px;font-size:12px;font-weight:600;color:#888;background:#222;cursor:pointer;transition:background .15s,color .15s;user-select:none}
@@ -191,13 +205,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
       <span id="lightingTitle">ライティング図</span>
       <div style="display:flex;align-items:center;gap:6px">
         <button class="bg-toggle-btn" id="sunToggleBtn" onclick="toggleSun()" title="太陽">☀️ 太陽</button>
-        <label class="bg-toggle" title="背景">
-          <input type="checkbox" id="bgToggle" onchange="toggleBg()">
-          <span class="bg-toggle-btn" id="bgToggleText">背景</span>
-        </label>
-        <input type="color" id="bgColor" value="#ffffff"
-          style="width:28px;height:28px;border:1px solid #ddd;border-radius:6px;cursor:pointer;padding:2px;background:none;display:none"
-          oninput="saveSession();renderBg()">
+        <button class="bg-toggle-btn" id="bgToggleBtn" onclick="toggleBg()" title="背景">🖼 背景</button>
         <a class="btn-builder" href="builder.html" style="width:auto;padding:6px 14px;font-size:13px"><span id="editBtnText">＋ 機材編集</span></a>
       </div>
     </div>
@@ -255,7 +263,6 @@ function applyI18n(){
   s('memoLabel',T.memoLabel);
   
   s('lightingTitle',T.lightingTitle);
-  s('bgToggleText',T.bgBtn);
   s('editBtnText',T.editBtn);
   s('legendTop',T.legendHigh);
   s('legendBtm',T.legendLow);
@@ -393,6 +400,7 @@ function heightToColor(h){
 const LS_KEY='lightingRecipeLights';
 let lights=[],selected=null,selectedDirect=null;
 let bgOn=false;
+let bgType='paper'; // 'paper' | 'table' | 'mountain' | 'none' (=OFF)
 let sunOn=false;
 let sunPos={x:20,y:15};
 let sunBeam=60;   // 配光%
@@ -441,7 +449,8 @@ function saveSession(){
       loc:document.getElementById('locInput').value,
       memo:getCanvasMemo(),
       bgOn:bgOn,
-      bgColor:document.getElementById('bgColor').value,
+      bgType:bgType,
+      bgColor:document.getElementById('bgColor')?.value||'#ffffff',
       sunOn:sunOn,
       sunPos:sunPos,
       sunBeam:sunBeam,
@@ -499,10 +508,10 @@ function restoreSession(){
     if(s.loc)    document.getElementById('locInput').value=s.loc;
     if(s.memo)   setCanvasMemo(s.memo);
     if(s.bgColor)document.getElementById('bgColor').value=s.bgColor;
+    if(s.bgType) bgType=s.bgType;
     if(s.bgOn){
       bgOn=true;
-      document.getElementById('bgToggle').checked=true;
-      document.getElementById('bgColor').style.display='inline-block';
+      document.getElementById('bgToggleBtn').classList.add('sun-on');
     }
     if(s.sunOn){
       sunOn=true;
@@ -728,10 +737,10 @@ function resetAll(){
   setCanvasMemo('');
 
   // 背景
-  bgOn=false;
-  document.getElementById('bgToggle').checked=false;
-  document.getElementById('bgColor').style.display='none';
-  document.getElementById('bgColor').value='#ffffff';
+  bgOn=false; bgType='paper';
+  document.getElementById('bgToggleBtn').classList.remove('sun-on');
+  const bgColorEl=document.getElementById('bgColor');
+  if(bgColorEl) bgColorEl.value='#ffffff';
 
   // 太陽
   sunOn=false; sunPos={x:20,y:15}; selectedSun=false;
@@ -832,10 +841,74 @@ function makeDraggableSun(node,canvas){
 //  背景
 // ══════════════════════════════════════
 function toggleBg(){
-  bgOn=document.getElementById('bgToggle').checked;
-  document.getElementById('bgColor').style.display=bgOn?'inline-block':'none';
+  bgOn=!bgOn;
+  document.getElementById('bgToggleBtn').classList.toggle('sun-on',bgOn);
   saveSession();
+  if(bgOn){ openBgSheet(); }
   renderBg();
+}
+
+// 背景タイプ定義
+const BG_TYPES=[
+  {id:'paper',    label:'背景紙',   emoji:'🟥'},
+  {id:'table',    label:'テーブル', emoji:'🪑'},
+  {id:'mountain', label:'山脈',     emoji:'🏔'},
+];
+
+function openBgSheet(){
+  const opts=document.getElementById('bgOptions');
+  opts.innerHTML='';
+  BG_TYPES.forEach(bt=>{
+    const div=document.createElement('div');
+    div.className='bg-opt'+(bgType===bt.id?' active':'');
+    // ミニプレビューSVG
+    div.innerHTML=`
+      <div class="bg-opt-preview">${makeBgPreviewSvg(bt.id)}</div>
+      <div class="bg-opt-label">${bt.label}</div>`;
+    div.onclick=()=>{
+      bgType=bt.id;
+      document.querySelectorAll('.bg-opt').forEach(el=>el.classList.remove('active'));
+      div.classList.add('active');
+      document.getElementById('bgColorRow').style.display=bgType==='paper'?'flex':'none';
+      saveSession(); renderBg();
+    };
+    opts.appendChild(div);
+  });
+  document.getElementById('bgColorRow').style.display=bgType==='paper'?'flex':'none';
+  document.getElementById('bgSheet').classList.add('open');
+}
+
+function closeBgSheet(){
+  document.getElementById('bgSheet').classList.remove('open');
+}
+
+// ミニプレビュー用SVG（60×60想定）
+function makeBgPreviewSvg(type){
+  const W=60,H=60;
+  if(type==='paper'){
+    const color=document.getElementById('bgColor')?.value||'#ffffff';
+    return `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">
+      <rect width="${W}" height="${H}" fill="#ddd"/>
+      <rect x="12" y="4" width="36" height="40" rx="2" fill="${color}" stroke="rgba(0,0,0,0.15)" stroke-width="1"/>
+      <path d="M12,36 Q12,44 20,44 L40,44 Q48,44 48,36 L48,44" fill="none" stroke="rgba(0,0,0,0.1)" stroke-width="1"/>
+    </svg>`;
+  }
+  if(type==='table'){
+    return `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">
+      <rect width="${W}" height="${H}" fill="#ddd"/>
+      <ellipse cx="30" cy="34" rx="20" ry="10" fill="#c8a96e" opacity="0.5" stroke="#a07840" stroke-width="1"/>
+      <ellipse cx="30" cy="30" rx="20" ry="10" fill="#e8c88a" stroke="#a07840" stroke-width="1"/>
+    </svg>`;
+  }
+  if(type==='mountain'){
+    return `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">
+      <rect width="${W}" height="${H}" fill="#b8d4f0"/>
+      <polygon points="0,60 20,20 40,45 60,60" fill="#7a9e6e"/>
+      <polygon points="20,60 38,18 56,60" fill="#6a8e5e"/>
+      <polygon points="28,60 38,10 48,60" fill="#d8e8f8"/>
+    </svg>`;
+  }
+  return '';
 }
 
 function renderBg(){
@@ -846,54 +919,160 @@ function renderBg(){
   svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
   const g=document.getElementById('bgGroup');
   g.innerHTML='';
-  if(!bgOn)return;
-
-  const bgColorVal=document.getElementById('bgColor').value||'#ffffff';
-  const cx=W*0.5,cy=H*0.42,bgW=W*0.55,bgTop=H*0.04;
-  const curveDepth=H*0.10,curveY=cy+H*0.08;
-  const left=cx-bgW/2,right=cx+bgW/2;
-
-  const pathD=[
-    `M${left},${bgTop}`,`L${right},${bgTop}`,`L${right},${curveY}`,
-    `Q${right},${curveY+curveDepth} ${right-curveDepth},${curveY+curveDepth}`,
-    `L${left+curveDepth},${curveY+curveDepth}`,
-    `Q${left},${curveY+curveDepth} ${left},${curveY}`,
-    `L${left},${bgTop}`,'Z'
-  ].join(' ');
-
-  // Safari対応：url(#id)の代わりにsolidColorを使う
-  const hex=bgColorVal.replace('#','');
-  const r=parseInt(hex.slice(0,2),16),gg=parseInt(hex.slice(2,4),16),b=parseInt(hex.slice(4,6),16);
-  const lighter=`rgb(${Math.min(255,r+40)},${Math.min(255,gg+40)},${Math.min(255,b+40)})`;
-  const darker=`rgb(${Math.max(0,r-40)},${Math.max(0,gg-40)},${Math.max(0,b-40)})`;
+  if(!bgOn) return;
 
   const ns='http://www.w3.org/2000/svg';
-  const defs=document.createElementNS(ns,'defs');
-  const grad=document.createElementNS(ns,'radialGradient');
-  const gid='bgGrad_'+Date.now(); // 毎回ユニークIDでSafariキャッシュ問題回避
-  grad.setAttribute('id',gid);
-  grad.setAttribute('cx','50%');grad.setAttribute('cy','40%');
-  grad.setAttribute('r','60%');grad.setAttribute('gradientUnits','objectBoundingBox');
-  const s0=document.createElementNS(ns,'stop');
-  s0.setAttribute('offset','0%');s0.setAttribute('stop-color',lighter);s0.setAttribute('stop-opacity','1');
-  const s1=document.createElementNS(ns,'stop');
-  s1.setAttribute('offset','100%');s1.setAttribute('stop-color',darker);s1.setAttribute('stop-opacity','1');
-  grad.appendChild(s0);grad.appendChild(s1);
-  defs.appendChild(grad);
-  g.appendChild(defs);
 
-  const path=document.createElementNS(ns,'path');
-  path.setAttribute('d',pathD);
-  path.setAttribute('fill',`url(#${gid})`);
-  path.setAttribute('stroke','rgba(0,0,0,0.12)');
-  path.setAttribute('stroke-width','1');
-  g.appendChild(path);
+  if(bgType==='paper'){
+    // ── 背景紙：上部から流れるロール紙 ──
+    const bgColorVal=document.getElementById('bgColor')?.value||'#ffffff';
+    const cx=W*0.5, bgW=W*0.58, bgTop=H*0.03;
+    const subjectY=H*0.42, curveDepth=H*0.10, curveY=subjectY+H*0.08;
+    const left=cx-bgW/2, right=cx+bgW/2;
 
-  const bar=document.createElementNS(ns,'rect');
-  bar.setAttribute('x',left);bar.setAttribute('y',bgTop-4);
-  bar.setAttribute('width',bgW);bar.setAttribute('height',8);bar.setAttribute('rx',4);
-  bar.setAttribute('fill','rgba(0,0,0,0.15)');
-  g.appendChild(bar);
+    const hex=bgColorVal.replace('#','');
+    const r=parseInt(hex.slice(0,2),16)||255;
+    const gg=parseInt(hex.slice(2,4),16)||255;
+    const b=parseInt(hex.slice(4,6),16)||255;
+    const lighter=`rgb(${Math.min(255,r+35)},${Math.min(255,gg+35)},${Math.min(255,b+35)})`;
+    const darker =`rgb(${Math.max(0,r-35)}, ${Math.max(0,gg-35)}, ${Math.max(0,b-35)})`;
+
+    const defs=document.createElementNS(ns,'defs');
+    const gid='bgGrad_'+Date.now();
+    const grad=document.createElementNS(ns,'radialGradient');
+    grad.setAttribute('id',gid);grad.setAttribute('cx','50%');grad.setAttribute('cy','35%');
+    grad.setAttribute('r','65%');grad.setAttribute('gradientUnits','objectBoundingBox');
+    const s0=document.createElementNS(ns,'stop');s0.setAttribute('offset','0%');s0.setAttribute('stop-color',lighter);
+    const s1=document.createElementNS(ns,'stop');s1.setAttribute('offset','100%');s1.setAttribute('stop-color',darker);
+    grad.appendChild(s0);grad.appendChild(s1);defs.appendChild(grad);g.appendChild(defs);
+
+    const pathD=[
+      `M${left},${bgTop}`,`L${right},${bgTop}`,`L${right},${curveY}`,
+      `Q${right},${curveY+curveDepth} ${right-curveDepth},${curveY+curveDepth}`,
+      `L${left+curveDepth},${curveY+curveDepth}`,
+      `Q${left},${curveY+curveDepth} ${left},${curveY}`,
+      `L${left},${bgTop}`,'Z'
+    ].join(' ');
+    const path=document.createElementNS(ns,'path');
+    path.setAttribute('d',pathD);path.setAttribute('fill',`url(#${gid})`);
+    path.setAttribute('stroke','rgba(0,0,0,0.10)');path.setAttribute('stroke-width','1');
+    g.appendChild(path);
+
+    // ロール上部のバー
+    const bar=document.createElementNS(ns,'rect');
+    bar.setAttribute('x',left);bar.setAttribute('y',bgTop-4);
+    bar.setAttribute('width',bgW);bar.setAttribute('height',7);bar.setAttribute('rx',3.5);
+    bar.setAttribute('fill','rgba(0,0,0,0.13)');
+    g.appendChild(bar);
+
+  } else if(bgType==='table'){
+    // ── テーブル：斜め上から見下ろした楕円テーブル ──
+    const tcx=W*0.5, tcy=H*0.52;
+    const trx=W*0.38, try_=H*0.20; // 楕円の半径
+
+    const defs=document.createElementNS(ns,'defs');
+    const gid='tblGrad_'+Date.now();
+    const grad=document.createElementNS(ns,'radialGradient');
+    grad.setAttribute('id',gid);grad.setAttribute('cx','45%');grad.setAttribute('cy','40%');
+    grad.setAttribute('r','60%');grad.setAttribute('gradientUnits','objectBoundingBox');
+    const s0=document.createElementNS(ns,'stop');s0.setAttribute('offset','0%');s0.setAttribute('stop-color','#f5ead8');
+    const s1=document.createElementNS(ns,'stop');s1.setAttribute('offset','100%');s1.setAttribute('stop-color','#c8a56a');
+    grad.appendChild(s0);grad.appendChild(s1);defs.appendChild(grad);g.appendChild(defs);
+
+    // テーブル天板（楕円）
+    const ellipse=document.createElementNS(ns,'ellipse');
+    ellipse.setAttribute('cx',tcx);ellipse.setAttribute('cy',tcy);
+    ellipse.setAttribute('rx',trx);ellipse.setAttribute('ry',try_);
+    ellipse.setAttribute('fill',`url(#${gid})`);
+    ellipse.setAttribute('stroke','rgba(120,80,20,0.25)');ellipse.setAttribute('stroke-width','1.5');
+    g.appendChild(ellipse);
+
+    // テーブルの縁（前面の厚み）
+    const thick=H*0.035;
+    const frontPath=`M${tcx-trx},${tcy} Q${tcx-trx},${tcy+thick} ${tcx-trx+thick*0.5},${tcy+thick} L${tcx+trx-thick*0.5},${tcy+thick} Q${tcx+trx},${tcy+thick} ${tcx+trx},${tcy}`;
+    const front=document.createElementNS(ns,'path');
+    front.setAttribute('d',frontPath);
+    front.setAttribute('fill','#a07840');front.setAttribute('stroke','rgba(80,50,10,0.3)');front.setAttribute('stroke-width','1');
+    g.appendChild(front);
+
+    // テーブルの木目線（3本）
+    ['0.3','0.5','0.7'].forEach(t=>{
+      const lx=tcx-trx+trx*2*Number(t);
+      const topY=tcy-try_*Math.sqrt(1-Math.pow((lx-tcx)/trx,2));
+      const botY=tcy+try_*Math.sqrt(1-Math.pow((lx-tcx)/trx,2));
+      const line=document.createElementNS(ns,'line');
+      line.setAttribute('x1',lx);line.setAttribute('y1',topY);
+      line.setAttribute('x2',lx);line.setAttribute('y2',botY);
+      line.setAttribute('stroke','rgba(150,100,30,0.12)');line.setAttribute('stroke-width','1');
+      g.appendChild(line);
+    });
+
+  } else if(bgType==='mountain'){
+    // ── 山脈：遠景の山並み + 空グラデーション ──
+    const horizonY=H*0.55; // 地平線の高さ
+
+    const defs=document.createElementNS(ns,'defs');
+
+    // 空グラデーション
+    const skyId='skyGrad_'+Date.now();
+    const skyGrad=document.createElementNS(ns,'linearGradient');
+    skyGrad.setAttribute('id',skyId);skyGrad.setAttribute('x1','0');skyGrad.setAttribute('y1','0');
+    skyGrad.setAttribute('x2','0');skyGrad.setAttribute('y2','1');
+    const sk0=document.createElementNS(ns,'stop');sk0.setAttribute('offset','0%');sk0.setAttribute('stop-color','#c8dff5');
+    const sk1=document.createElementNS(ns,'stop');sk1.setAttribute('offset','100%');sk1.setAttribute('stop-color','#e8f2fb');
+    skyGrad.appendChild(sk0);skyGrad.appendChild(sk1);defs.appendChild(skyGrad);
+
+    // 地面グラデーション
+    const gndId='gndGrad_'+Date.now();
+    const gndGrad=document.createElementNS(ns,'linearGradient');
+    gndGrad.setAttribute('id',gndId);gndGrad.setAttribute('x1','0');gndGrad.setAttribute('y1','0');
+    gndGrad.setAttribute('x2','0');gndGrad.setAttribute('y2','1');
+    const gn0=document.createElementNS(ns,'stop');gn0.setAttribute('offset','0%');gn0.setAttribute('stop-color','#8aaa70');
+    const gn1=document.createElementNS(ns,'stop');gn1.setAttribute('offset','100%');gn1.setAttribute('stop-color','#6a8a55');
+    gndGrad.appendChild(gn0);gndGrad.appendChild(gn1);defs.appendChild(gndGrad);
+
+    g.appendChild(defs);
+
+    // 空
+    const sky=document.createElementNS(ns,'rect');
+    sky.setAttribute('x',0);sky.setAttribute('y',0);sky.setAttribute('width',W);sky.setAttribute('height',horizonY);
+    sky.setAttribute('fill',`url(#${skyId})`);
+    g.appendChild(sky);
+
+    // 遠景山（薄い青紫）
+    const farMtn=document.createElementNS(ns,'polygon');
+    farMtn.setAttribute('points',`0,${horizonY} ${W*0.15},${H*0.25} ${W*0.32},${H*0.38} ${W*0.5},${H*0.18} ${W*0.68},${H*0.32} ${W*0.82},${H*0.22} ${W},${H*0.36} ${W},${horizonY}`);
+    farMtn.setAttribute('fill','#9ab0cc');farMtn.setAttribute('opacity','0.7');
+    g.appendChild(farMtn);
+
+    // 前景山（濃い緑）
+    const nearMtn=document.createElementNS(ns,'polygon');
+    nearMtn.setAttribute('points',`0,${horizonY} ${W*0.1},${H*0.38} ${W*0.28},${H*0.3} ${W*0.45},${H*0.42} ${W*0.6},${H*0.28} ${W*0.78},${H*0.40} ${W*0.9},${H*0.33} ${W},${H*0.42} ${W},${horizonY}`);
+    nearMtn.setAttribute('fill','#5a8048');
+    g.appendChild(nearMtn);
+
+    // 雪（前景山の頂上付近）
+    [{cx:W*0.28,r:W*0.04},{cx:W*0.6,r:W*0.05},{cx:W*0.9,r:W*0.035}].forEach(({cx,r})=>{
+      const snow=document.createElementNS(ns,'ellipse');
+      snow.setAttribute('cx',cx);snow.setAttribute('cy',horizonY*0.56);
+      snow.setAttribute('rx',r);snow.setAttribute('ry',r*0.5);
+      snow.setAttribute('fill','white');snow.setAttribute('opacity','0.75');
+      g.appendChild(snow);
+    });
+
+    // 地面
+    const gnd=document.createElementNS(ns,'rect');
+    gnd.setAttribute('x',0);gnd.setAttribute('y',horizonY);gnd.setAttribute('width',W);gnd.setAttribute('height',H-horizonY);
+    gnd.setAttribute('fill',`url(#${gndId})`);
+    g.appendChild(gnd);
+
+    // 地平線
+    const horizon=document.createElementNS(ns,'line');
+    horizon.setAttribute('x1',0);horizon.setAttribute('y1',horizonY);
+    horizon.setAttribute('x2',W);horizon.setAttribute('y2',horizonY);
+    horizon.setAttribute('stroke','rgba(100,140,80,0.3)');horizon.setAttribute('stroke-width','1');
+    g.appendChild(horizon);
+  }
 }
 
 // ══════════════════════════════════════
@@ -1433,7 +1612,7 @@ async function doSaveRecipe(){
     session:{
       loc:document.getElementById('locInput')?.value||'',
       memo:getCanvasMemo(),
-      bgOn, bgColor:document.getElementById('bgColor')?.value||'#ffffff',
+      bgOn, bgType, bgColor:document.getElementById('bgColor')?.value||'#ffffff',
       sunOn, sunPos:{...sunPos}, sunBeam, sunAngle,
       exDate:document.getElementById('exDate')?.textContent||'',
       exCamera:document.getElementById('exCamera')?.textContent||'',
@@ -1486,7 +1665,8 @@ async function loadRecipeFromURL(){
     const s=recipe.session||{};
     if(s.loc) document.getElementById('locInput').value=s.loc;
     if(s.memo) setCanvasMemo(s.memo);
-    if(s.bgOn!==undefined){bgOn=s.bgOn;document.getElementById('bgToggle').checked=bgOn;toggleBg();}
+    if(s.bgOn!==undefined){bgOn=s.bgOn;document.getElementById('bgToggleBtn').classList.toggle('sun-on',bgOn);}
+    if(s.bgType) bgType=s.bgType;
     if(s.bgColor) document.getElementById('bgColor').value=s.bgColor;
     if(s.sunOn!==undefined){sunOn=s.sunOn;document.getElementById('sunToggleBtn').classList.toggle('sun-on',sunOn);}
     if(s.sunPos)  sunPos={...s.sunPos};
@@ -1920,6 +2100,21 @@ function roundRect(ctx,x,y,w,h,r){
       <button class="btn-save-cancel" onclick="closeSaveDialog()">キャンセル</button>
       <button class="btn-save-ok" onclick="doSaveRecipe()">保存</button>
     </div>
+  </div>
+</div>
+
+<!-- 背景選択シート -->
+<div id="bgSheet">
+  <div class="bg-sheet-inner">
+    <div class="bg-sheet-title">背景を選択</div>
+    <div class="bg-options" id="bgOptions"></div>
+    <div class="bg-color-row" id="bgColorRow" style="display:none">
+      <label>🎨 背景紙の色</label>
+      <input type="color" id="bgColor" value="#ffffff"
+        style="width:36px;height:36px;border:1px solid #444;border-radius:8px;cursor:pointer;padding:2px;background:none"
+        oninput="saveSession();renderBg()">
+    </div>
+    <button class="bg-sheet-close" onclick="closeBgSheet()">閉じる</button>
   </div>
 </div>
 
