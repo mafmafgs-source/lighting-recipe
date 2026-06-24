@@ -516,7 +516,7 @@ function restoreSession(){
     if(s.loc)    document.getElementById('locInput').value=s.loc;
     if(s.memo)   setCanvasMemo(s.memo);
     if(s.bgColor)document.getElementById('bgColor').value=s.bgColor;
-    if(s.bgType) bgType=s.bgType;
+    if(s.bgType!=null) bgType=s.bgType;
     updateBgSelBtns();
     // ヘッダーボタン反映
     const labels={none:'',paper:'背景紙',table:'テーブル',mountain:'山脈'};
@@ -528,6 +528,9 @@ function restoreSession(){
       sunOn=true;
       document.getElementById('sunToggleBtn').classList.add('sun-on');
     }
+    if(s.sunPos)         sunPos={...s.sunPos};
+    if(s.sunBeam!=null)  sunBeam=s.sunBeam;
+    if(s.sunAngle!=null) sunAngle=s.sunAngle;
     if(s.sunPos) sunPos=s.sunPos;
   }
   // EXIFは専用キーから独立して復元
@@ -759,6 +762,11 @@ function resetAll(){
   // ライト（位置・高さ・配光をリセット、機材設定はBuilderに任せるので保持）
   lights=lights.map(l=>({...l, x:20, y:30, height:HEIGHT_DEFAULT, beam:40, angle:270, output:null}));
   saveLights();
+
+  // レシピIDをクリア（リセット後は新規扱い）
+  currentRecipeId='';
+  localStorage.removeItem('lr_current_recipe_id');
+  localStorage.removeItem('lr_recipe_title');
 
   // 再描画
   selected=null;
@@ -1438,10 +1446,10 @@ function renderPanel(){
       panel.querySelector('.panel-card').style.borderColor=col;
       const valEl=document.getElementById('hValDi');
       if(valEl) valEl.textContent=e.target.value+'cm';
-      // キャンバス再描画（selectedDirectを保持したまま）
       const savedSel=selectedDirect;
       renderCanvas();
       selectedDirect=savedSel;
+      renderBeams();
     });
     document.getElementById('btnFlipDi').addEventListener('click',e=>{
       e.stopPropagation();
@@ -1500,6 +1508,7 @@ function renderPanel(){
       }
     }
     saveLights();
+    renderBeams();
   });
   if(hasLight){
     document.getElementById('outSlider').addEventListener('input',e=>{
@@ -1570,7 +1579,7 @@ document.getElementById('canvasMemo')?.addEventListener('input',()=>saveSession(
 // ══════════════════════════════════════
 //  初期化
 // ══════════════════════════════════════
-const _hasRecipeParam=new URLSearchParams(window.location.search).has('recipe');
+let _hasRecipeParam=new URLSearchParams(window.location.search).has('recipe');
 
 // キャンバスサイズが確定してから1回だけ描画するための ResizeObserver
 let _initRendered=false;
@@ -1585,8 +1594,11 @@ const _initObserver=new ResizeObserver(()=>{
     renderCanvas();
     renderPanel();
   }
+  // recipe param あり → loadRecipeFromURL が描画するので何もしない
 });
-_initObserver.observe(_canvas);
+if(!_hasRecipeParam || true){ // 常に observe（recipe時は描画スキップ）
+  _initObserver.observe(_canvas);
+}
 
 // ?recipe= パラメータがある場合は loadRecipeFromURL が描画まで担当
 // loadRecipeFromURL は script末尾で呼ぶ
@@ -1756,8 +1768,10 @@ async function loadRecipeFromURL(){
     if(s.loc!=null) document.getElementById('locInput').value=s.loc;
     if(s.memo)      setCanvasMemo(s.memo);
 
-    // 背景
-    bgType=(s.bgType)||( s.bgOn?(s.bgType||'paper'):'none' )||'none';
+    // 背景（'none'が falsy で || を抜ける問題を修正）
+    if(s.bgType!=null)      bgType=s.bgType;
+    else if(s.bgOn!=null)   bgType=s.bgOn?(s.bgType||'paper'):'none';
+    else                    bgType='none';
     const bgColorEl=document.getElementById('bgColor');
     if(bgColorEl&&s.bgColor) bgColorEl.value=s.bgColor;
     updateBgSelBtns();
@@ -1798,6 +1812,7 @@ async function loadRecipeFromURL(){
 
     // URLをクリーン
     history.replaceState(null,'',window.location.pathname);
+    _hasRecipeParam=false; // visibilitychange の guard を解除
 
     // ── 全描画（キャンバスサイズ確定後に実行） ──
     saveSession();
