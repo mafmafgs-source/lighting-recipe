@@ -112,6 +112,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
 .bg-color-row{display:flex;align-items:center;gap:10px;padding:8px 0 10px;border-top:1px solid #2a2a2a}
 .bg-color-row label{font-size:12px;color:#888;flex:1}
 .bg-sheet-close{width:100%;padding:12px;border:1px solid #333;border-radius:12px;background:transparent;color:#888;font-size:14px;cursor:pointer;margin-bottom:4px}
+/* 背景選択シートアイテム */
+.bg-sheet-opt{border:1.5px solid #333;border-radius:10px;overflow:hidden;cursor:pointer;background:#141414;-webkit-tap-highlight-color:transparent}
+.bg-sheet-opt.active{border-color:#c8a96e}
+.bg-sheet-preview{width:100%;aspect-ratio:1/1;overflow:hidden}
+.bg-sheet-preview svg{width:100%;height:100%;display:block}
+.bg-sheet-label{font-size:10px;font-weight:600;color:#aaa;text-align:center;padding:5px 2px}
+.bg-sheet-opt.active .bg-sheet-label{color:#c8a96e}
 /* 背景選択ボタン */
 .bg-sel-btn{padding:4px 7px;border:none;border-radius:7px;font-size:11px;font-weight:600;color:#666;background:transparent;cursor:pointer;white-space:nowrap;-webkit-tap-highlight-color:transparent;transition:background .12s,color .12s}
 .bg-sel-btn.active{background:#c8a96e;color:#0f0f0f}
@@ -208,18 +215,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
       <span id="lightingTitle">ライティング図</span>
       <div style="display:flex;align-items:center;gap:6px">
         <button class="bg-toggle-btn" id="sunToggleBtn" onclick="toggleSun()" title="太陽">☀️ 太陽</button>
-        <div style="display:flex;align-items:center;gap:4px;background:#1a1a1a;border:1px solid #333;border-radius:10px;padding:3px">
-          <button class="bg-sel-btn active" id="bgBtn_none"    onclick="setBgType('none')"    >なし</button>
-          <button class="bg-sel-btn"        id="bgBtn_paper"   onclick="setBgType('paper')"   >背景紙</button>
-          <button class="bg-sel-btn"        id="bgBtn_table"   onclick="setBgType('table')"   >テーブル</button>
-          <button class="bg-sel-btn"        id="bgBtn_mountain"onclick="setBgType('mountain')">山脈</button>
-        </div>
-        <div id="bgColorRow" style="display:none;align-items:center;gap:6px">
-          <span style="font-size:11px;color:#888">色</span>
-          <input type="color" id="bgColor" value="#ffffff"
-            style="width:28px;height:28px;border:1px solid #444;border-radius:6px;cursor:pointer;padding:2px;background:none"
-            oninput="saveSession();renderBg()">
-        </div>
+        <button class="bg-toggle-btn" id="bgToggleBtn" onclick="openBgSheet()" title="背景">🖼 背景<span id="bgToggleSub" style="font-size:10px;margin-left:3px;opacity:.7"></span></button>
         <a class="btn-builder" href="builder.html" style="width:auto;padding:6px 14px;font-size:13px"><span id="editBtnText">＋ 機材編集</span></a>
       </div>
     </div>
@@ -522,6 +518,12 @@ function restoreSession(){
     if(s.bgColor)document.getElementById('bgColor').value=s.bgColor;
     if(s.bgType) bgType=s.bgType;
     updateBgSelBtns();
+    // ヘッダーボタン反映
+    const labels={none:'',paper:'背景紙',table:'テーブル',mountain:'山脈'};
+    const sub=document.getElementById('bgToggleSub');
+    if(sub) sub.textContent=(bgType==='none')?'':labels[bgType]||'';
+    const btn=document.getElementById('bgToggleBtn');
+    if(btn) btn.classList.toggle('sun-on',bgType!=='none');
     if(s.sunOn){
       sunOn=true;
       document.getElementById('sunToggleBtn').classList.add('sun-on');
@@ -746,8 +748,7 @@ function resetAll(){
   setCanvasMemo('');
 
   // 背景
-  bgType='none';
-  updateBgSelBtns();
+  setBgType('none');
   const bgColorEl=document.getElementById('bgColor');
   if(bgColorEl) bgColorEl.value='#ffffff';
 
@@ -849,28 +850,73 @@ function makeDraggableSun(node,canvas){
 // ══════════════════════════════════════
 //  背景
 // ══════════════════════════════════════
+function openBgSheet(){
+  updateBgPreviews();
+  updateBgSelBtns();
+  document.getElementById('bgColorRow').style.display=
+    (bgType==='paper'||bgType==='table')?'flex':'none';
+  document.getElementById('bgSheet').style.display='flex';
+}
+
+function closeBgSheet(){
+  document.getElementById('bgSheet').style.display='none';
+}
+
 function setBgType(type){
   bgType=type;
   updateBgSelBtns();
-  // カラー行の表示：背景紙・テーブルのみ
-  const colorRow=document.getElementById('bgColorRow');
-  if(colorRow) colorRow.style.display=(type==='paper'||type==='table')?'flex':'none';
+  // カラー行の表示
+  document.getElementById('bgColorRow').style.display=
+    (type==='paper'||type==='table')?'flex':'none';
+  // ヘッダーボタンのサブテキスト更新
+  const labels={none:'',paper:'背景紙',table:'テーブル',mountain:'山脈'};
+  const sub=document.getElementById('bgToggleSub');
+  if(sub) sub.textContent=type==='none'?'':labels[type]||'';
+  const btn=document.getElementById('bgToggleBtn');
+  if(btn) btn.classList.toggle('sun-on',type!=='none');
   saveSession();
   renderBg();
 }
 
 function updateBgSelBtns(){
   ['none','paper','table','mountain'].forEach(t=>{
-    const btn=document.getElementById('bgBtn_'+t);
-    if(btn) btn.classList.toggle('active',bgType===t);
+    const el=document.getElementById('bsOpt_'+t);
+    if(el) el.classList.toggle('active',bgType===t);
   });
 }
 
-// 背景タイプ定義（プレビュー用）
+function updateBgPreviews(){
+  const color=document.getElementById('bgColor')?.value||'#ffffff';
+  // 背景紙プレビュー
+  const pp=document.getElementById('bsPreview_paper');
+  if(pp) pp.innerHTML=`<svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
+    <rect width="60" height="60" fill="#d8d8d8"/>
+    <rect x="11" y="4" width="38" height="42" rx="2" fill="${color}" stroke="rgba(0,0,0,0.12)" stroke-width="1"/>
+    <path d="M11,38 Q11,46 19,46 L41,46 Q49,46 49,38" fill="none" stroke="rgba(0,0,0,0.08)" stroke-width="1.5"/>
+    <rect x="11" y="2" width="38" height="5" rx="2.5" fill="rgba(0,0,0,0.12)"/>
+  </svg>`;
+  // テーブルプレビュー
+  const pt=document.getElementById('bsPreview_table');
+  if(pt) pt.innerHTML=`<svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
+    <rect width="60" height="60" fill="#e0e0e0"/>
+    <polygon points="8,44 52,44 56,56 4,56" fill="${color}" stroke="rgba(0,0,0,0.15)" stroke-width="1"/>
+    <polygon points="8,44 52,44 52,47 8,47" fill="rgba(0,0,0,0.07)"/>
+    <line x1="22" y1="44" x2="20" y2="56" stroke="rgba(0,0,0,0.05)" stroke-width="1"/>
+    <line x1="38" y1="44" x2="40" y2="56" stroke="rgba(0,0,0,0.05)" stroke-width="1"/>
+  </svg>`;
+  // 山脈プレビュー
+  const pm=document.getElementById('bsPreview_mountain');
+  if(pm) pm.innerHTML=`<svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
+    <rect width="60" height="60" fill="#daeef8"/>
+    <polygon points="0,38 10,20 22,30 34,14 46,26 54,18 60,24 60,38" fill="#c4d4e4" opacity="0.75"/>
+    <polygon points="0,38 8,28 18,34 30,24 42,32 52,26 60,30 60,38" fill="#a8c0a8" opacity="0.8"/>
+    <rect x="0" y="38" width="60" height="22" fill="#c8dab8" opacity="0.65"/>
+  </svg>`;
+}
+
+// 背景タイプ定義（後方互換用）
 const BG_TYPES=[
-  {id:'paper',    label:'背景紙',   emoji:'🟥'},
-  {id:'table',    label:'テーブル', emoji:'🪑'},
-  {id:'mountain', label:'山脈',     emoji:'🏔'},
+  {id:'paper',label:'背景紙'},{id:'table',label:'テーブル'},{id:'mountain',label:'山脈'},
 ];
 
 function renderBg(){
@@ -2104,6 +2150,40 @@ function roundRect(ctx,x,y,w,h,r){
       <button class="btn-save-ok" id="btnSaveNew" onclick="doSaveRecipe(true)">✨ 新規保存</button>
       <button class="btn-save-cancel" onclick="closeSaveDialog()">キャンセル</button>
     </div>
+  </div>
+</div>
+
+<!-- 背景選択シート -->
+<div id="bgSheet" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:510;align-items:flex-end;justify-content:center">
+  <div style="background:#1a1a1a;border-radius:20px 20px 0 0;padding:16px 16px 0;width:100%;max-width:430px;border-top:1px solid #333;padding-bottom:calc(env(safe-area-inset-bottom,0px) + 80px)">
+    <div style="font-size:12px;font-weight:700;color:#888;letter-spacing:.06em;text-align:center;margin-bottom:14px">背景を選択</div>
+    <!-- 4択グリッド -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px">
+      <div class="bg-sheet-opt" id="bsOpt_none"     onclick="setBgType('none')">
+        <div class="bg-sheet-preview" style="background:#e8e8e8;display:flex;align-items:center;justify-content:center;font-size:20px;color:#aaa">✕</div>
+        <div class="bg-sheet-label">なし</div>
+      </div>
+      <div class="bg-sheet-opt" id="bsOpt_paper"    onclick="setBgType('paper')">
+        <div class="bg-sheet-preview" id="bsPreview_paper"></div>
+        <div class="bg-sheet-label">背景紙</div>
+      </div>
+      <div class="bg-sheet-opt" id="bsOpt_table"    onclick="setBgType('table')">
+        <div class="bg-sheet-preview" id="bsPreview_table"></div>
+        <div class="bg-sheet-label">テーブル</div>
+      </div>
+      <div class="bg-sheet-opt" id="bsOpt_mountain" onclick="setBgType('mountain')">
+        <div class="bg-sheet-preview" id="bsPreview_mountain"></div>
+        <div class="bg-sheet-label">山脈</div>
+      </div>
+    </div>
+    <!-- カラーピッカー（背景紙・テーブル選択時のみ） -->
+    <div id="bgColorRow" style="display:none;align-items:center;gap:10px;padding:10px 0 12px;border-top:1px solid #2a2a2a;margin-bottom:8px">
+      <span style="font-size:12px;color:#888;flex:1">🎨 色を選択</span>
+      <input type="color" id="bgColor" value="#ffffff"
+        style="width:36px;height:36px;border:1px solid #444;border-radius:8px;cursor:pointer;padding:2px;background:none"
+        oninput="saveSession();renderBg();updateBgPreviews()">
+    </div>
+    <button onclick="closeBgSheet()" style="width:100%;padding:12px;border:1px solid #333;border-radius:12px;background:transparent;color:#888;font-size:14px;cursor:pointer;margin-bottom:4px">閉じる</button>
   </div>
 </div>
 
