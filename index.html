@@ -1567,25 +1567,52 @@ function getCanvasMemo(){ return document.getElementById('canvasMemo')?.innerTex
 function setCanvasMemo(text){ const el=document.getElementById('canvasMemo'); if(el) el.innerText=text||''; }
 document.getElementById('canvasMemo')?.addEventListener('input',()=>saveSession());
 
-// 初回ロード：?recipe=id がある場合は loadRecipeFromURL に任せる
+// ══════════════════════════════════════
+//  初期化
+// ══════════════════════════════════════
 const _hasRecipeParam=new URLSearchParams(window.location.search).has('recipe');
-if(!_hasRecipeParam){
-  restoreSession();
-  requestAnimationFrame(()=>{renderCanvas();renderPanel();});
-}
 
-// Builder等から戻った時（pageshow は初回ロードでも発火するためフラグで制御）
-let _firstPageshow=true;
-window.addEventListener('pageshow',(e)=>{
-  if(_firstPageshow){_firstPageshow=false;return;}
-  // Builder から戻った場合は lights を再読み込みして再描画
-  const savedLights=loadLights();
-  if(JSON.stringify(savedLights)!==JSON.stringify(lights)){
-    lights=savedLights;
+// キャンバスサイズが確定してから1回だけ描画するための ResizeObserver
+let _initRendered=false;
+const _canvas=document.getElementById('canvas');
+const _initObserver=new ResizeObserver(()=>{
+  if(_initRendered) return;
+  if(_canvas.offsetWidth===0) return;
+  _initRendered=true;
+  _initObserver.disconnect();
+  if(!_hasRecipeParam){
+    restoreSession();
+    renderCanvas();
+    renderPanel();
   }
+});
+_initObserver.observe(_canvas);
+
+// ?recipe= パラメータがある場合は loadRecipeFromURL が描画まで担当
+// loadRecipeFromURL は script末尾で呼ぶ
+
+// Builder / MyPage から戻った時の再描画
+// pageshow は bfcache 復元時のみ使う（通常の遷移では発火しないケースがある）
+window.addEventListener('pageshow',(e)=>{
+  // e.persisted=true の場合は bfcache からの復元
+  if(!e.persisted) return;
+  lights=loadLights();
   restoreSession();
   renderCanvas();
   renderPanel();
+});
+
+// Builder から戻った場合の保険（visibilitychange）
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState!=='visible') return;
+  if(_hasRecipeParam) return; // recipe ロード中は干渉しない
+  const saved=loadLights();
+  // lights が変わっていたら再描画（Builder で機材変更した場合）
+  if(JSON.stringify(saved)!==JSON.stringify(lights)){
+    lights=saved;
+    renderCanvas();
+    renderPanel();
+  }
 });
 
 // ══════════════════════════════════════
@@ -1632,10 +1659,11 @@ function closeSaveDialog(){
   document.getElementById('saveDialog').classList.remove('open');
 }
 
-async function doSaveRecipe(forceNew=false){
+async function doSaveRecipe(forceNew){
+  // forceNew が明示 true でなく、currentRecipeId があれば上書き
+  const isNew = (forceNew===true) || !currentRecipeId;
+  const id = isNew ? ('r_'+Date.now()) : currentRecipeId;
   const title=document.getElementById('recipeTitleInput').value.trim()||'無題のレシピ';
-  // forceNew=true または currentRecipeId なし → 新規ID
-  const id=(forceNew||!currentRecipeId)?('r_'+Date.now()):currentRecipeId;
   const now=new Date().toISOString();
 
   let photoData='';
@@ -1644,10 +1672,11 @@ async function doSaveRecipe(forceNew=false){
     try{
       const c=document.createElement('canvas'),ctx=c.getContext('2d');
       const maxW=200,scale=Math.min(maxW/photoImg.naturalWidth,maxW/photoImg.naturalHeight);
-      c.width=photoImg.naturalWidth*scale;c.height=photoImg.naturalHeight*scale;
+      c.width=Math.max(1,Math.round(photoImg.naturalWidth*scale));
+      c.height=Math.max(1,Math.round(photoImg.naturalHeight*scale));
       ctx.drawImage(photoImg,0,0,c.width,c.height);
       photoData=c.toDataURL('image/jpeg',0.6);
-    }catch(e){}
+    }catch(e){ console.warn('photo encode error:',e); }
   }
 
   const recipe={
@@ -1670,14 +1699,19 @@ async function doSaveRecipe(forceNew=false){
     await new Promise((res,rej)=>{
       const tx=db.transaction(RSTORE,'readwrite');
       tx.objectStore(RSTORE).put(recipe);
-      tx.oncomplete=res;tx.onerror=e=>rej(e.target.error);
+      tx.oncomplete=()=>res();
+      tx.onerror=e=>rej(e.target.error);
+      tx.onabort=e=>rej(e.target.error);
     });
     currentRecipeId=id;
     localStorage.setItem('lr_current_recipe_id',id);
     localStorage.setItem('lr_recipe_title',title);
     closeSaveDialog();
-    showSaveToast('保存しました');
-  }catch(e){ console.error(e); alert('保存に失敗しました'); }
+    showSaveToast('保存しました ✓');
+  }catch(e){
+    console.error('save error:',e);
+    showSaveToast('保存失敗: '+( e?.message||String(e) ));
+  }
 }
 
 let _saveToastTimer=null;
@@ -1765,10 +1799,11 @@ async function loadRecipeFromURL(){
     // URLをクリーン
     history.replaceState(null,'',window.location.pathname);
 
-    // ── 全描画 ──
+    // ── 全描画（キャンバスサイズ確定後に実行） ──
     saveSession();
-    renderCanvas();
-    renderPanel();
+    const _doRender=()=>{renderCanvas();renderPanel();};
+    if(_canvas.offsetWidth>0){ _doRender(); }
+    else{ new ResizeObserver((_,obs)=>{if(_canvas.offsetWidth>0){obs.disconnect();_doRender();} }).observe(_canvas); }
 
   }catch(e){
     console.error('Load recipe error:',e);
