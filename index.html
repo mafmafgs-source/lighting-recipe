@@ -1065,7 +1065,7 @@ function renderPanel(){
           <label>${T.heightLabel}</label>
           <input type="range" id="hSliderDi" min="${HEIGHT_MIN}" max="${HEIGHT_MAX}" value="${h}" step="5"
             style="background:linear-gradient(to right,rgb(180,220,255) 0%,rgb(80,160,240) 50%,rgb(10,60,180) 100%)">
-          <span style="min-width:36px;display:inline-block"></span>
+          <span class="slider-val" id="hValDi">${h}cm</span>
         </div>
         <button class="btn-flip${flipped?' flipped':''}" id="btnFlipDi">⇆ 反転</button>
       </div>`;
@@ -1075,7 +1075,12 @@ function renderPanel(){
       saveDirectItems(items);
       const col=heightToColor(items[selectedDirect].height);
       panel.querySelector('.panel-card').style.borderColor=col;
+      const valEl=document.getElementById('hValDi');
+      if(valEl) valEl.textContent=e.target.value+'cm';
+      // キャンバス再描画（selectedDirectを保持したまま）
+      const savedSel=selectedDirect;
       renderCanvas();
+      selectedDirect=savedSel;
     });
     document.getElementById('btnFlipDi').addEventListener('click',e=>{
       e.stopPropagation();
@@ -1102,7 +1107,7 @@ function renderPanel(){
         <label>${T.heightLabel}</label>
         <input type="range" id="hSlider" min="${HEIGHT_MIN}" max="${HEIGHT_MAX}" value="${h}" step="5"
           style="background:linear-gradient(to right,rgb(180,220,255) 0%,rgb(80,160,240) 50%,rgb(10,60,180) 100%)">
-        <span style="min-width:36px;display:inline-block"></span>
+        <span class="slider-val" id="hVal">${h}cm</span>
       </div>
       ${hasLight?`
       <div class="slider-row">
@@ -1119,6 +1124,8 @@ function renderPanel(){
     lights[selected].height=Number(e.target.value);
     const col=heightToColor(lights[selected].height);
     panel.querySelector('.panel-card').style.borderColor=col;
+    const valEl=document.getElementById('hVal');
+    if(valEl) valEl.textContent=e.target.value+'cm';
     const nd=document.querySelector(`.light-node[data-idx="${selected}"]`);
     if(nd){
       const col=heightToColor(lights[selected].height);
@@ -1504,51 +1511,88 @@ async function doExport(){
       backgroundColor:'#f8f8f8',
       scale:DIAG_W/diagCanvas.offsetWidth,
       useCORS:true,allowTaint:true,logging:false,
+      ignoreElements:el=>el.classList&&el.classList.contains('direct-item'),
     }).then(c=>{
       // メモ表示を元に戻す
       if(memoEl) memoEl.style.display=memoDisplay;
       roundRect(ctx,PADDING,y,DIAG_W,DIAG_H,CARD_R);
       ctx.save();ctx.clip();
       ctx.drawImage(c,PADDING,y,DIAG_W,DIAG_H);
-      // メモをライティング図右下に描画
-      const memo=getCanvasMemo();
-      if(memo){
-        const memoFontSize=18;
-        const memoPad=14;
-        const memoLineH=memoFontSize*1.6;
-        const memoMaxW=Math.min(DIAG_W*0.55,460);
-        ctx.font=`400 ${memoFontSize}px -apple-system,sans-serif`;
 
-        // 折り返し処理
-        const wrappedLines=[];
-        memo.split('\n').forEach(paragraph=>{
-          const words=paragraph.split('');
-          let line='';
-          for(const ch of words){
-            const test=line+ch;
-            if(ctx.measureText(test).width>memoMaxW-memoPad*2){
-              wrappedLines.push(line);
-              line=ch;
-            } else {
-              line=test;
+      // ── 直接配置アイテムをCanvas APIで描画（CSSフリップ対応） ──
+      const diagRect=diagCanvas.getBoundingClientRect();
+      const scaleX=DIAG_W/diagRect.width;
+      const scaleY=DIAG_H/diagRect.height;
+      const directItems=loadDirectItems();
+      const loadImg=(src)=>new Promise(res=>{
+        if(!src){res(null);return;}
+        const im=new Image();
+        im.onload=()=>res(im);im.onerror=()=>res(null);
+        im.src=src;
+      });
+      (async()=>{
+        for(const di of directItems){
+          const diX=PADDING+(di.x??50)/100*DIAG_W;
+          const diY=y+(di.y??50)/100*DIAG_H;
+          const RING=28*scaleX;
+          const dh=di.height??HEIGHT_DEFAULT;
+          const t=dh/HEIGHT_MAX;
+          const rc=Math.round(180+(10-180)*t);
+          const gc=Math.round(220+(60-220)*t);
+          const bc=Math.round(255+(180-255)*t);
+          const col=`rgb(${rc},${gc},${bc})`;
+          const bw=Math.round(1+(dh/HEIGHT_MAX)*3)+1;
+          if(di.imgPath){
+            const im=await loadImg(di.imgPath);
+            if(im){
+              ctx.save();
+              if(di.flipped){ctx.translate(diX,0);ctx.scale(-1,1);ctx.translate(-diX,0);}
+              ctx.beginPath();ctx.arc(diX,diY,RING/2,0,Math.PI*2);ctx.closePath();
+              ctx.save();ctx.clip();
+              ctx.drawImage(im,diX-RING/2,diY-RING/2,RING,RING);
+              ctx.restore();
+              ctx.strokeStyle=col;ctx.lineWidth=bw;
+              ctx.beginPath();ctx.arc(diX,diY,RING/2,0,Math.PI*2);ctx.stroke();
+              ctx.restore();
             }
+          } else {
+            ctx.strokeStyle=col;ctx.lineWidth=bw;
+            ctx.beginPath();ctx.arc(diX,diY,RING/2,0,Math.PI*2);ctx.stroke();
           }
-          wrappedLines.push(line);
-        });
-
-        const memoH=wrappedLines.length*memoLineH+memoPad*2;
-        const memoW=memoMaxW;
-        const mx=PADDING+DIAG_W-memoW-16;
-        const my=y+DIAG_H-memoH-16;
-        ctx.fillStyle='rgba(0,0,0,0.55)';
-        roundRect(ctx,mx,my,memoW,memoH,8);ctx.fill();
-        ctx.fillStyle='#ffffff';
-        wrappedLines.forEach((line,i)=>{
-          ctx.fillText(line,mx+memoPad,my+memoPad+memoFontSize+i*memoLineH);
-        });
-      }
-      ctx.restore();
-      res();
+          ctx.font=`600 ${Math.round(10*scaleX)}px -apple-system,sans-serif`;
+          ctx.fillStyle='rgba(80,80,80,0.9)';
+          ctx.textAlign='center';
+          ctx.fillText(di.name,diX,diY+RING/2+Math.round(12*scaleX));
+          ctx.textAlign='left';
+        }
+        // ── メモをライティング図右下に描画 ──
+        const memo=getCanvasMemo();
+        if(memo){
+          const memoFontSize=18,memoPad=14,memoLineH=memoFontSize*1.6;
+          const memoMaxW=Math.min(DIAG_W*0.55,460);
+          ctx.font=`400 ${memoFontSize}px -apple-system,sans-serif`;
+          const wrappedLines=[];
+          memo.split('\n').forEach(paragraph=>{
+            const words=paragraph.split('');
+            let line='';
+            for(const ch of words){
+              const test=line+ch;
+              if(ctx.measureText(test).width>memoMaxW-memoPad*2){wrappedLines.push(line);line=ch;}
+              else{line=test;}
+            }
+            wrappedLines.push(line);
+          });
+          const memoH=wrappedLines.length*memoLineH+memoPad*2;
+          const mx=PADDING+DIAG_W-memoMaxW-16;
+          const my=y+DIAG_H-memoH-16;
+          ctx.fillStyle='rgba(0,0,0,0.55)';
+          roundRect(ctx,mx,my,memoMaxW,memoH,8);ctx.fill();
+          ctx.fillStyle='#ffffff';
+          wrappedLines.forEach((line,li)=>{ctx.fillText(line,mx+memoPad,my+memoPad+memoFontSize+li*memoLineH);});
+        }
+        ctx.restore();
+        res();
+      })();
     }).catch(()=>{
       if(memoEl) memoEl.style.display=memoDisplay;
       res();
