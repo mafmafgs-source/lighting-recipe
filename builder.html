@@ -425,21 +425,16 @@ async function loadAllItemImgs(){
   try{
     const db=await openImgIDB();
     const tx=db.transaction(IMG_IDB_STORE,'readonly');
-    const keys=await new Promise((res,rej)=>{
-      const r=tx.objectStore(IMG_IDB_STORE).getAllKeys();
-      r.onsuccess=e=>res(e.target.result);r.onerror=rej;
-    });
-    const result={};
-    for(const key of keys){
-      const tx2=db.transaction(IMG_IDB_STORE,'readonly');
-      result[key]=await new Promise((res,rej)=>{
-        const r=tx2.objectStore(IMG_IDB_STORE).get(key);
-        r.onsuccess=e=>res(e.target.result);r.onerror=rej;
-      });
-    }
+    const store=tx.objectStore(IMG_IDB_STORE);
+    const [keys,values]=await Promise.all([
+      new Promise((res,rej)=>{ const r=store.getAllKeys(); r.onsuccess=e=>res(e.target.result); r.onerror=rej; }),
+      new Promise((res,rej)=>{ const r=store.getAll();    r.onsuccess=e=>res(e.target.result); r.onerror=rej; }),
+    ]);
     db.close();
+    const result={};
+    keys.forEach((k,i)=>{ result[k]=values[i]; });
     return result;
-  }catch(e){return {};}
+  }catch(e){ return {}; }
 }
 
 // ══════════════════════════════════════════════
@@ -814,13 +809,11 @@ function deleteItem(catId, item, name, showAll, rerenderFn) {
   });
 
   // closeOverlay時もボタンをリセット
-  const origClose = closeOverlay;
   // キャンセル時にボタンリセット
   document.getElementById('dlgCancel').onclick = () => {
     okBtn.textContent = origOkText;
     okBtn.style.background = '';
     closeOverlay();
-    // onclickを元に戻す
     document.getElementById('dlgCancel').onclick = closeOverlay;
   };
 }
@@ -1023,7 +1016,7 @@ function addDirectItem(name, catId){
   const items = JSON.parse(localStorage.getItem('lr_direct_items')||'[]');
   const cat = getCat(catId);
   const imgPath = cat && cat.imgPath ? cat.imgPath : null;
-  items.push({ name, catId, imgPath, x:70, y:50 });
+  items.push({ name, catId, imgPath, x:70, y:50, height:150, flipped:false });
   localStorage.setItem('lr_direct_items', JSON.stringify(items));
   showToast(`${name} をライティング図に追加しました`);
 }
@@ -1192,7 +1185,13 @@ function renderLights() {
   });
 }
 
-function clearLight(i) { lights[i].items = []; renderLights(); }
+function clearLight(i) {
+  lights[i].items = [];
+  lights[i].output = null;
+  renderLights();
+  // ライト状態を即座に保存（保存ボタン前でも消えないように）
+  try{ localStorage.setItem('lightingRecipeLights', JSON.stringify(lights)); }catch(e){}
+}
 
 function updateOutput(i, val) {
   lights[i].output = Number(val);
