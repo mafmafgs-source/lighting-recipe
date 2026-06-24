@@ -706,11 +706,15 @@ function selectCat(catId) {
         </a>
         <button class="item-del" title="削除">🗑️</button>
       `;
-      // 行タップ → ライトへ追加（Amazon・ゴミ箱以外）
+      // 行タップ → ライトへ追加 or ライティング図に直接配置
       row.onclick = (e) => {
         if (e.target.closest('.item-del')) return;
         if (e.target.closest('.item-amz')) return;
-        addItemToLight(name);
+        if (isDirectCat(catId)) {
+          addDirectItem(name, catId);
+        } else {
+          addItemToLight(name);
+        }
       };
       // ゴミ箱タップ → 削除確認
       row.querySelector('.item-del').onclick = (e) => {
@@ -918,10 +922,26 @@ function showAddItemDialog(catId) {
 // ══════════════════════════════════════════════
 //  ライトへ機材追加
 // ══════════════════════════════════════════════
+// 直接配置カテゴリ（ライトビルダーの枠を使わない）
+const DIRECT_CATS = ['reflector','flag'];
+
+function isDirectCat(catId){
+  return DIRECT_CATS.includes(catId);
+}
+
 function addItemToLight(name) {
   lights[currentLight].items.push(name);
   renderLights();
   showToast(`${name} を追加しました`);
+}
+
+function addDirectItem(name, catId){
+  const items = JSON.parse(localStorage.getItem('lr_direct_items')||'[]');
+  const cat = getCat(catId);
+  const imgPath = cat && cat.imgPath ? cat.imgPath : null;
+  items.push({ name, catId, imgPath, x:70, y:50 });
+  localStorage.setItem('lr_direct_items', JSON.stringify(items));
+  showToast(`${name} をライティング図に追加しました`);
 }
 
 let _toastTimer=null;
