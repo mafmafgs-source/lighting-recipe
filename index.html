@@ -810,6 +810,7 @@ function makeDraggableSun(node,canvas){
     sunPos.y=Math.max(0,Math.min(100,spy+(ey-sy)/rect.height*100));
     node.style.left=sunPos.x+'%';
     node.style.top=sunPos.y+'%';
+    renderBeams(); // 光パーツを太陽に追従させる
     saveSession();
   };
   node.addEventListener('mousedown',e=>{
