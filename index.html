@@ -1567,9 +1567,12 @@ function getCanvasMemo(){ return document.getElementById('canvasMemo')?.innerTex
 function setCanvasMemo(text){ const el=document.getElementById('canvasMemo'); if(el) el.innerText=text||''; }
 document.getElementById('canvasMemo')?.addEventListener('input',()=>saveSession());
 
-// 初回ロード
-restoreSession();
-requestAnimationFrame(()=>{renderCanvas();renderPanel();});
+// 初回ロード：?recipe=id がある場合は loadRecipeFromURL に任せる
+const _hasRecipeParam=new URLSearchParams(window.location.search).has('recipe');
+if(!_hasRecipeParam){
+  restoreSession();
+  requestAnimationFrame(()=>{renderCanvas();renderPanel();});
+}
 
 // Builder等から戻った時（pageshow は初回ロードでも発火するためフラグで制御）
 let _firstPageshow=true;
@@ -1693,41 +1696,86 @@ function showSaveToast(msg){
 async function loadRecipeFromURL(){
   const params=new URLSearchParams(window.location.search);
   const recipeId=params.get('recipe');
-  if(!recipeId)return;
+  if(!recipeId){ return; }
+
   try{
     const db=await openRecipeDB();
     const recipe=await new Promise((res,rej)=>{
       const tx=db.transaction(RSTORE,'readonly');
       const req=tx.objectStore(RSTORE).get(recipeId);
-      req.onsuccess=()=>res(req.result);req.onerror=e=>rej(e.target.error);
+      req.onsuccess=()=>res(req.result);
+      req.onerror=e=>rej(e.target.error);
     });
-    if(!recipe)return;
-    lights=recipe.lights||[];saveLights();
+    if(!recipe){ restoreSession(); renderCanvas(); renderPanel(); return; }
+
+    // ── ライト ──
+    lights=Array.isArray(recipe.lights)&&recipe.lights.length>0
+      ? JSON.parse(JSON.stringify(recipe.lights))
+      : loadLights();
+    saveLights();
+
+    // ── 直接配置アイテム ──
     if(recipe.directItems) saveDirectItems(recipe.directItems);
+
+    // ── セッション ──
     const s=recipe.session||{};
-    if(s.loc) document.getElementById('locInput').value=s.loc;
-    if(s.memo) setCanvasMemo(s.memo);
-    if(s.bgType){ bgType=s.bgType; updateBgSelBtns(); }
-    else if(s.bgOn!==undefined){ bgType=s.bgOn?(s.bgType||'paper'):'none'; updateBgSelBtns(); }
-    if(s.bgColor) document.getElementById('bgColor').value=s.bgColor;
-    if(s.sunOn!==undefined){sunOn=s.sunOn;document.getElementById('sunToggleBtn').classList.toggle('sun-on',sunOn);}
-    if(s.sunPos)  sunPos={...s.sunPos};
-    if(s.sunBeam!=null) sunBeam=s.sunBeam;
+    if(s.loc!=null) document.getElementById('locInput').value=s.loc;
+    if(s.memo)      setCanvasMemo(s.memo);
+
+    // 背景
+    bgType=(s.bgType)||( s.bgOn?(s.bgType||'paper'):'none' )||'none';
+    const bgColorEl=document.getElementById('bgColor');
+    if(bgColorEl&&s.bgColor) bgColorEl.value=s.bgColor;
+    updateBgSelBtns();
+    // ヘッダーボタン反映
+    const _labels={none:'',paper:'背景紙',table:'テーブル',mountain:'山脈'};
+    const _sub=document.getElementById('bgToggleSub');
+    if(_sub) _sub.textContent=bgType==='none'?'':(_labels[bgType]||'');
+    const _bgBtn=document.getElementById('bgToggleBtn');
+    if(_bgBtn) _bgBtn.classList.toggle('sun-on',bgType!=='none');
+
+    // 太陽
+    sunOn=!!s.sunOn;
+    document.getElementById('sunToggleBtn').classList.toggle('sun-on',sunOn);
+    if(s.sunPos)         sunPos={...s.sunPos};
+    if(s.sunBeam!=null)  sunBeam=s.sunBeam;
     if(s.sunAngle!=null) sunAngle=s.sunAngle;
+
+    // EXIF表示
     if(s.exCamera) document.getElementById('exCamera').textContent=s.exCamera;
-    if(s.exLens) document.getElementById('exLens').textContent=s.exLens;
-    if(s.exDate) document.getElementById('exDate').textContent=s.exDate;
+    if(s.exLens)   document.getElementById('exLens').textContent=s.exLens;
+    if(s.exDate)   document.getElementById('exDate').textContent=s.exDate;
+
+    // 写真
     if(recipe.photoData){
       const img=document.getElementById('photoImg');
-      img.onload=()=>{img.classList.add('loaded');document.getElementById('photoHint').style.display='none';document.getElementById('btnReset').classList.add('visible');};
+      img.onload=()=>{
+        img.classList.add('loaded');
+        document.getElementById('photoHint').style.display='none';
+        document.getElementById('btnReset').classList.add('visible');
+      };
       img.src=recipe.photoData;
     }
+
+    // 現在レシピIDを確定
     currentRecipeId=recipeId;
     localStorage.setItem('lr_current_recipe_id',recipeId);
     localStorage.setItem('lr_recipe_title',recipe.title||'');
-    saveSession();renderCanvas();renderPanel();
+
+    // URLをクリーン
     history.replaceState(null,'',window.location.pathname);
-  }catch(e){console.error('Load recipe error:',e);}
+
+    // ── 全描画 ──
+    saveSession();
+    renderCanvas();
+    renderPanel();
+
+  }catch(e){
+    console.error('Load recipe error:',e);
+    restoreSession();
+    renderCanvas();
+    renderPanel();
+  }
 }
 loadRecipeFromURL();
 </script>
