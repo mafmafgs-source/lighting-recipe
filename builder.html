@@ -244,6 +244,23 @@ function amazonUrl(query){
   const q=encodeURIComponent(query);
   return `https://www.amazon.co.jp/s?k=${q}&tag=${AMAZON_TAG}`;
 }
+// 既存のAmazon URLにアフィリエイトタグを付与
+function appendAmazonTag(url){
+  try{
+    const u=new URL(url);
+    u.searchParams.set('tag',AMAZON_TAG);
+    return u.toString();
+  }catch(e){
+    // URL形式でない場合はそのまま返す
+    return url;
+  }
+}
+// 機材からAmazon URLを取得（直リンク優先、なければ検索URL）
+function getItemAmzUrl(item, name){
+  if(typeof item==='object' && item.amzUrl) return item.amzUrl;
+  const searchQuery=(typeof item==='object' && item.maker)?item.maker+' '+item.model:(typeof item==='object'?item.model:name);
+  return amazonUrl(searchQuery);
+}
 
 const ICONS_LIST = ['⚡','💡','⬡','△','┐','◻','🎯','🔦','🌟','🎬','🖼️','🔧','💎','🎨','📐','🧲','🔭','🎞️','💼','🗂️'];
 const VISIBLE_COUNT = 5; // 最初に表示する件数
@@ -671,6 +688,8 @@ function selectCat(catId) {
       const row = document.createElement('div');
       row.className = 'item';
       const searchQuery = maker ? maker+' '+model : model;
+      // Amazon URL：直リンク優先、なければ検索URL
+      const amzLink = getItemAmzUrl(item, name);
       // 優先順位: 個別写真 > カテゴリ画像 > 絵文字
       const catImg = getCatImgByItemName(name);
       const thumbHtml = (typeof item==='object' && item.img)
@@ -684,7 +703,7 @@ function selectCat(catId) {
           ${model}
           ${maker ? `<span class="item-sub">${maker}</span>` : ''}
         </div>
-        <a class="item-amz" href="${amazonUrl(searchQuery)}" target="_blank" rel="noopener">
+        <a class="item-amz" href="${amzLink}" target="_blank" rel="noopener">
           <span>Amazon</span>
         </a>
         <button class="item-del" title="削除">🗑️</button>
@@ -831,11 +850,6 @@ function showAddItemDialog(catId) {
 
   document.getElementById('dlgTitle').textContent = T.dlgItemTitle;
   document.getElementById('dlgBody').innerHTML =
-    '<div style="margin-bottom:14px">' +
-      '<button id="btnAmzSearch" style="width:100%;padding:10px;border:1px solid #c8a96e;border-radius:10px;background:#2a2218;color:#c8a96e;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">' +
-        '🔍 Amazonで検索して確認' +
-      '</button>' +
-    '</div>' +
     '<div class="dlg-field">' +
       '<label>' + T.dlgMakerLabel + '</label>' +
       '<input id="newMaker" placeholder="' + T.dlgMakerPh + '">' +
@@ -843,6 +857,10 @@ function showAddItemDialog(catId) {
     '<div class="dlg-field">' +
       '<label>' + T.dlgModelLabel + '</label>' +
       '<input id="newModel" placeholder="' + T.dlgModelPh + '">' +
+    '</div>' +
+    '<div class="dlg-field">' +
+      '<label style="display:block;margin-bottom:4px;font-size:12px;color:#888;font-weight:600">Amazon URL（省略可）</label>' +
+      '<input id="newAmzUrl" placeholder="商品ページのURLを貼り付け" style="font-size:11px">' +
     '</div>' +
     '<div class="dlg-field">' +
       '<label style="display:block;margin-bottom:6px;font-size:12px;color:#888;font-weight:600">機材写真（省略可）</label>' +
@@ -854,14 +872,6 @@ function showAddItemDialog(catId) {
         '</label>' +
       '</div>' +
     '</div>';
-
-  // Amazon検索ボタン
-  document.getElementById('btnAmzSearch').onclick = () => {
-    const maker = document.getElementById('newMaker').value.trim();
-    const model = document.getElementById('newModel').value.trim();
-    const query = (maker + ' ' + model).trim() || (catObj ? catObj.label : '');
-    window.open(amazonUrl(query), '_blank');
-  };
 
   // フォーカス
   const makerEl = document.getElementById('newMaker');
@@ -890,7 +900,9 @@ function showAddItemDialog(catId) {
     const model = document.getElementById('newModel').value.trim();
     if (!model) { alert(T.alertModel); return false; }
 
+    const rawAmzUrl = document.getElementById('newAmzUrl').value.trim();
     const newItem = { maker, model };
+    if (rawAmzUrl) newItem.amzUrl = appendAmazonTag(rawAmzUrl);
     if (newItemImgData) newItem.img = newItemImgData;
 
     // 画像キー：catId + maker + model
