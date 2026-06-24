@@ -112,7 +112,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
 .bg-color-row{display:flex;align-items:center;gap:10px;padding:8px 0 10px;border-top:1px solid #2a2a2a}
 .bg-color-row label{font-size:12px;color:#888;flex:1}
 .bg-sheet-close{width:100%;padding:12px;border:1px solid #333;border-radius:12px;background:transparent;color:#888;font-size:14px;cursor:pointer;margin-bottom:4px}
-/* 背景トグル */
+/* 背景選択ボタン */
+.bg-sel-btn{padding:4px 7px;border:none;border-radius:7px;font-size:11px;font-weight:600;color:#666;background:transparent;cursor:pointer;white-space:nowrap;-webkit-tap-highlight-color:transparent;transition:background .12s,color .12s}
+.bg-sel-btn.active{background:#c8a96e;color:#0f0f0f}
+/* 背景トグル（旧・互換用に残す） */
 .bg-toggle input[type=checkbox]{display:none}
 .bg-toggle-btn{display:inline-block;padding:5px 10px;border:1px solid #333;border-radius:8px;font-size:12px;font-weight:600;color:#888;background:#222;cursor:pointer;transition:background .15s,color .15s;user-select:none}
 .bg-toggle input:checked+.bg-toggle-btn{background:#c8a96e;color:#0f0f0f;border-color:#c8a96e}
@@ -205,7 +208,18 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
       <span id="lightingTitle">ライティング図</span>
       <div style="display:flex;align-items:center;gap:6px">
         <button class="bg-toggle-btn" id="sunToggleBtn" onclick="toggleSun()" title="太陽">☀️ 太陽</button>
-        <button class="bg-toggle-btn" id="bgToggleBtn" onclick="toggleBg()" title="背景">🖼 背景</button>
+        <div style="display:flex;align-items:center;gap:4px;background:#1a1a1a;border:1px solid #333;border-radius:10px;padding:3px">
+          <button class="bg-sel-btn active" id="bgBtn_none"    onclick="setBgType('none')"    >なし</button>
+          <button class="bg-sel-btn"        id="bgBtn_paper"   onclick="setBgType('paper')"   >背景紙</button>
+          <button class="bg-sel-btn"        id="bgBtn_table"   onclick="setBgType('table')"   >テーブル</button>
+          <button class="bg-sel-btn"        id="bgBtn_mountain"onclick="setBgType('mountain')">山脈</button>
+        </div>
+        <div id="bgColorRow" style="display:none;align-items:center;gap:6px">
+          <span style="font-size:11px;color:#888">色</span>
+          <input type="color" id="bgColor" value="#ffffff"
+            style="width:28px;height:28px;border:1px solid #444;border-radius:6px;cursor:pointer;padding:2px;background:none"
+            oninput="saveSession();renderBg()">
+        </div>
         <a class="btn-builder" href="builder.html" style="width:auto;padding:6px 14px;font-size:13px"><span id="editBtnText">＋ 機材編集</span></a>
       </div>
     </div>
@@ -399,8 +413,7 @@ function heightToColor(h){
 // ══════════════════════════════════════
 const LS_KEY='lightingRecipeLights';
 let lights=[],selected=null,selectedDirect=null;
-let bgOn=false;
-let bgType='paper'; // 'paper' | 'table' | 'mountain' | 'none' (=OFF)
+let bgType='none'; // 'none'|'paper'|'table'|'mountain'
 let sunOn=false;
 let sunPos={x:20,y:15};
 let sunBeam=60;   // 配光%
@@ -410,7 +423,7 @@ let selectedSun=false;
 function loadLights(){
   try{
     const s=JSON.parse(localStorage.getItem(LS_KEY));
-    if(Array.isArray(s)&&s.length===5)return s;
+    if(Array.isArray(s)&&s.length>0)return s;
   }catch(e){}
   return Array.from({length:5},(_,i)=>({id:['A','B','C','D','E'][i],items:[],height:HEIGHT_DEFAULT,x:20+i*15,y:30,beam:40,angle:270,output:null}));
 }
@@ -448,7 +461,6 @@ function saveSession(){
     const s={
       loc:document.getElementById('locInput').value,
       memo:getCanvasMemo(),
-      bgOn:bgOn,
       bgType:bgType,
       bgColor:document.getElementById('bgColor')?.value||'#ffffff',
       sunOn:sunOn,
@@ -509,10 +521,7 @@ function restoreSession(){
     if(s.memo)   setCanvasMemo(s.memo);
     if(s.bgColor)document.getElementById('bgColor').value=s.bgColor;
     if(s.bgType) bgType=s.bgType;
-    if(s.bgOn){
-      bgOn=true;
-      document.getElementById('bgToggleBtn').classList.add('sun-on');
-    }
+    updateBgSelBtns();
     if(s.sunOn){
       sunOn=true;
       document.getElementById('sunToggleBtn').classList.add('sun-on');
@@ -737,8 +746,8 @@ function resetAll(){
   setCanvasMemo('');
 
   // 背景
-  bgOn=false; bgType='paper';
-  document.getElementById('bgToggleBtn').classList.remove('sun-on');
+  bgType='none';
+  updateBgSelBtns();
   const bgColorEl=document.getElementById('bgColor');
   if(bgColorEl) bgColorEl.value='#ffffff';
 
@@ -840,77 +849,29 @@ function makeDraggableSun(node,canvas){
 // ══════════════════════════════════════
 //  背景
 // ══════════════════════════════════════
-function toggleBg(){
-  bgOn=!bgOn;
-  document.getElementById('bgToggleBtn').classList.toggle('sun-on',bgOn);
+function setBgType(type){
+  bgType=type;
+  updateBgSelBtns();
+  // カラー行の表示：背景紙・テーブルのみ
+  const colorRow=document.getElementById('bgColorRow');
+  if(colorRow) colorRow.style.display=(type==='paper'||type==='table')?'flex':'none';
   saveSession();
-  if(bgOn){ openBgSheet(); }
   renderBg();
 }
 
-// 背景タイプ定義
+function updateBgSelBtns(){
+  ['none','paper','table','mountain'].forEach(t=>{
+    const btn=document.getElementById('bgBtn_'+t);
+    if(btn) btn.classList.toggle('active',bgType===t);
+  });
+}
+
+// 背景タイプ定義（プレビュー用）
 const BG_TYPES=[
   {id:'paper',    label:'背景紙',   emoji:'🟥'},
   {id:'table',    label:'テーブル', emoji:'🪑'},
   {id:'mountain', label:'山脈',     emoji:'🏔'},
 ];
-
-function openBgSheet(){
-  const opts=document.getElementById('bgOptions');
-  opts.innerHTML='';
-  BG_TYPES.forEach(bt=>{
-    const div=document.createElement('div');
-    div.className='bg-opt'+(bgType===bt.id?' active':'');
-    // ミニプレビューSVG
-    div.innerHTML=`
-      <div class="bg-opt-preview">${makeBgPreviewSvg(bt.id)}</div>
-      <div class="bg-opt-label">${bt.label}</div>`;
-    div.onclick=()=>{
-      bgType=bt.id;
-      document.querySelectorAll('.bg-opt').forEach(el=>el.classList.remove('active'));
-      div.classList.add('active');
-      document.getElementById('bgColorRow').style.display=(bgType==='paper'||bgType==='table')?'flex':'none';
-      saveSession(); renderBg();
-    };
-    opts.appendChild(div);
-  });
-  document.getElementById('bgColorRow').style.display=(bgType==='paper'||bgType==='table')?'flex':'none';
-  document.getElementById('bgSheet').classList.add('open');
-}
-
-function closeBgSheet(){
-  document.getElementById('bgSheet').classList.remove('open');
-}
-
-// ミニプレビュー用SVG（60×60想定）
-function makeBgPreviewSvg(type){
-  const W=60,H=60;
-  if(type==='paper'){
-    const color=document.getElementById('bgColor')?.value||'#ffffff';
-    return `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">
-      <rect width="${W}" height="${H}" fill="#ddd"/>
-      <rect x="12" y="4" width="36" height="40" rx="2" fill="${color}" stroke="rgba(0,0,0,0.15)" stroke-width="1"/>
-      <path d="M12,36 Q12,44 20,44 L40,44 Q48,44 48,36 L48,44" fill="none" stroke="rgba(0,0,0,0.1)" stroke-width="1"/>
-    </svg>`;
-  }
-  if(type==='table'){
-    const color=document.getElementById('bgColor')?.value||'#ffffff';
-    return `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">
-      <rect width="${W}" height="${H}" fill="#e8e8e8"/>
-      <polygon points="14,42 46,42 52,54 8,54" fill="${color}" stroke="rgba(0,0,0,0.18)" stroke-width="1"/>
-      <polygon points="14,42 46,42 46,44 14,44" fill="rgba(0,0,0,0.08)"/>
-    </svg>`;
-  }
-  if(type==='mountain'){
-    return `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">
-      <rect width="${W}" height="${H}" fill="#ddeef8"/>
-      <polygon points="0,40 18,18 34,30 50,14 60,24 60,40" fill="#c8d8e8" opacity="0.8"/>
-      <polygon points="0,40 12,26 26,34 40,22 54,30 60,26 60,40" fill="#a8c4a0" opacity="0.7"/>
-      <rect x="0" y="40" width="60" height="20" fill="#c8dab8" opacity="0.6"/>
-    </svg>`;
-  }
-  return '';
-}
 
 function renderBg(){
   const canvas=document.getElementById('canvas');
@@ -920,7 +881,7 @@ function renderBg(){
   svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
   const g=document.getElementById('bgGroup');
   g.innerHTML='';
-  if(!bgOn) return;
+  if(bgType==='none') return;
 
   const ns='http://www.w3.org/2000/svg';
 
@@ -1568,7 +1529,11 @@ requestAnimationFrame(()=>{renderCanvas();renderPanel();});
 let _firstPageshow=true;
 window.addEventListener('pageshow',(e)=>{
   if(_firstPageshow){_firstPageshow=false;return;}
-  lights=loadLights();
+  // Builder から戻った場合は lights を再読み込みして再描画
+  const savedLights=loadLights();
+  if(JSON.stringify(savedLights)!==JSON.stringify(lights)){
+    lights=savedLights;
+  }
   restoreSession();
   renderCanvas();
   renderPanel();
@@ -1600,6 +1565,17 @@ function openRecipeDB(){
 function saveRecipeDialog(){
   const input=document.getElementById('recipeTitleInput');
   input.value=localStorage.getItem('lr_recipe_title')||'';
+  const overwriteRow=document.getElementById('saveOverwriteRow');
+  const overwriteTitle=document.getElementById('saveOverwriteTitle');
+  const btnOver=document.getElementById('btnSaveOverwrite');
+  if(currentRecipeId){
+    if(overwriteTitle) overwriteTitle.textContent=localStorage.getItem('lr_recipe_title')||'現在のレシピ';
+    if(overwriteRow)   overwriteRow.style.display='flex';
+    if(btnOver)        btnOver.style.display='block';
+  }else{
+    if(overwriteRow)   overwriteRow.style.display='none';
+    if(btnOver)        btnOver.style.display='none';
+  }
   document.getElementById('saveDialog').classList.add('open');
   setTimeout(()=>input.focus(),100);
 }
@@ -1607,9 +1583,10 @@ function closeSaveDialog(){
   document.getElementById('saveDialog').classList.remove('open');
 }
 
-async function doSaveRecipe(){
+async function doSaveRecipe(forceNew=false){
   const title=document.getElementById('recipeTitleInput').value.trim()||'無題のレシピ';
-  const id=currentRecipeId||('r_'+Date.now());
+  // forceNew=true または currentRecipeId なし → 新規ID
+  const id=(forceNew||!currentRecipeId)?('r_'+Date.now()):currentRecipeId;
   const now=new Date().toISOString();
 
   let photoData='';
@@ -1631,7 +1608,7 @@ async function doSaveRecipe(){
     session:{
       loc:document.getElementById('locInput')?.value||'',
       memo:getCanvasMemo(),
-      bgOn, bgType, bgColor:document.getElementById('bgColor')?.value||'#ffffff',
+      bgType, bgColor:document.getElementById('bgColor')?.value||'#ffffff',
       sunOn, sunPos:{...sunPos}, sunBeam, sunAngle,
       exDate:document.getElementById('exDate')?.textContent||'',
       exCamera:document.getElementById('exCamera')?.textContent||'',
@@ -1684,8 +1661,8 @@ async function loadRecipeFromURL(){
     const s=recipe.session||{};
     if(s.loc) document.getElementById('locInput').value=s.loc;
     if(s.memo) setCanvasMemo(s.memo);
-    if(s.bgOn!==undefined){bgOn=s.bgOn;document.getElementById('bgToggleBtn').classList.toggle('sun-on',bgOn);}
-    if(s.bgType) bgType=s.bgType;
+    if(s.bgType){ bgType=s.bgType; updateBgSelBtns(); }
+    else if(s.bgOn!==undefined){ bgType=s.bgOn?(s.bgType||'paper'):'none'; updateBgSelBtns(); }
     if(s.bgColor) document.getElementById('bgColor').value=s.bgColor;
     if(s.sunOn!==undefined){sunOn=s.sunOn;document.getElementById('sunToggleBtn').classList.toggle('sun-on',sunOn);}
     if(s.sunPos)  sunPos={...s.sunPos};
@@ -2115,25 +2092,18 @@ function roundRect(ctx,x,y,w,h,r){
   <div class="save-dlg">
     <h3>💾 レシピを保存</h3>
     <input type="text" id="recipeTitleInput" placeholder="レシピのタイトル（例：ポートレート撮影）">
-    <div class="save-dlg-btns">
+    <!-- 上書き確認行（currentRecipeIdあり時のみ表示） -->
+    <div id="saveOverwriteRow" style="display:none;align-items:center;gap:8px;background:#1e1610;border:1px solid #3a2e18;border-radius:8px;padding:8px 10px;margin-bottom:12px;font-size:12px;color:#c8a96e">
+      <span>⚠️</span>
+      <span>「<span id="saveOverwriteTitle"></span>」を上書きします</span>
+    </div>
+    <div class="save-dlg-btns" style="flex-direction:column;gap:8px">
+      <!-- 上書き保存（currentRecipeIdあり時のみ有効） -->
+      <button class="btn-save-ok" id="btnSaveOverwrite" onclick="doSaveRecipe(false)" style="display:none">↩ 上書き保存</button>
+      <!-- 新規保存（常に表示） -->
+      <button class="btn-save-ok" id="btnSaveNew" onclick="doSaveRecipe(true)">✨ 新規保存</button>
       <button class="btn-save-cancel" onclick="closeSaveDialog()">キャンセル</button>
-      <button class="btn-save-ok" onclick="doSaveRecipe()">保存</button>
     </div>
-  </div>
-</div>
-
-<!-- 背景選択シート -->
-<div id="bgSheet">
-  <div class="bg-sheet-inner">
-    <div class="bg-sheet-title">背景を選択</div>
-    <div class="bg-options" id="bgOptions"></div>
-    <div class="bg-color-row" id="bgColorRow" style="display:none">
-      <label>🎨 背景紙の色</label>
-      <input type="color" id="bgColor" value="#ffffff"
-        style="width:36px;height:36px;border:1px solid #444;border-radius:8px;cursor:pointer;padding:2px;background:none"
-        oninput="saveSession();renderBg()">
-    </div>
-    <button class="bg-sheet-close" onclick="closeBgSheet()">閉じる</button>
   </div>
 </div>
 
