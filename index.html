@@ -65,11 +65,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
 /* 出力ラベル */
 .ln-output{position:absolute;top:19px;left:50%;transform:translateX(-50%);font-size:9px;font-weight:700;color:#c8a96e;white-space:nowrap;line-height:1}
 /* 直接配置アイテム（レフ板・Flag等） */
-.direct-item{position:absolute;display:flex;flex-direction:column;align-items:center;cursor:grab;user-select:none;touch-action:none;gap:2px}
+.direct-item{position:absolute;display:flex;flex-direction:column;align-items:center;cursor:grab;user-select:none;touch-action:none;gap:2px;transition:filter .15s}
+.direct-item.selected{filter:drop-shadow(0 0 5px rgba(200,169,110,.9))}
 .direct-item img{width:36px;height:36px;object-fit:contain}
 .direct-item-name{font-size:9px;color:#555;white-space:nowrap;max-width:70px;overflow:hidden;text-overflow:ellipsis;text-align:center}
 .direct-item-del{position:absolute;top:-6px;right:-6px;width:16px;height:16px;background:#c0392b;color:#fff;border:none;border-radius:50%;font-size:9px;line-height:16px;text-align:center;cursor:pointer;display:none;padding:0}
-.direct-item:active .direct-item-del,.direct-item .direct-item-del{display:block}
+.direct-item.selected .direct-item-del{display:block}
+.di-height-ring{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin-bottom:1px}
 /* キャンバス内メモ（直接入力） */
 .canvas-memo{position:absolute;right:8px;bottom:8px;min-width:80px;max-width:50%;min-height:28px;background:rgba(0,0,0,0.55);color:#fff;font-size:11px;line-height:1.5;padding:6px 9px;border-radius:7px;white-space:pre-wrap;word-break:break-all;backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);outline:none;cursor:text;-webkit-user-select:text;user-select:text}
 .canvas-memo:empty:before{content:attr(data-placeholder);color:rgba(255,255,255,0.4);pointer-events:none}
@@ -382,7 +384,7 @@ function heightToColor(h){
 //  localStorage
 // ══════════════════════════════════════
 const LS_KEY='lightingRecipeLights';
-let lights=[],selected=null;
+let lights=[],selected=null,selectedDirect=null;
 let bgOn=false;
 
 function loadLights(){
@@ -919,7 +921,7 @@ function renderCanvas(){
       buildNodeHTML(l);
 
     node.dataset.lightOffsetY = -(145/2 - 10);
-    node.addEventListener('click',e=>{e.stopPropagation();selected=(selected===i)?null:i;renderAll();renderPanel();});
+    node.addEventListener('click',e=>{e.stopPropagation();selectedDirect=null;selected=(selected===i)?null:i;renderAll();renderPanel();});
     makeDraggable(node,canvas,i);
     canvas.appendChild(node);
   });
@@ -951,18 +953,34 @@ function renderDirectItems(canvas){
   const items=loadDirectItems();
   items.forEach((di,idx)=>{
     const el=document.createElement('div');
-    el.className='direct-item';
+    el.className='direct-item'+(selectedDirect===idx?' selected':'');
     el.style.left=(di.x??50)+'%';
     el.style.top=(di.y??50)+'%';
     el.style.transform='translate(-50%,-50%)';
 
+    const h=di.height??HEIGHT_DEFAULT;
+    const col=heightToColor(h);
+    const borderW=Math.round(1+(h/HEIGHT_MAX)*3)+1;
+    const flipped=di.flipped||false;
+    const flipStyle=flipped?'transform:scaleX(-1);':'';
+
     const imgHtml=di.imgPath
-      ?`<img src="${di.imgPath}" onerror="this.style.display='none'">`
+      ?`<img src="${di.imgPath}" style="${flipStyle}" onerror="this.style.display='none'">`
       :'';
     el.innerHTML=
       `<button class="direct-item-del" onclick="event.stopPropagation();removeDirectItem(${idx})">×</button>`+
-      imgHtml+
+      `<div class="di-height-ring" style="border:${borderW}px solid ${col};background:radial-gradient(circle,#fff 40%,${col}44 100%)">${imgHtml}</div>`+
       `<span class="direct-item-name">${di.name}</span>`;
+
+    // クリック → 選択してパネル表示
+    el.addEventListener('click',e=>{
+      if(e.target.closest('.direct-item-del'))return;
+      e.stopPropagation();
+      selected=null;
+      selectedDirect=(selectedDirect===idx)?null:idx;
+      renderCanvas();
+      renderPanel();
+    });
 
     makeDraggableDirect(el,canvas,idx);
     canvas.appendChild(el);
@@ -1025,13 +1043,52 @@ function makeDraggable(node,canvas,idx){
   },{passive:true});
 }
 
-document.getElementById('canvas').addEventListener('click',()=>{selected=null;renderCanvas();renderPanel();});
+document.getElementById('canvas').addEventListener('click',()=>{selected=null;selectedDirect=null;renderCanvas();renderPanel();});
 
 // ══════════════════════════════════════
 //  パネル
 // ══════════════════════════════════════
 function renderPanel(){
   const panel=document.getElementById('panel');
+  // 直接配置アイテムが選択されている場合
+  if(selectedDirect!==null && selected===null){
+    const items=loadDirectItems();
+    const di=items[selectedDirect];
+    if(!di){panel.innerHTML='';updateBeamPanel();return;}
+    const h=di.height??HEIGHT_DEFAULT;
+    const color=heightToColor(h);
+    const flipped=di.flipped||false;
+    panel.innerHTML=`
+      <div class="panel-card" style="border-color:${color}">
+        <div class="panel-title">${di.name}</div>
+        <div class="slider-row">
+          <label>${T.heightLabel}</label>
+          <input type="range" id="hSliderDi" min="${HEIGHT_MIN}" max="${HEIGHT_MAX}" value="${h}" step="5"
+            style="background:linear-gradient(to right,rgb(180,220,255) 0%,rgb(80,160,240) 50%,rgb(10,60,180) 100%)">
+          <span style="min-width:36px;display:inline-block"></span>
+        </div>
+        <button class="btn-flip${flipped?' flipped':''}" id="btnFlipDi">⇆ 反転</button>
+      </div>`;
+    document.getElementById('hSliderDi').addEventListener('input',e=>{
+      const items=loadDirectItems();
+      items[selectedDirect].height=Number(e.target.value);
+      saveDirectItems(items);
+      const col=heightToColor(items[selectedDirect].height);
+      panel.querySelector('.panel-card').style.borderColor=col;
+      renderCanvas();
+    });
+    document.getElementById('btnFlipDi').addEventListener('click',e=>{
+      e.stopPropagation();
+      const items=loadDirectItems();
+      items[selectedDirect].flipped=!items[selectedDirect].flipped;
+      saveDirectItems(items);
+      renderCanvas();
+      const btn=document.getElementById('btnFlipDi');
+      if(btn) btn.classList.toggle('flipped',items[selectedDirect].flipped);
+    });
+    updateBeamPanel();
+    return;
+  }
   if(selected===null){panel.innerHTML='';updateBeamPanel();return;}
   const l=lights[selected],h=l.height??HEIGHT_DEFAULT,color=heightToColor(h);
   const strobe=isStrobe(l.items);
