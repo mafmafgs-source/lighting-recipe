@@ -908,9 +908,9 @@ function updateBgPreviews(){
   const pm=document.getElementById('bsPreview_mountain');
   if(pm) pm.innerHTML=`<svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
     <rect width="60" height="60" fill="#daeef8"/>
-    <polygon points="0,38 10,20 22,30 34,14 46,26 54,18 60,24 60,38" fill="#c4d4e4" opacity="0.75"/>
-    <polygon points="0,38 8,28 18,34 30,24 42,32 52,26 60,30 60,38" fill="#a8c0a8" opacity="0.8"/>
-    <rect x="0" y="38" width="60" height="22" fill="#c8dab8" opacity="0.65"/>
+    <polygon points="0,29 10,14 22,22 34,8 46,18 54,12 60,16 60,29" fill="#c4d4e4" opacity="0.75"/>
+    <polygon points="0,29 8,20 18,26 30,16 42,24 52,18 60,22 60,29" fill="#a8c0a8" opacity="0.8"/>
+    <rect x="0" y="29" width="60" height="31" fill="#c8dab8" opacity="0.65"/>
   </svg>`;
 }
 
@@ -1032,7 +1032,7 @@ function renderBg(){
 
   } else if(bgType==='mountain'){
     // ── 山脈：地平線=人物下線(H*0.58)に合わせ、全体を淡く ──
-    const horizonY=H*0.58; // .subject top:42% + 人物高さ分
+    const horizonY=H*0.48; // 人物(top:42%, font-size:28px)の底面に合わせる
 
     const defs=document.createElementNS(ns,'defs');
 
