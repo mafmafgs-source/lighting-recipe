@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
 <title>Lighting Recipe v1.7</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://cdn.jsdelivr.net/npm/exifr/dist/full.umd.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -44,6 +45,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
 .sug-name{font-size:12px;font-weight:600;color:#e8e8e8;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sug-addr{font-size:10px;color:#666;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
 .loc-powered{text-align:right;padding:3px 8px;font-size:9px;color:#444;border-top:1px solid #2a2a2a;background:#161616}
+/* ロケーション地図プレビュー */
+.loc-map-wrap{margin-top:6px;border-radius:8px;overflow:hidden;display:none;border:1px solid #2e2e2e}
+.loc-map-wrap.show{display:block}
+#locMap{width:100%;height:120px;background:#1a1a1a}
+.loc-map-credit{font-size:9px;color:#444;text-align:right;padding:2px 6px;background:#111}
 /* EXIF */
 .exif-row{display:flex;margin-top:8px;border:1px solid #2e2e2e;border-radius:8px;overflow:hidden;background:#141414}
 .exif-row .cell{flex:1;padding:6px 4px;font-size:11px;text-align:center;border-right:1px solid #2e2e2e;color:#e8e8e8}
@@ -189,11 +195,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
             <input id="locInput" placeholder="場所を検索" autocomplete="off" autocorrect="off" autocapitalize="off">
             <button class="loc-clear" id="locClear" type="button">✕</button>
           </div>
-          <div class="loc-hint" id="locHint">APIキー設定後<br>候補が表示されます</div>
+          <div class="loc-hint" id="locHint"></div>
           <div class="loc-suggestions" id="locSuggestions">
             <div class="sug-list" id="sugList"></div>
-            <div class="loc-powered">Powered by Google</div>
+            <div class="loc-powered">© <a href="https://www.openstreetmap.org/copyright" target="_blank" style="color:#555;text-decoration:none">OpenStreetMap</a> contributors</div>
           </div>
+        </div>
+        <!-- 地図プレビュー -->
+        <div class="loc-map-wrap" id="locMapWrap">
+          <div id="locMap"></div>
+          <div class="loc-map-credit">© OpenStreetMap contributors</div>
         </div>
       </div>
     </div>
@@ -254,7 +265,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
 //  i18n
 // ══════════════════════════════════════
 const I18N={
-  ja:{photoHint:'📷 タップして写真を追加',locLabel:'📍 ロケーション',locPlaceholder:'場所を検索',memoLabel:'📝 メモ',memoPlaceholder:'撮影メモ',exCamera:'カメラ',exLens:'レンズ',exDate:'撮影日',exF:'F値',exSS:'SS',exISO:'ISO',exFL:'焦点距離',lightingTitle:'ライティング図',bgBtn:'背景',editBtn:'＋ 機材編集',legendHigh:'高い',legendLow:'低い',beamTitle:'💡 光パーツ（選択中のライト）',beamLabel:'配光',angleLabel:'角度',beamHint:'ライトを選択すると光パーツが表示されます',builderBtn:'機材を設定する (Builder)',heightLabel:'高さ',outputLabel:'出力',noItems:'機材なし（Builderで追加）',panelTitle:(l)=>`${l} の設定`,locHint:'APIキー設定後<br>候補が表示されます'},
+  ja:{photoHint:'📷 タップして写真を追加',locLabel:'📍 ロケーション',locPlaceholder:'場所を検索',memoLabel:'📝 メモ',memoPlaceholder:'撮影メモ',exCamera:'カメラ',exLens:'レンズ',exDate:'撮影日',exF:'F値',exSS:'SS',exISO:'ISO',exFL:'焦点距離',lightingTitle:'ライティング図',bgBtn:'背景',editBtn:'＋ 機材編集',legendHigh:'高い',legendLow:'低い',beamTitle:'💡 光パーツ（選択中のライト）',beamLabel:'配光',angleLabel:'角度',beamHint:'ライトを選択すると光パーツが表示されます',builderBtn:'機材を設定する (Builder)',heightLabel:'高さ',outputLabel:'出力',noItems:'機材なし（Builderで追加）',panelTitle:(l)=>`${l} の設定`,locHint:''},
   en:{photoHint:'📷 Tap to add photo',locLabel:'📍 Location',locPlaceholder:'Search location',memoLabel:'📝 Memo',memoPlaceholder:'Shooting notes',exCamera:'Camera',exLens:'Lens',exDate:'Date',exF:'F',exSS:'SS',exISO:'ISO',exFL:'FL',lightingTitle:'Lighting Diagram',bgBtn:'BG',editBtn:'＋ Edit Gear',legendHigh:'High',legendLow:'Low',beamTitle:'💡 Light Beam',beamLabel:'Spread',angleLabel:'Angle',beamHint:'Select a light to edit beam',builderBtn:'Set up gear (Builder)',heightLabel:'Height',outputLabel:'Output',noItems:'No gear (add in Builder)',panelTitle:(l)=>`${l} Settings`,locHint:'Suggestions appear<br>after API key is set'},
   zh:{photoHint:'📷 点击添加照片',locLabel:'📍 拍摄地点',locPlaceholder:'搜索地点',memoLabel:'📝 备注',memoPlaceholder:'拍摄备注',exCamera:'相机',exLens:'镜头',exDate:'日期',exF:'光圈',exSS:'快门',exISO:'ISO',exFL:'焦距',lightingTitle:'布光图',bgBtn:'背景',editBtn:'＋ 编辑器材',legendHigh:'高',legendLow:'低',beamTitle:'💡 光束',beamLabel:'光束角',angleLabel:'角度',beamHint:'选择灯光以编辑光束',builderBtn:'设置器材 (Builder)',heightLabel:'高度',outputLabel:'输出',noItems:'无器材（在Builder中添加）',panelTitle:(l)=>`${l} 设置`,locHint:'设置API密钥后<br>将显示候选地点'},
   ko:{photoHint:'📷 탭하여 사진 추가',locLabel:'📍 촬영 장소',locPlaceholder:'장소 검색',memoLabel:'📝 메모',memoPlaceholder:'촬영 메모',exCamera:'카메라',exLens:'렌즈',exDate:'날짜',exF:'조리개',exSS:'셔터',exISO:'ISO',exFL:'초점거리',lightingTitle:'조명 다이어그램',bgBtn:'배경',editBtn:'＋ 장비 편집',legendHigh:'높음',legendLow:'낮음',beamTitle:'💡 광원',beamLabel:'광각',angleLabel:'각도',beamHint:'조명을 선택하면 광원이 표시됩니다',builderBtn:'장비 설정 (Builder)',heightLabel:'높이',outputLabel:'출력',noItems:'장비 없음 (Builder에서 추가)',panelTitle:(l)=>`${l} 설정`,locHint:'API 키 설정 후<br>후보가 표시됩니다'},
@@ -296,8 +307,10 @@ const locInput=document.getElementById('locInput');
 const locClear=document.getElementById('locClear');
 const locSuggestions=document.getElementById('locSuggestions');
 const sugList=document.getElementById('sugList');
-const DUMMY=[{name:'ハコアム東京',addr:'東京都渋谷区'},{name:'スタジオBMB新宿',addr:'東京都新宿区'},{name:'Photo Studio HAL',addr:'東京都港区'}];
 let debounceTimer=null;
+let _leafletMap=null;
+let _leafletMarker=null;
+let _locLat=null,_locLon=null;
 
 locInput.addEventListener('input',()=>{
   const q=locInput.value.trim();
@@ -305,26 +318,64 @@ locInput.addEventListener('input',()=>{
   clearTimeout(debounceTimer);
   saveSession();
   if(!q){closeSuggestions();return;}
-  debounceTimer=setTimeout(()=>fetchSuggestions(q),300);
+  if(q.length<2) return;
+  debounceTimer=setTimeout(()=>fetchSuggestions(q),400);
 });
-// Safari対応：touchstartでもサジェスト起動
 locInput.addEventListener('focus',()=>{
-  if(locInput.value.trim())fetchSuggestions(locInput.value.trim());
+  if(locInput.value.trim()) fetchSuggestions(locInput.value.trim());
 });
 locInput.addEventListener('touchstart',()=>{
   setTimeout(()=>{if(locInput.value.trim())fetchSuggestions(locInput.value.trim());},100);
 },{passive:true});
-locClear.addEventListener('click',()=>{locInput.value='';locClear.classList.remove('visible');closeSuggestions();saveSession();});
+locClear.addEventListener('click',()=>{
+  locInput.value='';
+  locClear.classList.remove('visible');
+  closeSuggestions();
+  hideMap();
+  _locLat=null; _locLon=null;
+  saveSession();
+});
 
+// Nominatim（OpenStreetMap）で場所検索
 async function fetchSuggestions(q){
-  const items=DUMMY.filter(s=>s.name.includes(q)||s.addr.includes(q));
-  showSuggestions(items.length?items:DUMMY);
+  try{
+    const lang=navigator.language||'ja';
+    const url=`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&addressdetails=1&limit=5&accept-language=${lang}`;
+    const res=await fetch(url,{headers:{'Accept-Language':lang}});
+    if(!res.ok) return;
+    const data=await res.json();
+    if(!data.length){closeSuggestions();return;}
+    showSuggestions(data.map(d=>({
+      name: d.namedetails?.name || d.name || d.display_name.split(',')[0],
+      addr: d.display_name,
+      lat:  parseFloat(d.lat),
+      lon:  parseFloat(d.lon),
+    })));
+  }catch(e){
+    console.warn('Nominatim error:',e);
+  }
 }
+
 function showSuggestions(items){
   if(!items.length){closeSuggestions();return;}
-  sugList.innerHTML=items.map(s=>`<div class="loc-sug-item" data-name="${s.name}"><span class="sug-pin">📍</span><span class="sug-name">${s.name}</span><span class="sug-addr">${s.addr}</span></div>`).join('');
+  sugList.innerHTML=items.map((s,i)=>`
+    <div class="loc-sug-item" data-idx="${i}" data-name="${s.name.replace(/"/g,'&quot;')}" data-addr="${s.addr.replace(/"/g,'&quot;')}" data-lat="${s.lat}" data-lon="${s.lon}">
+      <span class="sug-pin">📍</span>
+      <span class="sug-name">${s.name}</span>
+      <span class="sug-addr">${s.addr}</span>
+    </div>`).join('');
   sugList.querySelectorAll('.loc-sug-item').forEach(el=>{
-    const sel=()=>{locInput.value=el.dataset.name;locClear.classList.add('visible');closeSuggestions();saveSession();};
+    const sel=()=>{
+      const name=el.dataset.name;
+      const lat=parseFloat(el.dataset.lat);
+      const lon=parseFloat(el.dataset.lon);
+      locInput.value=name;
+      locClear.classList.add('visible');
+      _locLat=lat; _locLon=lon;
+      closeSuggestions();
+      showMap(lat,lon,name);
+      saveSession();
+    };
     el.addEventListener('mousedown',e=>{e.preventDefault();sel();});
     el.addEventListener('touchstart',()=>setTimeout(sel,50),{passive:true});
   });
@@ -338,6 +389,43 @@ document.addEventListener('touchstart',e=>{
 document.addEventListener('click',e=>{
   if(!locInput.contains(e.target)&&!locSuggestions.contains(e.target))closeSuggestions();
 });
+
+// Leaflet 地図表示
+function showMap(lat,lon,label){
+  const wrap=document.getElementById('locMapWrap');
+  wrap.classList.add('show');
+  // Leaflet の遅延ロード
+  if(!window.L){
+    const s=document.createElement('script');
+    s.src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+    s.onload=()=>_initMap(lat,lon,label);
+    document.head.appendChild(s);
+  }else{
+    _initMap(lat,lon,label);
+  }
+}
+function _initMap(lat,lon,label){
+  const mapEl=document.getElementById('locMap');
+  if(_leafletMap){
+    _leafletMap.setView([lat,lon],14);
+    if(_leafletMarker) _leafletMarker.setLatLng([lat,lon]).bindPopup(label);
+    return;
+  }
+  _leafletMap=L.map(mapEl,{zoomControl:false,attributionControl:false}).setView([lat,lon],14);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+    maxZoom:19,
+  }).addTo(_leafletMap);
+  // シンプルなピンアイコン
+  const icon=L.divIcon({
+    className:'',
+    html:'<div style="font-size:22px;transform:translate(-50%,-100%);filter:drop-shadow(0 2px 3px rgba(0,0,0,.5))">📍</div>',
+    iconSize:[0,0],
+  });
+  _leafletMarker=L.marker([lat,lon],{icon}).addTo(_leafletMap).bindPopup(label).openPopup();
+}
+function hideMap(){
+  document.getElementById('locMapWrap').classList.remove('show');
+}
 
 // ── EXIF ──────────────────────────────
 document.getElementById('fileInput').addEventListener('change',function(e){
@@ -456,6 +544,8 @@ function saveSession(){
   try{
     const s={
       loc:document.getElementById('locInput').value,
+      locLat:_locLat,
+      locLon:_locLon,
       memo:getCanvasMemo(),
       bgType:bgType,
       bgColor:document.getElementById('bgColor')?.value||'#ffffff',
@@ -513,7 +603,15 @@ function restoreSession(){
   }catch(e){}
 
   if(s){
-    if(s.loc)    document.getElementById('locInput').value=s.loc;
+    if(s.loc){
+      document.getElementById('locInput').value=s.loc;
+      document.getElementById('locClear').classList.add('visible');
+    }
+    if(s.locLat&&s.locLon){
+      _locLat=s.locLat; _locLon=s.locLon;
+      // 地図復元は少し遅延（DOM確定後）
+      setTimeout(()=>showMap(s.locLat,s.locLon,s.loc||''),300);
+    }
     if(s.memo)   setCanvasMemo(s.memo);
     if(s.bgColor)document.getElementById('bgColor').value=s.bgColor;
     if(s.bgType!=null) bgType=s.bgType;
@@ -748,6 +846,7 @@ function resetAll(){
   // ロケ・メモ
   document.getElementById('locInput').value='';
   document.getElementById('locClear').classList.remove('visible');
+  hideMap(); _locLat=null; _locLon=null;
   setCanvasMemo('');
 
   // 背景
@@ -1697,6 +1796,8 @@ async function doSaveRecipe(forceNew){
     directItems:loadDirectItems(),
     session:{
       loc:document.getElementById('locInput')?.value||'',
+      locLat:_locLat,
+      locLon:_locLon,
       memo:getCanvasMemo(),
       bgType, bgColor:document.getElementById('bgColor')?.value||'#ffffff',
       sunOn, sunPos:{...sunPos}, sunBeam, sunAngle,
@@ -1765,7 +1866,14 @@ async function loadRecipeFromURL(){
 
     // ── セッション ──
     const s=recipe.session||{};
-    if(s.loc!=null) document.getElementById('locInput').value=s.loc;
+    if(s.loc!=null){
+      document.getElementById('locInput').value=s.loc;
+      if(s.loc) document.getElementById('locClear').classList.add('visible');
+    }
+    if(s.locLat&&s.locLon){
+      _locLat=s.locLat; _locLon=s.locLon;
+      setTimeout(()=>showMap(s.locLat,s.locLon,s.loc||''),300);
+    }
     if(s.memo)      setCanvasMemo(s.memo);
 
     // 背景（'none'が falsy で || を抜ける問題を修正）
