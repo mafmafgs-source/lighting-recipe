@@ -63,11 +63,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
 /* 直接配置アイテム（レフ板・Flag等） */
 .direct-item{position:absolute;display:flex;flex-direction:column;align-items:center;cursor:grab;user-select:none;touch-action:none;gap:2px;transition:filter .15s}
 .direct-item.selected{filter:drop-shadow(0 0 5px rgba(200,169,110,.9))}
-.direct-item img{width:36px;height:36px;object-fit:contain}
+.direct-item img{width:54px;height:54px;object-fit:contain}
 .direct-item-name{font-size:9px;color:#555;white-space:nowrap;max-width:70px;overflow:hidden;text-overflow:ellipsis;text-align:center}
 .direct-item-del{position:absolute;top:-6px;right:-6px;width:16px;height:16px;background:#c0392b;color:#fff;border:none;border-radius:50%;font-size:9px;line-height:16px;text-align:center;cursor:pointer;display:none;padding:0}
 .direct-item.selected .direct-item-del{display:block}
-.di-height-ring{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin-bottom:1px}
+.di-height-ring{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin-bottom:1px}
 /* キャンバス内メモ（直接入力） */
 .canvas-memo{position:absolute;right:8px;bottom:8px;min-width:80px;max-width:50%;min-height:28px;background:rgba(0,0,0,0.55);color:#fff;font-size:11px;line-height:1.5;padding:6px 9px;border-radius:7px;white-space:pre-wrap;word-break:break-all;backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);outline:none;cursor:text;-webkit-user-select:text;user-select:text}
 .canvas-memo:empty:before{content:attr(data-placeholder);color:rgba(255,255,255,0.4);pointer-events:none}
@@ -634,7 +634,7 @@ function buildNodeHTML(l){
         const ml=idx===0?-30:-18;
         html+=`<div style="margin-bottom:${mb}px;margin-left:${ml}px;">`;
         html+=src
-          ?`<img src="${src}" style="width:36px;height:36px;object-fit:contain;">`
+          ?`<img src="${src}" style="width:54px;height:54px;object-fit:contain;">`
           :`<span style="font-size:16px">⬡</span>`;
         html+='</div>';
       });
@@ -2004,7 +2004,7 @@ async function doExport(){
         for(const di of directItems){
           const diX=PADDING+(di.x??50)/100*DIAG_W;
           const diY=y+(di.y??50)/100*DIAG_H;
-          const RING=28*scaleX;
+          const RING=42*scaleX;
           const dh=di.height??HEIGHT_DEFAULT;
           const t=dh/HEIGHT_MAX;
           const rc=Math.round(180+(10-180)*t);
