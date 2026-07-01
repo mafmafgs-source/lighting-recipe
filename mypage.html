@@ -49,7 +49,24 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
 .tab-bar a .tab-icon{font-size:18px;line-height:1}
 .tab-spacer{height:70px}
 
-/* 削除確認 */
+/* 保存上限バナー */
+.storage-notice{background:#1a1a0a;border:1px solid #3a3010;border-radius:10px;padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;gap:10px}
+.storage-notice-text{flex:1;font-size:11px;color:#888;line-height:1.6}
+.storage-notice-text b{color:#c8a96e;font-size:12px}
+.storage-bar-wrap{height:4px;background:#2a2a2a;border-radius:2px;margin-top:5px;overflow:hidden}
+.storage-bar{height:100%;border-radius:2px;background:#c8a96e;transition:width .4s}
+.storage-bar.full{background:#c0392b}
+
+/* 上限超えダイアログ */
+.limit-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:700;align-items:center;justify-content:center;padding:20px}
+.limit-overlay.open{display:flex}
+.limit-dlg{background:#1e1e1e;border:1px solid #333;border-radius:16px;padding:24px;max-width:320px;width:100%}
+.limit-dlg h3{font-size:16px;font-weight:800;color:#e8e8e8;margin-bottom:8px}
+.limit-dlg p{font-size:13px;color:#888;line-height:1.7;margin-bottom:20px}
+.limit-btns{display:flex;flex-direction:column;gap:8px}
+.btn-limit-delete{padding:13px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;background:#252525;border:1px solid #444;color:#e8e8e8;text-align:center}
+.btn-limit-sub{padding:13px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;background:#c8a96e;border:none;color:#0f0f0f;text-align:center}
+.btn-limit-cancel{padding:11px;border-radius:10px;font-size:13px;cursor:pointer;background:transparent;border:1px solid #2a2a2a;color:#666;text-align:center}
 .confirm-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:600;align-items:center;justify-content:center;padding:20px}
 .confirm-overlay.open{display:flex}
 .confirm-dlg{background:#1e1e1e;border:1px solid #333;border-radius:16px;padding:24px;text-align:center;max-width:300px;width:100%}
@@ -69,7 +86,31 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
       <button class="btn-new" onclick="newRecipe()">＋ 新規作成</button>
     </div>
   </div>
+  <!-- 保存上限バナー -->
+  <div class="storage-notice" id="storageNotice">
+    <div class="storage-notice-text">
+      <b>⚠️ 保存上限：30件</b>（ゲスト・無料ユーザー）<br>
+      サブスクリプションで無制限に保存できます。
+      <div class="storage-bar-wrap">
+        <div class="storage-bar" id="storageBar" style="width:0%"></div>
+      </div>
+    </div>
+    <span id="storageCount" style="font-size:13px;font-weight:700;color:#c8a96e;flex-shrink:0">0/30</span>
+  </div>
   <div class="recipe-list" id="recipeList"></div>
+</div>
+
+<!-- 上限超えダイアログ -->
+<div class="limit-overlay" id="limitOverlay">
+  <div class="limit-dlg">
+    <h3>📦 保存上限に達しています</h3>
+    <p>ゲスト・無料ユーザーは最大<b style="color:#c8a96e">30件</b>まで保存できます。新しいレシピを保存するには、古いレシピを削除するか、サブスクリプションにアップグレードしてください。</p>
+    <div class="limit-btns">
+      <button class="btn-limit-delete" onclick="closeLimitDialog();scrollToList()">🗑 古いレシピを削除する</button>
+      <button class="btn-limit-sub" onclick="closeLimitDialog();showSubscribeInfo()">✨ サブスクで無制限に保存</button>
+      <button class="btn-limit-cancel" onclick="closeLimitDialog()">キャンセル</button>
+    </div>
+  </div>
 </div>
 
 <!-- 削除確認 -->
@@ -137,6 +178,27 @@ async function deleteRecipe(id){
   });
 }
 
+const MAX_RECIPES=30;
+
+// ── 保存上限バナー更新 ──
+function updateStorageBar(count){
+  const bar=document.getElementById('storageBar');
+  const cnt=document.getElementById('storageCount');
+  const pct=Math.min(100,Math.round(count/MAX_RECIPES*100));
+  if(bar){ bar.style.width=pct+'%'; bar.classList.toggle('full',count>=MAX_RECIPES); }
+  if(cnt){ cnt.textContent=`${count}/${MAX_RECIPES}`; cnt.style.color=count>=MAX_RECIPES?'#c0392b':'#c8a96e'; }
+}
+
+// ── 上限ダイアログ ──
+function closeLimitDialog(){ document.getElementById('limitOverlay').classList.remove('open'); }
+function scrollToList(){ document.getElementById('recipeList').scrollIntoView({behavior:'smooth'}); }
+function showSubscribeInfo(){
+  alert('サブスクリプション機能は近日公開予定です。\nリリースをお待ちください！');
+}
+
+// ── 上限チェック（index.htmlの保存前に呼ぶ用・mypageからは参照不要） ──
+// ※ index.html 側で checkRecipeLimit() を呼び出して判定する
+
 // ══════════════════════════════════════
 //  レシピ一覧描画
 // ══════════════════════════════════════
@@ -144,6 +206,9 @@ async function renderList(){
   const list=document.getElementById('recipeList');
   let recipes=[];
   try{ recipes=await getAllRecipes(); }catch(e){ console.error(e); }
+
+  // バナー更新
+  updateStorageBar(recipes.length);
 
   if(!recipes.length){
     list.innerHTML=`
