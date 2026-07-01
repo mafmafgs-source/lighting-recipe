@@ -64,7 +64,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
 <div class="wrap">
   <div class="page-header">
     <span class="page-title">MY RECIPES</span>
-    <button class="btn-new" onclick="newRecipe()">＋ 新規作成</button>
+    <div style="display:flex;gap:8px">
+      <button class="btn-new" id="btnKml" onclick="exportKML()" style="background:#1a2a1a;border:1px solid #3a5a3a;color:#7ac87a;font-size:12px">🗺 KML出力</button>
+      <button class="btn-new" onclick="newRecipe()">＋ 新規作成</button>
+    </div>
   </div>
   <div class="recipe-list" id="recipeList"></div>
 </div>
@@ -234,6 +237,75 @@ document.getElementById('btnConfirmDel').addEventListener('click',async()=>{
     renderList();
   }
 });
+
+// ══════════════════════════════════════
+//  KML出力（Googleマップインポート用）
+// ══════════════════════════════════════
+async function exportKML(){
+  let recipes=[];
+  try{ recipes=await getAllRecipes(); }catch(e){ alert('レシピの読み込みに失敗しました'); return; }
+
+  // 座標があるレシピのみ対象
+  const located=recipes.filter(r=>r.session?.locLat&&r.session?.locLon);
+  if(!located.length){
+    alert('ロケーション情報が登録されたレシピがありません。\nレシピ作成時にロケーションを検索・確定してください。');
+    return;
+  }
+
+  const esc=s=>(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
+  const placemarks=located.map(r=>{
+    const s=r.session||{};
+    const title=esc(r.title||'無題のレシピ');
+    const loc=esc(s.loc||'');
+    const date=esc(s.exDate||r.updatedAt?.split('T')[0]||'');
+    const camera=esc(s.exCamera||'');
+    const lens=esc(s.exLens||'');
+    const lights=(r.lights||[]).filter(l=>l.items?.length);
+    const gear=lights.flatMap(l=>l.items||[]).join('、');
+    const desc=[
+      loc?`📍 ${loc}`:'',
+      date?`📅 ${date}`:'',
+      camera?`📷 ${camera}`:'',
+      lens?`🔭 ${lens}`:'',
+      gear?`💡 ${esc(gear)}`:'',
+    ].filter(Boolean).join('&#10;');
+
+    return `  <Placemark>
+    <name>${title}</name>
+    <description>${desc}</description>
+    <Point>
+      <coordinates>${s.locLon},${s.locLat},0</coordinates>
+    </Point>
+  </Placemark>`;
+  }).join('\n');
+
+  const kml=`<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+<Document>
+  <name>Lighting Recipe - 撮影ロケーション</name>
+  <description>Lighting Recipeから出力した撮影スポット一覧</description>
+${placemarks}
+</Document>
+</kml>`;
+
+  // ダウンロード
+  const blob=new Blob([kml],{type:'application/vnd.google-earth.kml+xml'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download=`lighting-recipe-locations-${new Date().toISOString().slice(0,10)}.kml`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+
+  // ボタンに件数フィードバック
+  const btn=document.getElementById('btnKml');
+  const orig=btn.textContent;
+  btn.textContent=`✓ ${located.length}件を出力`;
+  setTimeout(()=>{btn.textContent=orig;},2500);
+}
 
 // 初期化
 renderList();
