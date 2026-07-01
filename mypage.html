@@ -248,7 +248,7 @@ async function exportKML(){
   // 座標があるレシピのみ対象
   const located=recipes.filter(r=>r.session?.locLat&&r.session?.locLon);
   if(!located.length){
-    alert('ロケーション情報が登録されたレシピがありません。\nレシピ作成時にロケーションを検索・確定してください。');
+    alert('ロケーション座標が登録されたレシピがありません。\n※現在はテキスト入力のみのため、将来のGoogle Places API対応後にKML出力が有効になります。');
     return;
   }
 
