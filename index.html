@@ -153,8 +153,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
 .btn-export-cancel{width:100%;padding:12px;border:1px solid #333;border-radius:12px;background:transparent;color:#888;font-size:14px;cursor:pointer}
 .btn-builder{display:block;width:100%;padding:14px;border:none;border-radius:12px;background:#c8a96e;color:#0f0f0f;font-size:15px;font-weight:700;cursor:pointer;text-align:center;text-decoration:none;-webkit-tap-highlight-color:transparent;letter-spacing:.02em}
 .btn-builder:active{background:#b8956a}
-/* タブバー */
-.tab-bar{position:fixed;bottom:0;left:0;right:0;display:flex;background:#111;border-top:1px solid #2e2e2e;z-index:500;max-width:100%}
+/* 保存上限ダイアログ */
+#limitOverlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:700;align-items:center;justify-content:center;padding:20px}
+#limitOverlay.open{display:flex}
+.limit-dlg{background:#1e1e1e;border:1px solid #333;border-radius:16px;padding:24px;max-width:320px;width:100%}
+.limit-dlg h3{font-size:16px;font-weight:800;color:#e8e8e8;margin-bottom:8px}
+.limit-dlg p{font-size:13px;color:#888;line-height:1.7;margin-bottom:20px}
+.limit-btns{display:flex;flex-direction:column;gap:8px}
+.btn-limit-delete{padding:13px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;background:#252525;border:1px solid #444;color:#e8e8e8;width:100%}
+.btn-limit-sub{padding:13px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;background:#c8a96e;border:none;color:#0f0f0f;width:100%}
+.btn-limit-cancel{padding:11px;border-radius:10px;font-size:13px;cursor:pointer;background:transparent;border:1px solid #2a2a2a;color:#666;width:100%};bottom:0;left:0;right:0;display:flex;background:#111;border-top:1px solid #2e2e2e;z-index:500;max-width:100%}
 .tab-bar a{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 0 env(safe-area-inset-bottom,6px);text-decoration:none;font-size:10px;color:#666;gap:2px;-webkit-tap-highlight-color:transparent;transition:color .15s}
 .tab-bar a.active{color:#c8a96e}
 .tab-bar a .tab-icon{font-size:18px;line-height:1}
@@ -1623,6 +1631,25 @@ async function doSaveRecipe(forceNew){
   const title=document.getElementById('recipeTitleInput').value.trim()||'無題のレシピ';
   const now=new Date().toISOString();
 
+  // ── 新規保存時のみ30件上限チェック ──
+  if(isNew){
+    try{
+      const db=await openRecipeDB();
+      const count=await new Promise((res,rej)=>{
+        const tx=db.transaction(RSTORE,'readonly');
+        const req=tx.objectStore(RSTORE).count();
+        req.onsuccess=()=>res(req.result);
+        req.onerror=e=>rej(e.target.error);
+      });
+      if(count>=30){
+        closeSaveDialog();
+        document.getElementById('limitOverlay').classList.add('open');
+        return;
+      }
+    }catch(e){ console.warn('count check error:',e); }
+  }
+  const now=new Date().toISOString();
+
   let photoData='';
   const photoImg=document.getElementById('photoImg');
   if(photoImg&&photoImg.classList.contains('loaded')){
@@ -1682,6 +1709,9 @@ function showSaveToast(msg){
   el.textContent=msg;el.style.opacity='1';el.style.transform='translate(-50%,-50%)';
   clearTimeout(_saveToastTimer);
   _saveToastTimer=setTimeout(()=>{el.style.opacity='0';el.style.transform='translate(-50%,-40%)';},1500);
+}
+function showSubscribeInfo(){
+  alert('サブスクリプション機能は近日公開予定です。\nリリースをお待ちください！');
 }
 
 async function loadRecipeFromURL(){
@@ -2229,6 +2259,19 @@ function roundRect(ctx,x,y,w,h,r){
         oninput="saveSession();renderBg();updateBgPreviews()">
     </div>
     <button onclick="closeBgSheet()" style="width:100%;padding:12px;border:1px solid #333;border-radius:12px;background:transparent;color:#888;font-size:14px;cursor:pointer;margin-bottom:4px">閉じる</button>
+  </div>
+</div>
+
+<!-- 保存上限ダイアログ -->
+<div id="limitOverlay">
+  <div class="limit-dlg">
+    <h3>📦 保存上限に達しています</h3>
+    <p>ゲスト・無料ユーザーは最大<b style="color:#c8a96e">30件</b>まで保存できます。新しいレシピを保存するには、マイページで古いレシピを削除するか、サブスクリプションにアップグレードしてください。</p>
+    <div class="limit-btns">
+      <button class="btn-limit-delete" onclick="document.getElementById('limitOverlay').classList.remove('open');window.location.href='mypage.html'">🗑 マイページで削除する</button>
+      <button class="btn-limit-sub" onclick="document.getElementById('limitOverlay').classList.remove('open');showSubscribeInfo()">✨ サブスクで無制限に保存</button>
+      <button class="btn-limit-cancel" onclick="document.getElementById('limitOverlay').classList.remove('open')">キャンセル</button>
+    </div>
   </div>
 </div>
 
