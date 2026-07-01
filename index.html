@@ -245,10 +245,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
 //  i18n
 // ══════════════════════════════════════
 const I18N={
-  ja:{photoHint:'📷 タップして写真を追加',locLabel:'📍 ロケーション',locPlaceholder:'場所を検索',memoLabel:'📝 メモ',memoPlaceholder:'撮影メモ',exCamera:'カメラ',exLens:'レンズ',exDate:'撮影日',exF:'F値',exSS:'SS',exISO:'ISO',exFL:'焦点距離',lightingTitle:'ライティング図',bgBtn:'背景',editBtn:'＋ 機材編集',legendHigh:'高い',legendLow:'低い',beamTitle:'💡 光パーツ（選択中のライト）',beamLabel:'配光',angleLabel:'角度',beamHint:'ライトを選択すると光パーツが表示されます',builderBtn:'機材を設定する (Builder)',heightLabel:'高さ',outputLabel:'出力',noItems:'機材なし（Builderで追加）',panelTitle:(l)=>`${l} の設定`,locHint:''},
-  en:{photoHint:'📷 Tap to add photo',locLabel:'📍 Location',locPlaceholder:'Search location',memoLabel:'📝 Memo',memoPlaceholder:'Shooting notes',exCamera:'Camera',exLens:'Lens',exDate:'Date',exF:'F',exSS:'SS',exISO:'ISO',exFL:'FL',lightingTitle:'Lighting Diagram',bgBtn:'BG',editBtn:'＋ Edit Gear',legendHigh:'High',legendLow:'Low',beamTitle:'💡 Light Beam',beamLabel:'Spread',angleLabel:'Angle',beamHint:'Select a light to edit beam',builderBtn:'Set up gear (Builder)',heightLabel:'Height',outputLabel:'Output',noItems:'No gear (add in Builder)',panelTitle:(l)=>`${l} Settings`,locHint:'Suggestions appear<br>after API key is set'},
-  zh:{photoHint:'📷 点击添加照片',locLabel:'📍 拍摄地点',locPlaceholder:'搜索地点',memoLabel:'📝 备注',memoPlaceholder:'拍摄备注',exCamera:'相机',exLens:'镜头',exDate:'日期',exF:'光圈',exSS:'快门',exISO:'ISO',exFL:'焦距',lightingTitle:'布光图',bgBtn:'背景',editBtn:'＋ 编辑器材',legendHigh:'高',legendLow:'低',beamTitle:'💡 光束',beamLabel:'光束角',angleLabel:'角度',beamHint:'选择灯光以编辑光束',builderBtn:'设置器材 (Builder)',heightLabel:'高度',outputLabel:'输出',noItems:'无器材（在Builder中添加）',panelTitle:(l)=>`${l} 设置`,locHint:'设置API密钥后<br>将显示候选地点'},
-  ko:{photoHint:'📷 탭하여 사진 추가',locLabel:'📍 촬영 장소',locPlaceholder:'장소 검색',memoLabel:'📝 메모',memoPlaceholder:'촬영 메모',exCamera:'카메라',exLens:'렌즈',exDate:'날짜',exF:'조리개',exSS:'셔터',exISO:'ISO',exFL:'초점거리',lightingTitle:'조명 다이어그램',bgBtn:'배경',editBtn:'＋ 장비 편집',legendHigh:'높음',legendLow:'낮음',beamTitle:'💡 광원',beamLabel:'광각',angleLabel:'각도',beamHint:'조명을 선택하면 광원이 표시됩니다',builderBtn:'장비 설정 (Builder)',heightLabel:'높이',outputLabel:'출력',noItems:'장비 없음 (Builder에서 추가)',panelTitle:(l)=>`${l} 설정`,locHint:'API 키 설정 후<br>후보가 표시됩니다'},
+  ja:{photoHint:'📷 タップして写真を追加',locLabel:'📍 ロケーション',locPlaceholder:'スタジオ名・場所など',memoLabel:'📝 メモ',memoPlaceholder:'撮影メモ',exCamera:'カメラ',exLens:'レンズ',exDate:'撮影日',exF:'F値',exSS:'SS',exISO:'ISO',exFL:'焦点距離',lightingTitle:'ライティング図',bgBtn:'背景',editBtn:'＋ 機材編集',legendHigh:'高い',legendLow:'低い',beamTitle:'💡 光パーツ（選択中のライト）',beamLabel:'配光',angleLabel:'角度',beamHint:'ライトを選択すると光パーツが表示されます',builderBtn:'機材を設定する (Builder)',heightLabel:'高さ',outputLabel:'出力',noItems:'機材なし（Builderで追加）',panelTitle:(l)=>`${l} の設定`},
+  en:{photoHint:'📷 Tap to add photo',locLabel:'📍 Location',locPlaceholder:'Studio name, location...',memoLabel:'📝 Memo',memoPlaceholder:'Shooting notes',exCamera:'Camera',exLens:'Lens',exDate:'Date',exF:'F',exSS:'SS',exISO:'ISO',exFL:'FL',lightingTitle:'Lighting Diagram',bgBtn:'BG',editBtn:'＋ Edit Gear',legendHigh:'High',legendLow:'Low',beamTitle:'💡 Light Beam',beamLabel:'Spread',angleLabel:'Angle',beamHint:'Select a light to edit beam',builderBtn:'Set up gear (Builder)',heightLabel:'Height',outputLabel:'Output',noItems:'No gear (add in Builder)',panelTitle:(l)=>`${l} Settings`},
+  zh:{photoHint:'📷 点击添加照片',locLabel:'📍 拍摄地点',locPlaceholder:'工作室名称、地点',memoLabel:'📝 备注',memoPlaceholder:'拍摄备注',exCamera:'相机',exLens:'镜头',exDate:'日期',exF:'光圈',exSS:'快门',exISO:'ISO',exFL:'焦距',lightingTitle:'布光图',bgBtn:'背景',editBtn:'＋ 编辑器材',legendHigh:'高',legendLow:'低',beamTitle:'💡 光束',beamLabel:'光束角',angleLabel:'角度',beamHint:'选择灯光以编辑光束',builderBtn:'设置器材 (Builder)',heightLabel:'高度',outputLabel:'输出',noItems:'无器材（在Builder中添加）',panelTitle:(l)=>`${l} 设置`},
+  ko:{photoHint:'📷 탭하여 사진 추가',locLabel:'📍 촬영 장소',locPlaceholder:'스튜디오 이름, 장소',memoLabel:'📝 메모',memoPlaceholder:'촬영 메모',exCamera:'카메라',exLens:'렌즈',exDate:'날짜',exF:'조리개',exSS:'셔터',exISO:'ISO',exFL:'초점거리',lightingTitle:'조명 다이어그램',bgBtn:'배경',editBtn:'＋ 장비 편집',legendHigh:'높음',legendLow:'낮음',beamTitle:'💡 광원',beamLabel:'광각',angleLabel:'각도',beamHint:'조명을 선택하면 광원이 표시됩니다',builderBtn:'장비 설정 (Builder)',heightLabel:'높이',outputLabel:'출력',noItems:'장비 없음 (Builder에서 추가)',panelTitle:(l)=>`${l} 설정`},
 };
 function detectLang(){const n=(navigator.language||'en').toLowerCase();if(n.startsWith('ja'))return 'ja';if(n.startsWith('zh'))return 'zh';if(n.startsWith('ko'))return 'ko';return 'en';}
 const LANG=detectLang(), T=I18N[LANG];
@@ -260,7 +260,6 @@ function applyI18n(){
   s('photoHint',T.photoHint);
   s('locLabel',T.locLabel);
   document.getElementById('locInput').placeholder=T.locPlaceholder;
-  sh('locHint',T.locHint);
   s('memoLabel',T.memoLabel);
   
   s('lightingTitle',T.lightingTitle);
@@ -275,12 +274,6 @@ function applyI18n(){
   s('exCameraLabel',T.exCamera);s('exLensLabel',T.exLens);s('exDateLabel',T.exDate);
   s('exFLabel',T.exF);s('exSSLabel',T.exSS);s('exISOLabel',T.exISO);s('exFLLabel',T.exFL);
 }
-
-// ══════════════════════════════════════
-//  Google Places APIキー
-// ══════════════════════════════════════
-const GOOGLE_PLACES_API_KEY='';
-if(!GOOGLE_PLACES_API_KEY)document.getElementById('locHint').classList.add('show');
 
 // ── ロケーション（テキスト入力のみ）──────
 // 将来：Google Places API対応時にサジェスト・地図を復活予定
