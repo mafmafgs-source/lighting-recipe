@@ -41,15 +41,24 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
 .loc-hint{font-size:10px;color:#c8a96e;background:#1e1a12;border-radius:5px;padding:3px 5px;margin-top:4px;display:none;line-height:1.3;border:1px solid #3a3020}
 .loc-hint.show{display:block}
 .loc-suggestions-wrap{position:relative}
-.loc-suggestions{position:absolute;left:0;right:0;top:calc(100% + 4px);background:#1e1e1e;border:1px solid #333;border-radius:10px;box-shadow:0 6px 24px rgba(0,0,0,.6);z-index:200;overflow:hidden;display:none}
+.loc-suggestions{position:absolute;left:0;right:0;top:calc(100% + 4px);background:#1e1e1e;border:1px solid #333;border-radius:12px;box-shadow:0 6px 24px rgba(0,0,0,.65);z-index:200;overflow:hidden;display:none}
 .loc-suggestions.open{display:block}
-.sug-list{display:flex;overflow-x:auto}
-.loc-sug-item{flex:0 0 auto;min-width:130px;padding:8px 10px;cursor:pointer;border-right:1px solid #2a2a2a}
-.loc-sug-item:last-child{border-right:none}
+.sug-list{max-height:220px;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.loc-sug-item{display:flex;align-items:flex-start;gap:10px;padding:13px 14px;cursor:pointer;border-bottom:1px solid #252525;transition:background .1s;-webkit-tap-highlight-color:transparent}
+.loc-sug-item:last-child{border-bottom:none}
+.loc-sug-item.previewing{background:#1a1a0e;border-left:3px solid #c8a96e}
 .loc-sug-item:active{background:#252525}
-.sug-pin{font-size:12px;margin-bottom:2px;display:block}
-.sug-name{font-size:12px;font-weight:600;color:#e8e8e8;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.sug-addr{font-size:10px;color:#666;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+.sug-pin{font-size:16px;flex-shrink:0;margin-top:1px}
+.sug-texts{flex:1;min-width:0}
+.sug-name{font-size:13px;font-weight:600;color:#e8e8e8;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sug-addr{font-size:10px;color:#666;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:2px}
+/* 仮セット確定バー */
+.loc-confirm-bar{display:none;align-items:center;gap:8px;padding:10px 12px;background:#141400;border-top:1px solid #3a3000}
+.loc-confirm-bar.show{display:flex}
+.loc-confirm-name{flex:1;font-size:12px;color:#c8a96e;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.loc-confirm-btn{padding:7px 14px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;border:none;flex-shrink:0;-webkit-tap-highlight-color:transparent}
+.loc-confirm-ok{background:#c8a96e;color:#0f0f0f}
+.loc-confirm-cancel{background:#252525;color:#888;border:1px solid #333}
 .loc-powered{text-align:right;padding:3px 8px;font-size:9px;color:#444;border-top:1px solid #2a2a2a;background:#161616}
 /* ロケーション地図プレビュー */
 .loc-map-wrap{margin-top:6px;border-radius:8px;overflow:hidden;display:none;border:1px solid #2e2e2e}
@@ -204,6 +213,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
           <div class="loc-hint" id="locHint"></div>
           <div class="loc-suggestions" id="locSuggestions">
             <div class="sug-list" id="sugList"></div>
+            <div class="loc-confirm-bar" id="locConfirmBar">
+              <span class="loc-confirm-name" id="locConfirmName"></span>
+              <button class="loc-confirm-btn loc-confirm-cancel" id="locConfirmCancel">✕</button>
+              <button class="loc-confirm-btn loc-confirm-ok" id="locConfirmOk">✓ 確定</button>
+            </div>
             <div class="loc-powered">© <a href="https://www.openstreetmap.org/copyright" target="_blank" style="color:#555;text-decoration:none">OpenStreetMap</a> contributors</div>
           </div>
         </div>
@@ -320,6 +334,7 @@ let _locLat=null,_locLon=null;
 
 locInput.addEventListener('input',()=>{
   const q=locInput.value.trim();
+  locInput.dataset.lastSearch=q;
   locClear.classList.toggle('visible',q.length>0);
   clearTimeout(debounceTimer);
   saveSession();
@@ -362,32 +377,75 @@ async function fetchSuggestions(q){
   }
 }
 
+// 仮セット中の候補
+let _pendingLoc=null;
+
 function showSuggestions(items){
   if(!items.length){closeSuggestions();return;}
   sugList.innerHTML=items.map((s,i)=>`
     <div class="loc-sug-item" data-idx="${i}" data-name="${s.name.replace(/"/g,'&quot;')}" data-addr="${s.addr.replace(/"/g,'&quot;')}" data-lat="${s.lat}" data-lon="${s.lon}">
       <span class="sug-pin">📍</span>
-      <span class="sug-name">${s.name}</span>
-      <span class="sug-addr">${s.addr}</span>
+      <div class="sug-texts">
+        <span class="sug-name">${s.name}</span>
+        <span class="sug-addr">${s.addr}</span>
+      </div>
     </div>`).join('');
+
   sugList.querySelectorAll('.loc-sug-item').forEach(el=>{
-    const sel=()=>{
-      const name=el.dataset.name;
-      const lat=parseFloat(el.dataset.lat);
-      const lon=parseFloat(el.dataset.lon);
-      locInput.value=name;
-      locClear.classList.add('visible');
-      _locLat=lat; _locLon=lon;
-      closeSuggestions();
-      showMap(lat,lon,name);
-      saveSession();
+    const preview=()=>{
+      // 他の候補のハイライトを消す
+      sugList.querySelectorAll('.loc-sug-item').forEach(x=>x.classList.remove('previewing'));
+      el.classList.add('previewing');
+      _pendingLoc={
+        name:el.dataset.name,
+        addr:el.dataset.addr,
+        lat:parseFloat(el.dataset.lat),
+        lon:parseFloat(el.dataset.lon),
+      };
+      // 確定バーに仮表示
+      document.getElementById('locConfirmName').textContent=_pendingLoc.name;
+      document.getElementById('locConfirmBar').classList.add('show');
+      // 入力欄に仮セット（グレーアウト）
+      locInput.value=_pendingLoc.name;
+      locInput.style.opacity='0.6';
     };
-    el.addEventListener('mousedown',e=>{e.preventDefault();sel();});
-    el.addEventListener('touchstart',()=>setTimeout(sel,50),{passive:true});
+    el.addEventListener('mousedown',e=>{e.preventDefault();preview();});
+    el.addEventListener('touchstart',()=>setTimeout(preview,30),{passive:true});
   });
+
   locSuggestions.classList.add('open');
 }
-function closeSuggestions(){locSuggestions.classList.remove('open');}
+
+// ✓ 確定
+document.getElementById('locConfirmOk').addEventListener('click',()=>{
+  if(!_pendingLoc) return;
+  locInput.value=_pendingLoc.name;
+  locInput.style.opacity='';
+  locClear.classList.add('visible');
+  _locLat=_pendingLoc.lat;
+  _locLon=_pendingLoc.lon;
+  _pendingLoc=null;
+  closeSuggestions();
+  showMap(_locLat,_locLon,locInput.value);
+  saveSession();
+});
+
+// ✕ キャンセル（仮セット解除）
+document.getElementById('locConfirmCancel').addEventListener('click',()=>{
+  _pendingLoc=null;
+  locInput.style.opacity='';
+  document.getElementById('locConfirmBar').classList.remove('show');
+  sugList.querySelectorAll('.loc-sug-item').forEach(x=>x.classList.remove('previewing'));
+  // 入力欄を検索前の値に戻す
+  locInput.value=locInput.dataset.lastSearch||'';
+});
+
+function closeSuggestions(){
+  locSuggestions.classList.remove('open');
+  document.getElementById('locConfirmBar').classList.remove('show');
+  locInput.style.opacity='';
+  _pendingLoc=null;
+}
 
 document.addEventListener('touchstart',e=>{
   if(!locInput.contains(e.target)&&!locSuggestions.contains(e.target))closeSuggestions();
