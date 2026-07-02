@@ -99,16 +99,21 @@ body{-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%;font-
 
 /* マイセット枠 */
 .myset-row{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
-.myset-slot{position:relative;border:1.5px dashed #333;border-radius:10px;padding:8px 3px;min-height:52px;display:flex;align-items:center;justify-content:center;text-align:center;background:#141414}
+.myset-slot{position:relative;border:1.5px dashed #333;border-radius:10px;padding:10px 4px 6px;min-height:60px;display:flex;align-items:center;justify-content:center;text-align:center;background:#141414}
 .myset-slot:not(.empty){border-style:solid;border-color:#c8a96e;background:#1e1a10;cursor:pointer}
 .myset-slot:not(.empty):active{background:#2a2218}
 .myset-empty-label{font-size:10px;color:#444}
-.myset-name{font-size:10px;color:#e8e8e8;line-height:1.3;word-break:break-word;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.myset-name{font-size:9.5px;color:#e8e8e8;line-height:1.35;word-break:break-word;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
 .myset-del{position:absolute;top:-6px;right:-6px;width:18px;height:18px;background:#c0392b;color:#fff;border:none;border-radius:50%;font-size:11px;line-height:18px;text-align:center;cursor:pointer;padding:0}
+.myset-edit{position:absolute;top:-6px;left:-6px;width:18px;height:18px;background:#2a2218;color:#c8a96e;border:1px solid #c8a96e;border-radius:50%;font-size:9px;line-height:16px;text-align:center;cursor:pointer;padding:0}
 .myset-pick-row{display:flex;align-items:center;padding:11px 12px;border:1px solid #333;border-radius:9px;cursor:pointer;background:#141414;transition:background .1s}
 .myset-pick-row:active{background:#202020}
 .myset-pick-num{font-size:11px;color:#666;width:18px;flex-shrink:0}
 .myset-pick-name{flex:1;margin-left:6px;font-size:13px;color:#e8e8e8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.myset-edit-row{display:flex;align-items:center;justify-content:space-between;padding:9px 10px;border:1px solid #333;border-radius:8px;background:#141414;margin-bottom:8px}
+.myset-edit-row span{font-size:13px;color:#e8e8e8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+.myset-edit-del{background:none;border:none;color:#c0392b;font-size:15px;cursor:pointer;padding:0 4px;flex-shrink:0}
+.myset-edit-hint{font-size:11px;color:#666;line-height:1.6;margin-top:4px}
 
 /* 追加ダイアログ（中央） */
 .toast{position:fixed;top:50%;left:50%;transform:translate(-50%,-40%);background:#1e1e1e;color:#e8e8e8;border:1px solid #c8a96e;border-radius:14px;padding:18px 28px;font-size:14px;font-weight:600;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,.6);opacity:0;transition:opacity .2s,transform .2s;z-index:999;pointer-events:none;white-space:nowrap}
@@ -202,8 +207,14 @@ const I18N_DATA = {
     showMore:(n)=>`残り ${n} 件を表示`,
     deleteConfirm:(name)=>`「${name}」を削除しますか？`,
     mySetTitle:'マイセット', mySetAddTitle:'マイセットに追加',
-    mySetPickTitle:'マイセット枠を選択（上書き）',
-    mySetAdded:(n)=>`${n} をマイセットに追加しました`,
+    mySetPickTitle:'追加先のセットを選択',
+    mySetAdded:(n)=>`${n} を追加しました`,
+    mySetFull:'このセットは最大5点までです',
+    mySetAlready:(n)=>`${n} は既にこのセットにあります`,
+    mySetApplied:(n)=>`${n}点を追加しました`,
+    mySetEditTitle:(i)=>`セット${i} を編集`,
+    mySetEditHint:'機材リストの📌ボタンからこのセットに追加できます',
+    close:'閉じる',
   },
   en:{
     cats:{strobe:'Strobe',video:'Video Light',video_stick:'Stick Light',modifier:'Modifier',softbox:'Softbox',umbrella:'Umbrella',beauty_dish:'Beauty Dish',snoot:'Snoot',stand:'Light Stand',boom:'Boom Arm',reflector:'Reflector',flag:'Flag Frame'},
@@ -221,8 +232,14 @@ const I18N_DATA = {
     showMore:(n)=>`Show ${n} more`,
     deleteConfirm:(name)=>`Delete "${name}"?`,
     mySetTitle:'My Set', mySetAddTitle:'Add to My Set',
-    mySetPickTitle:'Choose a slot to overwrite',
-    mySetAdded:(n)=>`Added ${n} to My Set`,
+    mySetPickTitle:'Choose a set to add to',
+    mySetAdded:(n)=>`Added ${n}`,
+    mySetFull:'This set already has 5 items (max).',
+    mySetAlready:(n)=>`${n} is already in this set`,
+    mySetApplied:(n)=>`Added ${n} items`,
+    mySetEditTitle:(i)=>`Edit Set ${i}`,
+    mySetEditHint:'Add more via the 📌 button in the gear list',
+    close:'Close',
   },
   zh:{
     cats:{strobe:'频闪灯',video:'视频灯',video_stick:'棒形灯',modifier:'附件',softbox:'柔光箱',umbrella:'伞',beauty_dish:'美颜碟',snoot:'束光筒',stand:'灯架',boom:'横臂',reflector:'反光板',flag:'遮光板'},
@@ -239,8 +256,14 @@ const I18N_DATA = {
     showMore:(n)=>`显示剩余 ${n} 件`,
     deleteConfirm:(name)=>`删除「${name}」吗？`,
     mySetTitle:'我的套装', mySetAddTitle:'添加到我的套装',
-    mySetPickTitle:'选择要覆盖的位置',
-    mySetAdded:(n)=>`已将 ${n} 添加到我的套装`,
+    mySetPickTitle:'选择要添加到的套装',
+    mySetAdded:(n)=>`已添加 ${n}`,
+    mySetFull:'该套装最多5件',
+    mySetAlready:(n)=>`${n} 已在该套装中`,
+    mySetApplied:(n)=>`已添加 ${n} 件`,
+    mySetEditTitle:(i)=>`编辑套装 ${i}`,
+    mySetEditHint:'可通过器材列表中的📌按钮添加更多',
+    close:'关闭',
   },
   ko:{
     cats:{strobe:'스트로브',video:'비디오라이트',video_stick:'스틱라이트',modifier:'모디파이어',softbox:'소프트박스',umbrella:'우산',beauty_dish:'뷰티디쉬',snoot:'스누트',stand:'라이트스탠드',boom:'붐암',reflector:'반사판',flag:'플래그프레임'},
@@ -257,8 +280,14 @@ const I18N_DATA = {
     showMore:(n)=>`${n}개 더 보기`,
     deleteConfirm:(name)=>`「${name}」을 삭제하시겠습니까？`,
     mySetTitle:'마이 세트', mySetAddTitle:'마이 세트에 추가',
-    mySetPickTitle:'덮어쓸 슬롯을 선택하세요',
-    mySetAdded:(n)=>`${n}을(를) 마이 세트에 추가했습니다`,
+    mySetPickTitle:'추가할 세트를 선택하세요',
+    mySetAdded:(n)=>`${n} 추가됨`,
+    mySetFull:'이 세트는 최대 5개까지입니다',
+    mySetAlready:(n)=>`${n}은(는) 이미 이 세트에 있습니다`,
+    mySetApplied:(n)=>`${n}개 항목을 추가했습니다`,
+    mySetEditTitle:(i)=>`세트 ${i} 편집`,
+    mySetEditHint:'장비 목록의 📌 버튼으로 더 추가할 수 있습니다',
+    close:'닫기',
   },
 };
 function detectLang(){
@@ -476,12 +505,20 @@ async function loadAllItemImgs(){
 }
 
 // ══════════════════════════════════════════════
-//  マイセット（お気に入り5枠）
+//  マイセット（1〜5点を1まとめにした機材セット×5枠）
 // ══════════════════════════════════════════════
 function loadMySet(){
   try{
     const s = JSON.parse(localStorage.getItem('lr_mySet'));
-    if(Array.isArray(s) && s.length===5) return s;
+    if(Array.isArray(s) && s.length===5){
+      // 旧フォーマット（単一機材 {name,catId}）との互換変換
+      return s.map(slot=>{
+        if(!slot) return null;
+        if(Array.isArray(slot.items)) return slot;
+        if(slot.name) return { items:[{ name:slot.name, catId:slot.catId }] };
+        return null;
+      });
+    }
   }catch(e){}
   return [null,null,null,null,null];
 }
@@ -495,18 +532,21 @@ function renderMySet(){
   if(!row) return;
   row.innerHTML = '';
   mySet.forEach((slot, i) => {
+    const hasItems = slot && Array.isArray(slot.items) && slot.items.length > 0;
     const box = document.createElement('div');
-    box.className = 'myset-slot' + (slot ? '' : ' empty');
-    if (slot) {
+    box.className = 'myset-slot' + (hasItems ? '' : ' empty');
+    if (hasItems) {
+      const names = slot.items.map(it => it.name).join(' / ');
       box.innerHTML =
-        '<button class="myset-del" onclick="event.stopPropagation();clearMySetSlot(' + i + ')">×</button>' +
-        '<span class="myset-name">' + slot.name + '</span>';
+        '<button class="myset-edit" onclick="event.stopPropagation();openMySetEditor(' + i + ')" title="編集">✏️</button>' +
+        '<button class="myset-del" onclick="event.stopPropagation();clearMySetSlot(' + i + ')" title="削除">×</button>' +
+        '<span class="myset-name">' + names + '</span>';
       box.onclick = () => {
-        if (isDirectCat(slot.catId)) {
-          addDirectItem(slot.name, slot.catId);
-        } else {
-          addItemToLight(slot.name);
-        }
+        slot.items.forEach(it => {
+          if (isDirectCat(it.catId)) addDirectItem(it.name, it.catId, true);
+          else addItemToLight(it.name, true);
+        });
+        showToast(T.mySetApplied(slot.items.length));
       };
     } else {
       box.innerHTML = '<span class="myset-empty-label">' + T.empty + '</span>';
@@ -522,26 +562,21 @@ function clearMySetSlot(i){
   renderMySet();
 }
 
+// 個別機材を1点、セットに追加（毎回どのセットに入れるか選択させる）
 function addToMySet(catId, name){
-  let mySet = loadMySet();
-  const emptyIdx = mySet.findIndex(x => !x);
-  if (emptyIdx !== -1) {
-    mySet[emptyIdx] = { name, catId };
-    saveMySet(mySet);
-    renderMySet();
-    showToast(T.mySetAdded(name));
-    return;
-  }
-  // 全枠埋まっている場合は上書き先を選択させる
+  const mySet = loadMySet();
+
   document.getElementById('dlgTitle').textContent = T.mySetPickTitle;
   document.getElementById('dlgBody').innerHTML =
     '<div style="display:flex;flex-direction:column;gap:8px">' +
-    mySet.map((slot,i)=>
-      '<div class="myset-pick-row" data-idx="' + i + '">' +
+    mySet.map((slot,i)=>{
+      const hasItems = slot && Array.isArray(slot.items) && slot.items.length > 0;
+      const summary = hasItems ? slot.items.map(it=>it.name).join(' / ') : T.empty;
+      return '<div class="myset-pick-row" data-idx="' + i + '">' +
         '<span class="myset-pick-num">' + (i+1) + '</span>' +
-        '<span class="myset-pick-name">' + slot.name + '</span>' +
-      '</div>'
-    ).join('') +
+        '<span class="myset-pick-name">' + summary + '</span>' +
+      '</div>';
+    }).join('') +
     '</div>';
 
   const okBtn = document.getElementById('dlgOk');
@@ -550,10 +585,18 @@ function addToMySet(catId, name){
   document.querySelectorAll('.myset-pick-row').forEach(el=>{
     el.onclick = () => {
       const idx = Number(el.dataset.idx);
-      mySet[idx] = { name, catId };
-      saveMySet(mySet);
-      renderMySet();
-      showToast(T.mySetAdded(name));
+      if(!mySet[idx] || !Array.isArray(mySet[idx].items)) mySet[idx] = { items: [] };
+      const exists = mySet[idx].items.some(it => it.name === name && it.catId === catId);
+      if(exists){
+        showToast(T.mySetAlready(name));
+      } else if(mySet[idx].items.length >= 5){
+        alert(T.mySetFull);
+      } else {
+        mySet[idx].items.push({ name, catId });
+        saveMySet(mySet);
+        renderMySet();
+        showToast(T.mySetAdded(name));
+      }
       okBtn.style.display = '';
       closeOverlay();
     };
@@ -565,6 +608,55 @@ function addToMySet(catId, name){
     closeOverlay();
     document.getElementById('dlgCancel').onclick = closeOverlay;
   };
+}
+
+// セットの中身を編集（機材を個別に削除）
+function openMySetEditor(i){
+  const mySet = loadMySet();
+  const slot = mySet[i];
+  if(!slot || !Array.isArray(slot.items) || !slot.items.length) return;
+
+  function render(){
+    document.getElementById('dlgTitle').textContent = T.mySetEditTitle(i+1);
+    document.getElementById('dlgBody').innerHTML =
+      slot.items.map((it,idx)=>
+        '<div class="myset-edit-row">' +
+          '<span>' + it.name + '</span>' +
+          '<button class="myset-edit-del" onclick="removeMySetItem(' + i + ',' + idx + ')">🗑️</button>' +
+        '</div>'
+      ).join('') +
+      '<div class="myset-edit-hint">' + T.mySetEditHint + '</div>';
+  }
+  render();
+
+  const okBtn = document.getElementById('dlgOk');
+  okBtn.style.display = 'none';
+  const cancelBtn = document.getElementById('dlgCancel');
+  const origCancelText = cancelBtn.textContent;
+  cancelBtn.textContent = T.close;
+
+  showOverlay(()=>true);
+  cancelBtn.onclick = () => {
+    okBtn.style.display = '';
+    cancelBtn.textContent = origCancelText;
+    closeOverlay();
+    cancelBtn.onclick = closeOverlay;
+  };
+}
+
+function removeMySetItem(slotIdx, itemIdx){
+  const mySet = loadMySet();
+  const slot = mySet[slotIdx];
+  if(!slot || !Array.isArray(slot.items)) return;
+  slot.items.splice(itemIdx, 1);
+  if(slot.items.length === 0) mySet[slotIdx] = null;
+  saveMySet(mySet);
+  renderMySet();
+  if(mySet[slotIdx]){
+    openMySetEditor(slotIdx);
+  } else {
+    closeOverlay();
+  }
 }
 
 // ══════════════════════════════════════════════
@@ -1152,19 +1244,19 @@ function isDirectCat(catId){
   return DIRECT_CATS.includes(catId);
 }
 
-function addItemToLight(name) {
+function addItemToLight(name, silent) {
   lights[currentLight].items.push(name);
   renderLights();
-  showToast(`${name} を追加しました`);
+  if (!silent) showToast(`${name} を追加しました`);
 }
 
-function addDirectItem(name, catId){
+function addDirectItem(name, catId, silent){
   const items = JSON.parse(localStorage.getItem('lr_direct_items')||'[]');
   const cat = getCat(catId);
   const imgPath = cat && cat.imgPath ? cat.imgPath : null;
   items.push({ name, catId, imgPath, x:70, y:50, height:150, flipped:false });
   localStorage.setItem('lr_direct_items', JSON.stringify(items));
-  showToast(`${name} をライティング図に追加しました`);
+  if (!silent) showToast(`${name} をライティング図に追加しました`);
 }
 
 let _toastTimer=null;
