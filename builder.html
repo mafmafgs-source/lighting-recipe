@@ -1246,8 +1246,14 @@ function isDirectCat(catId){
 
 function addItemToLight(name, silent) {
   lights[currentLight].items.push(name);
+  persistLights();
   renderLights();
   if (!silent) showToast(`${name} を追加しました`);
+}
+
+// ライト配置を即座にlocalStorageへ保存（保存ボタンを押さずに他画面へ移動しても消えないように）
+function persistLights(){
+  try{ localStorage.setItem('lightingRecipeLights', JSON.stringify(lights)); }catch(e){}
 }
 
 function addDirectItem(name, catId, silent){
@@ -1427,8 +1433,7 @@ function clearLight(i) {
   lights[i].items = [];
   lights[i].output = null;
   renderLights();
-  // ライト状態を即座に保存（保存ボタン前でも消えないように）
-  try{ localStorage.setItem('lightingRecipeLights', JSON.stringify(lights)); }catch(e){}
+  persistLights();
 }
 
 function updateOutput(i, val) {
