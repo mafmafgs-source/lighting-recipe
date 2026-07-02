@@ -34,6 +34,11 @@ body{-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%;font-
 .tile-sub:active,.tile-sub.active-cat{background:#2a2218;border-color:#c8a96e;color:#c8a96e}
 .tile-sub .icon-img{width:40px;height:40px;object-fit:contain;display:block;margin:0 auto 3px;border-radius:4px}
 
+/* 機材リストパネル（大アイコン／中アイコンの直下にインライン表示） */
+.item-panel{grid-column:1/-1;background:#161616;border-radius:10px;padding:10px;margin-top:-4px;border:1px solid #2a2a2a}
+.item-panel .cat-header{margin-bottom:8px}
+.item-panel .cat-header h3{font-size:13px;color:#e8e8e8;text-transform:none;letter-spacing:0;font-weight:700;margin-bottom:0}
+
 /* 追加ボタンタイル */
 .tile-add{border:1.5px dashed #c8a96e;color:#c8a96e;background:#1a1a0a}
 
@@ -143,15 +148,6 @@ body{-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%;font-
   <div class="card">
     <h3 id="warehouseTitle">機材倉庫</h3>
     <div class="grid" id="catGrid"></div>
-  </div>
-
-  <!-- 機材リスト -->
-  <div class="card" id="itemCard" style="display:none">
-    <div class="cat-header">
-      <h3 id="catTitle"></h3>
-      <div class="cat-actions" id="catActions"></div>
-    </div>
-    <div id="itemList"></div>
   </div>
 
   <!-- Light Builder -->
@@ -384,6 +380,7 @@ let pendingCats = loadPendingCats();  // グリッドに表示されているが
 let currentLight = 0;
 let lights = loadLights();
 let activeCatId = null;
+let itemPanelShowAll = {}; // catId => boolean（「もっと見る」展開状態を保持）
 
 // ══════════════════════════════════════════════
 //  永続化
@@ -667,11 +664,15 @@ function renderCats() {
         expandedCatId = isExpanded ? null : cat.id;
         renderCats();
       } else {
-        expandedCatId = null;
-        selectCat(cat.id);
+        toggleActiveCat(cat.id);
       }
     };
     grid.appendChild(tile);
+
+    // サブカテゴリなしタイルが選択中 → 直下にインラインで機材リストを表示
+    if(!hasSubs && isActive){
+      grid.appendChild(buildItemPanel(cat.id));
+    }
 
     // サブカテゴリパネル（展開時、3列グリッドの直後に全幅で挿入）
     if(hasSubs && isExpanded){
@@ -683,10 +684,17 @@ function renderCats() {
         const subTile = document.createElement('div');
         subTile.className = 'tile-sub' + (sub.id === activeCatId ? ' active-cat' : '');
         subTile.innerHTML = iconHtml(sub, 'icon-img') + sub.label;
-        subTile.onclick = () => { selectCat(sub.id); renderCats(); };
+        subTile.onclick = () => toggleActiveCat(sub.id);
         subGrid.appendChild(subTile);
       });
       panel.appendChild(subGrid);
+
+      // 選択中の中アイコンがこの親の子なら、その直下にインラインで機材リストを表示
+      const activeSub = cat.subs.find(s => s.id === activeCatId);
+      if (activeSub) {
+        panel.appendChild(buildItemPanel(activeSub.id));
+      }
+
       grid.appendChild(panel);
     }
   });
@@ -707,6 +715,117 @@ function renderCats() {
   addTile.innerHTML = `<span class="icon">＋</span>カテゴリ追加`;
   addTile.onclick = () => addPendingCat();
   grid.appendChild(addTile);
+}
+
+// アコーディオン式のカテゴリ選択（同じものをタップで閉じる）
+function toggleActiveCat(catId){
+  activeCatId = (activeCatId === catId) ? null : catId;
+  renderCats();
+}
+// 常に選択状態にする（追加・編集後などに使用、トグルしない）
+function setActiveCat(catId){
+  activeCatId = catId;
+  renderCats();
+}
+
+// ══════════════════════════════════════════════
+//  機材リストパネルを構築（大アイコン／中アイコンの直下にインライン表示）
+// ══════════════════════════════════════════════
+function buildItemPanel(catId){
+  const cat = getCat(catId);
+  const items = getItems(catId);
+  const isCustom = !!customCats.find(c => c.id === catId);
+  const icon = cat ? cat.icon : '📦';
+
+  const panel = document.createElement('div');
+  panel.className = 'item-panel';
+
+  const header = document.createElement('div');
+  header.className = 'cat-header';
+  header.innerHTML =
+    '<h3>' + (cat ? cat.label : '') + '</h3>' +
+    '<div class="cat-actions">' +
+      (isCustom
+        ? '<button class="btn-cat-edit" onclick="editCategory(\'' + catId + '\')">✏️ 編集</button>' +
+          '<button class="btn-cat-del" onclick="deleteCategory(\'' + catId + '\')">🗑 削除</button>'
+        : '') +
+    '</div>';
+  panel.appendChild(header);
+
+  const listDiv = document.createElement('div');
+  panel.appendChild(listDiv);
+
+  function renderItems(){
+    listDiv.innerHTML = '';
+
+    // 機材を追加行
+    const addRow = document.createElement('div');
+    addRow.className = 'item item-add';
+    addRow.innerHTML = `<div class="thumb">＋</div><div class="item-name">${T.addItemRow}</div>`;
+    addRow.onclick = () => showAddItemDialog(catId);
+    listDiv.appendChild(addRow);
+
+    const showAll = !!itemPanelShowAll[catId];
+    const visible = showAll ? items : items.slice(0, VISIBLE_COUNT);
+
+    visible.forEach(item => {
+      const name = displayName(item);
+      const maker = (typeof item === 'object' && item.maker) ? item.maker : '';
+      const model = (typeof item === 'object') ? item.model : item;
+
+      const row = document.createElement('div');
+      row.className = 'item';
+      const searchQuery = maker ? maker+' '+model : model;
+      const catImg = getCatImgByItemName(name);
+      const thumbHtml = (typeof item==='object' && item.img)
+        ? `<div class="thumb"><img class="thumb-img" src="${item.img}"></div>`
+        : catImg
+          ? `<div class="thumb"><img class="thumb-img" src="${catImg}" onerror="this.parentNode.innerHTML='${icon}'"></div>`
+          : `<div class="thumb">${icon}</div>`;
+      row.innerHTML = `
+        ${thumbHtml}
+        <div class="item-name">
+          ${model}
+          ${maker ? `<span class="item-sub">${maker}</span>` : ''}
+        </div>
+        <a class="item-amz" href="${amazonUrl(searchQuery)}" target="_blank" rel="noopener">
+          <span>Amazon</span>
+        </a>
+        <button class="item-myset-add" title="${T.mySetAddTitle}">📌</button>
+        <button class="item-del" title="削除">🗑️</button>
+      `;
+      row.onclick = (e) => {
+        if (e.target.closest('.item-del')) return;
+        if (e.target.closest('.item-amz')) return;
+        if (e.target.closest('.item-myset-add')) return;
+        if (isDirectCat(catId)) {
+          addDirectItem(name, catId);
+        } else {
+          addItemToLight(name);
+        }
+      };
+      row.querySelector('.item-myset-add').onclick = (e) => {
+        e.stopPropagation();
+        addToMySet(catId, name);
+      };
+      row.querySelector('.item-del').onclick = (e) => {
+        e.stopPropagation();
+        deleteItem(catId, item, name, showAll, () => renderItems());
+      };
+      listDiv.appendChild(row);
+    });
+
+    if (!showAll && items.length > VISIBLE_COUNT) {
+      const more = document.createElement('div');
+      more.className = 'show-more';
+      more.textContent = T.showMore(items.length - VISIBLE_COUNT);
+      more.onclick = () => { itemPanelShowAll[catId] = true; renderItems(); };
+      listDiv.appendChild(more);
+    }
+  }
+
+  renderItems();
+  return panel;
 }
 
 // ── カテゴリ追加：まずグリッドにブランク枠を生成 ──
@@ -800,120 +919,9 @@ function showEditPendingDialog(pendingId) {
     customCats.push(newCat);
     saveCustomCats();
     renderCats();
-    selectCat(newCat.id);
+    setActiveCat(newCat.id);
     return true;
   });
-}
-
-// ══════════════════════════════════════════════
-//  カテゴリ選択 → 機材リスト描画
-// ══════════════════════════════════════════════
-function selectCat(catId) {
-  activeCatId = catId;
-  renderCats(); // ハイライト更新
-
-  const cat   = getCat(catId);
-  const items = getItems(catId);
-  const isCustom = !!customCats.find(c => c.id === catId);
-
-  document.getElementById('catTitle').textContent = cat ? cat.label : '';
-  document.getElementById('itemCard').style.display = 'block';
-
-  // カスタムカテゴリの場合のみ編集・削除ボタンを表示
-  const actionsEl = document.getElementById('catActions');
-  if (isCustom) {
-    actionsEl.innerHTML = `
-      <button class="btn-cat-edit" onclick="editCategory('${catId}')">✏️ 編集</button>
-      <button class="btn-cat-del" onclick="deleteCategory('${catId}')">🗑 削除</button>
-    `;
-  } else {
-    actionsEl.innerHTML = '';
-  }
-
-  const list = document.getElementById('itemList');
-  list.innerHTML = '';
-
-  // ① 機材を追加（全カテゴリに表示）
-  const addRow = document.createElement('div');
-  addRow.className = 'item item-add';
-  addRow.innerHTML = `
-    <div class="thumb">＋</div>
-    <div class="item-name">${T.addItemRow}</div>
-  `;
-  addRow.onclick = () => showAddItemDialog(catId);
-  list.appendChild(addRow);
-
-  // ② 機材リスト（5件まで表示、残りは「もっと見る」）
-  const LIMIT = VISIBLE_COUNT;
-  const icon  = cat ? cat.icon : '📦';
-
-  function renderItems(showAll) {
-    // 追加行以外を削除
-    list.querySelectorAll('.item:not(.item-add), .show-more').forEach(el => el.remove());
-
-    const visible = showAll ? items : items.slice(0, LIMIT);
-    visible.forEach(item => {
-      const name = displayName(item);
-      const maker = (typeof item === 'object' && item.maker) ? item.maker : '';
-      const model = (typeof item === 'object') ? item.model : item;
-
-      const row = document.createElement('div');
-      row.className = 'item';
-      const searchQuery = maker ? maker+' '+model : model;
-      // 優先順位: 個別写真 > カテゴリ画像 > 絵文字
-      const catImg = getCatImgByItemName(name);
-      const thumbHtml = (typeof item==='object' && item.img)
-        ? `<div class="thumb"><img class="thumb-img" src="${item.img}"></div>`
-        : catImg
-          ? `<div class="thumb"><img class="thumb-img" src="${catImg}" onerror="this.parentNode.innerHTML='${icon}'"></div>`
-          : `<div class="thumb">${icon}</div>`;
-      row.innerHTML = `
-        ${thumbHtml}
-        <div class="item-name">
-          ${model}
-          ${maker ? `<span class="item-sub">${maker}</span>` : ''}
-        </div>
-        <a class="item-amz" href="${amazonUrl(searchQuery)}" target="_blank" rel="noopener">
-          <span>Amazon</span>
-        </a>
-        <button class="item-myset-add" title="${T.mySetAddTitle}">📌</button>
-        <button class="item-del" title="削除">🗑️</button>
-      `;
-      // 行タップ → ライトへ追加 or ライティング図に直接配置
-      row.onclick = (e) => {
-        if (e.target.closest('.item-del')) return;
-        if (e.target.closest('.item-amz')) return;
-        if (e.target.closest('.item-myset-add')) return;
-        if (isDirectCat(catId)) {
-          addDirectItem(name, catId);
-        } else {
-          addItemToLight(name);
-        }
-      };
-      // マイセット追加ボタン
-      row.querySelector('.item-myset-add').onclick = (e) => {
-        e.stopPropagation();
-        addToMySet(catId, name);
-      };
-      // ゴミ箱タップ → 削除確認
-      row.querySelector('.item-del').onclick = (e) => {
-        e.stopPropagation();
-        deleteItem(catId, item, name, showAll, renderItems);
-      };
-      list.appendChild(row);
-    });
-
-    // 5件超の場合は「もっと見る」
-    if (!showAll && items.length > LIMIT) {
-      const more = document.createElement('div');
-      more.className = 'show-more';
-      more.textContent = T.showMore(items.length - LIMIT);
-      more.onclick = () => renderItems(true);
-      list.appendChild(more);
-    }
-  }
-
-  renderItems(false);
 }
 
 // ══════════════════════════════════════════════
@@ -1017,8 +1025,7 @@ function editCategory(catId) {
       if (pickedImgData) saveItemImg('catimg_' + catId, pickedImgData);
     }
     saveCustomCats();
-    selectCat(catId);
-    renderCats();
+    setActiveCat(catId);
     return true;
   });
 }
@@ -1040,9 +1047,8 @@ function deleteCategory(catId) {
   showOverlay(() => {
     customCats = customCats.filter(c => c.id !== catId);
     saveCustomCats();
-    // 選択を解除してitemCardを非表示に
+    // 選択を解除
     activeCatId = null;
-    document.getElementById('itemCard').style.display = 'none';
     renderCats();
     okBtn.textContent = origOkText;
     okBtn.style.background = '';
@@ -1131,7 +1137,7 @@ function showAddItemDialog(catId) {
     // 画像をIDBに非同期保存
     if (newItemImgData) saveItemImg(imgKey, newItemImgData);
 
-    selectCat(catId);
+    setActiveCat(catId);
     return true;
   });
 }
@@ -1369,7 +1375,6 @@ function saveAndExit() {
 function applyI18n(){
   const s=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
   s('warehouseTitle', T.warehouseTitle);
-  s('catTitle',       T.catPrompt);
   s('builderTitle',   T.builderTitle);
   s('saveBtn',        T.saveBtn);
   s('mySetTitle',     T.mySetTitle);
