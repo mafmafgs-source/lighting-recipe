@@ -718,6 +718,9 @@ function resetAll(){
   lights=lights.map(l=>({...l, x:20, y:30, height:HEIGHT_DEFAULT, beam:40, angle:270, output:null}));
   saveLights();
 
+  // 直接配置アイテム（レフ板・Flag等）も新規写真時にクリア
+  saveDirectItems([]);
+
   // レシピIDをクリア（リセット後は新規扱い）
   currentRecipeId='';
   localStorage.removeItem('lr_current_recipe_id');
@@ -1343,6 +1346,7 @@ function makeDraggable(node,canvas,idx){
     lights[idx].y=Math.max(0,Math.min(100,st+(ey-sy)/rect.height*100));
     node.style.left=lights[idx].x+'%';node.style.top=lights[idx].y+'%';
     renderBg();renderBeams();
+    saveLights(); // ドラッグ中も即座に保存（画面遷移で位置が消えないように）
   };
   node.addEventListener('mousedown',e=>{
     e.preventDefault();sx=e.clientX;sy=e.clientY;sl=lights[idx].x??20;st=lights[idx].y??30;
