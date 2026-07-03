@@ -66,7 +66,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
 .direct-item.selected{filter:drop-shadow(0 0 5px rgba(200,169,110,.9))}
 .direct-item img{width:54px;height:54px;object-fit:contain}
 .direct-item-name{font-size:9px;color:#555;white-space:nowrap;max-width:70px;overflow:hidden;text-overflow:ellipsis;text-align:center}
-.direct-item-del{position:absolute;top:-6px;right:-6px;width:16px;height:16px;background:#c0392b;color:#fff;border:none;border-radius:50%;font-size:9px;line-height:16px;text-align:center;cursor:pointer;display:none;padding:0}
+.direct-item-del{position:absolute;top:-8px;right:-8px;width:22px;height:22px;background:#c0392b;color:#fff;border:none;border-radius:50%;font-size:12px;line-height:22px;text-align:center;cursor:pointer;display:none;padding:0}
+.direct-item-del::before{content:'';position:absolute;top:-9px;left:-9px;right:-9px;bottom:-9px}
 .direct-item.selected .direct-item-del{display:block}
 .di-height-ring{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin-bottom:1px}
 /* キャンバス内メモ（直接入力） */
@@ -166,9 +167,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
 .btn-limit-cancel{padding:11px;border-radius:10px;font-size:13px;cursor:pointer;background:transparent;border:1px solid #2a2a2a;color:#666;width:100%}
 /* タブバー */
 .tab-bar{position:fixed;bottom:0;left:0;right:0;display:flex;background:#111;border-top:1px solid #2e2e2e;z-index:500;max-width:100%}
-.tab-bar a{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 0 env(safe-area-inset-bottom,6px);text-decoration:none;font-size:10px;color:#666;gap:2px;-webkit-tap-highlight-color:transparent;transition:color .15s}
+.tab-bar a{flex:1;display:flex;align-items:center;justify-content:center;padding:14px 0 env(safe-area-inset-bottom,14px);text-decoration:none;font-size:13px;font-weight:600;color:#666;-webkit-tap-highlight-color:transparent;transition:color .15s}
 .tab-bar a.active{color:#c8a96e}
-.tab-bar a .tab-icon{font-size:18px;line-height:1}
 .tab-spacer{height:70px}
 </style>
 </head>
@@ -806,12 +806,8 @@ function resetAll(){
 //  被写体アイコン
 // ══════════════════════════════════════
 const SUBJECT_OPTIONS=[
-  { id:'male', label:'男性',
-    html:'<svg viewBox="0 0 24 24" width="27" height="27"><circle cx="12" cy="7.5" r="4.3" fill="#8a8a8a"/><path d="M4.5 21.5c0-4.8 3.2-7.7 7.5-7.7s7.5 2.9 7.5 7.7" fill="#8a8a8a"/></svg>' },
-  { id:'female', label:'女性',
-    html:'<svg viewBox="0 0 24 24" width="27" height="27"><circle cx="12" cy="7.5" r="4.3" fill="#8a8a8a"/><path d="M3 21.5c0-3 1.6-5.2 3.8-6.4-1 .9-1.6 2.1-1.6 3.5 0 2.5 2 4.5 4.5 4.5h4.6c2.5 0 4.5-2 4.5-4.5 0-1.4-.6-2.6-1.6-3.5 2.2 1.2 3.8 3.4 3.8 6.4" fill="#8a8a8a"/></svg>' },
   { id:'vase', label:'花瓶セット',
-    html:'<svg viewBox="0 0 34 26" width="30" height="23"><path d="M11 2c-1.6 0-2.6 1-2.6 2.4 0 1.2.5 2 .9 2.9-1.7 2-2.8 4.6-2.8 7.4 0 4 2 6.3 4.5 6.3s4.5-2.3 4.5-6.3c0-2.8-1.1-5.4-2.8-7.4.4-.9.9-1.7.9-2.9C13.6 3 12.6 2 11 2z" fill="#8a8a8a"/><path d="M25.5 10c-1.1 0-1.8.7-1.8 1.7 0 .8.3 1.4.6 2-1.2 1.4-2 3.2-2 5.1 0 2.8 1.4 4.4 3.2 4.4s3.2-1.6 3.2-4.4c0-1.9-.8-3.7-2-5.1.3-.6.6-1.2.6-2 0-1-.7-1.7-1.8-1.7z" fill="#8a8a8a"/></svg>' },
+    html:'<svg viewBox="0 0 34 26" width="36" height="28"><path d="M11 2c-1.6 0-2.6 1-2.6 2.4 0 1.2.5 2 .9 2.9-1.7 2-2.8 4.6-2.8 7.4 0 4 2 6.3 4.5 6.3s4.5-2.3 4.5-6.3c0-2.8-1.1-5.4-2.8-7.4.4-.9.9-1.7.9-2.9C13.6 3 12.6 2 11 2z" fill="#8a8a8a"/><path d="M25.5 10c-1.1 0-1.8.7-1.8 1.7 0 .8.3 1.4.6 2-1.2 1.4-2 3.2-2 5.1 0 2.8 1.4 4.4 3.2 4.4s3.2-1.6 3.2-4.4c0-1.9-.8-3.7-2-5.1.3-.6.6-1.2.6-2 0-1-.7-1.7-1.8-1.7z" fill="#8a8a8a"/></svg>' },
 ];
 let subjectId='default'; // 'default' = 👤
 
@@ -825,15 +821,10 @@ function renderSubjectIcon(){
 function openSubjectSheet(e){
   if(e) e.stopPropagation();
   const grid=document.getElementById('subjectGrid');
-  grid.innerHTML=
-    `<div onclick="selectSubject('default')" style="border:1.5px solid ${subjectId==='default'?'#c8a96e':'#333'};border-radius:10px;padding:10px 4px;text-align:center;cursor:pointer;background:${subjectId==='default'?'#2a2218':'#141414'}">
-      <div style="font-size:26px;margin-bottom:4px;line-height:1">👤</div>
-      <div style="font-size:10px;color:${subjectId==='default'?'#c8a96e':'#aaa'}">標準</div>
-    </div>` +
-    SUBJECT_OPTIONS.map(o=>`
-    <div onclick="selectSubject('${o.id}')" style="border:1.5px solid ${subjectId===o.id?'#c8a96e':'#333'};border-radius:10px;padding:10px 4px;text-align:center;cursor:pointer;background:${subjectId===o.id?'#2a2218':'#141414'}">
-      <div style="font-size:26px;margin-bottom:4px;line-height:1">${o.html}</div>
-      <div style="font-size:10px;color:${subjectId===o.id?'#c8a96e':'#aaa'}">${o.label}</div>
+  const items=[{id:'default',html:'👤'},...SUBJECT_OPTIONS];
+  grid.innerHTML=items.map(o=>`
+    <div onclick="selectSubject('${o.id}')" style="border:1.5px solid ${subjectId===o.id?'#c8a96e':'#333'};border-radius:10px;padding:18px 4px;text-align:center;cursor:pointer;background:${subjectId===o.id?'#2a2218':'#141414'};display:flex;align-items:center;justify-content:center;min-height:60px">
+      <div style="font-size:32px;line-height:1">${o.html}</div>
     </div>`).join('');
   document.getElementById('subjectSheet').style.display='flex';
 }
@@ -2525,9 +2516,9 @@ function roundRect(ctx,x,y,w,h,r){
 <!-- タブバー -->
 <div class="tab-spacer"></div>
 <nav class="tab-bar">
-  <a href="index.html" class="active"><span class="tab-icon">📷</span>レシピ</a>
-  <a href="builder.html"><span class="tab-icon">📦</span>機材</a>
-  <a href="mypage.html"><span class="tab-icon">👤</span>マイページ</a>
+  <a href="index.html" class="active">レシピ</a>
+  <a href="builder.html">機材倉庫</a>
+  <a href="mypage.html">マイページ</a>
 </nav>
 
 </body>
