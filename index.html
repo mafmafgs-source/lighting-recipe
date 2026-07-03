@@ -2254,27 +2254,35 @@ async function doExport(){
     });
   }
 
-  // ── Web Share API（カメラロール）or フォールバック ──
+  // ── 写真アプリへの保存（Android / iPhone 両対応） ──
   canvas.toBlob(async blob=>{
     const file=new File([blob],'lighting-recipe.png',{type:'image/png'});
+    const isIOS=/iP(hone|od|ad)/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+
+    // ① Web Share API：共有シートの「画像を保存」で写真アプリに直接保存できる（iOS/Android共通で最も確実）
     if(navigator.canShare&&navigator.canShare({files:[file]})){
       try{
         await navigator.share({files:[file],title:'Lighting Recipe'});
+        return;
       }catch(e){
-        if(e.name!=='AbortError'){
-          // シェアキャンセル以外のエラーはダウンロードへ
-          const link=document.createElement('a');
-          link.download='lighting-recipe.png';
-          link.href=URL.createObjectURL(blob);
-          link.click();
-        }
+        if(e.name==='AbortError') return; // ユーザーが共有をキャンセル→そのまま終了
+        // それ以外のエラーはフォールバックへ
       }
-    } else {
-      // Web Share API非対応ブラウザはダウンロード
+    }
+
+    // ② フォールバック
+    const url=URL.createObjectURL(blob);
+    if(isIOS){
+      // iOSは<a download>が効かないため、新しいタブで画像を開いて長押し保存を案内
+      window.open(url,'_blank');
+      showSaveToast('画像を長押しして「写真に保存」を選んでください');
+    }else{
+      // Androidはdownloadリンクでダウンロードフォルダに保存される
       const link=document.createElement('a');
       link.download='lighting-recipe.png';
-      link.href=URL.createObjectURL(blob);
+      link.href=url;
       link.click();
+      showSaveToast('保存しました（ダウンロードフォルダ）');
     }
   },'image/png');
 }
