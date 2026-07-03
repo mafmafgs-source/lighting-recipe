@@ -1375,9 +1375,12 @@ function renderLights() {
           html += '<div style="display:flex;flex-direction:column;align-items:center;gap:0">';
           if (hasLight) {
             const src = getItemImgSrc(lights_[0]);
+            // 土台（スタンド/ブーム）がある場合のみ、光源を土台の上に重ねて表示
+            const lightSize = hasBase ? 21 : 48;
+            const overlapStyle = hasBase ? 'margin-bottom:-21px;' : '';
             html += src
-              ? `<img src="${src}" style="width:21px;height:21px;object-fit:contain;margin-bottom:-21px;">`
-              : `<span style="font-size:14px;line-height:1">${guessIcon(lights_[0])}</span>`;
+              ? `<img src="${src}" style="width:${lightSize}px;height:${lightSize}px;object-fit:contain;${overlapStyle}">`
+              : `<span style="font-size:${hasBase?14:32}px;line-height:1">${guessIcon(lights_[0])}</span>`;
           }
           if (baseImgSrc) {
             html += `<img src="${baseImgSrc}" style="width:${baseW}px;height:${baseH}px;object-fit:contain;">`;
