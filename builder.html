@@ -1217,7 +1217,10 @@ function showAddItemDialog(catId) {
     if (newItemImgData) newItem.img = newItemImgData;
 
     // 画像キー：catId + maker + model
-    const imgKey = catId + '_' + (maker?maker+'_':'') + model;
+    // 画像キー：機材名（メーカー+型番）そのもの。カテゴリIDにアンダースコアが
+    // 含まれる場合（video_stick, custom_xxxx等）でも安全に一致させるため、
+    // カテゴリIDをキーに含めず名前だけで管理する。
+    const imgKey = maker ? maker + ' ' + model : model;
 
     if (DEFAULT_DB[catId]) {
       DEFAULT_DB[catId].push(newItem);
@@ -1489,17 +1492,13 @@ loadAllItemImgs().then(imgs=>{
     const key='catimg_'+c.id;
     if(imgs[key]) c.imgData=imgs[key];
   });
-  // customCatsとDEFAULT_DBの機材に画像を復元
-  Object.entries(imgs).forEach(([key,dataUrl])=>{
-    if(key.startsWith('catimg_')) return; // カテゴリ画像はスキップ
-    const parts=key.split('_');
-    const catId=parts[0];
-    const items=DEFAULT_DB[catId]||(customCats.find(c=>c.id===catId)||{}).items;
-    if(!items)return;
+  // 機材画像を名前で直接マッチ（カテゴリIDのアンダースコアに影響されない安全な方式）
+  const allItemLists=[...Object.values(DEFAULT_DB), ...customCats.map(c=>c.items||[])];
+  allItemLists.forEach(items=>{
     items.forEach(it=>{
       if(typeof it==='object'){
-        const k=catId+'_'+(it.maker?it.maker+'_':'')+it.model;
-        if(k===key) it.img=dataUrl;
+        const key=it.maker ? it.maker+' '+it.model : it.model;
+        if(imgs[key]) it.img=imgs[key];
       }
     });
   });
