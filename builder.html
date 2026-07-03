@@ -356,47 +356,38 @@ const DEFAULT_CATS = [
   { id:'flag',      icon:'▬',  imgPath:'icons/flag.png',     get label(){ return T.cats.flag; } },
 ];
 
-// デフォルト機材：{ maker, model } 形式
+// デフォルト機材：{ maker, model } 形式（各カテゴリ、すぐ使えるサンプルとして先頭1点のみ残す）
 const DEFAULT_DB = {
   strobe:    [
-    {maker:'Godox', model:'AD100Pro'},{maker:'Godox', model:'AD200Pro'},
-    {maker:'Godox', model:'AD300Pro'},{maker:'Godox', model:'AD400Pro'},
-    {maker:'Godox', model:'AD600Pro'},
+    {maker:'Godox', model:'AD100Pro'},
   ],
   video:     [
-    {maker:'Godox', model:'Forza300'},{maker:'Godox', model:'Forza500'},
-    {maker:'Aputure', model:'300D'},{maker:'Aputure', model:'600D'},
+    {maker:'Godox', model:'Forza300'},
   ],
   video_stick:[
-    {maker:'Godox', model:'TL60'},{maker:'Godox', model:'TL120'},
-    {maker:'Aputure', model:'MT Pro'},{maker:'Nanlite', model:'PavoTube II 15X'},
+    {maker:'Godox', model:'TL60'},
   ],
   softbox:   [
-    {maker:'', model:'120cm Octa'},{maker:'', model:'90cm Octa'},
-    {maker:'', model:'60cm Octa'},{maker:'', model:'Softbox 60x90'},
+    {maker:'', model:'120cm Octa'},
   ],
   umbrella:  [
-    {maker:'', model:'White Umbrella 85cm'},{maker:'', model:'Silver Umbrella 85cm'},
-    {maker:'', model:'Shoot-through Umbrella'},
+    {maker:'', model:'White Umbrella 85cm'},
   ],
   beauty_dish:[
-    {maker:'', model:'Beauty Dish 55cm'},{maker:'', model:'Beauty Dish 70cm'},
+    {maker:'', model:'Beauty Dish 55cm'},
   ],
   snoot:     [
-    {maker:'', model:'Snoot'},{maker:'', model:'Grid Snoot'},
+    {maker:'', model:'Snoot'},
   ],
   stand:     [
-    {maker:'Godox', model:'1052BAC'},{maker:'Godox', model:'Nano Stand'},
-    {maker:'', model:'C-Stand'},{maker:'', model:'Air-cushioned Stand'},
+    {maker:'Godox', model:'1052BAC'},
   ],
-  boom:      [{maker:'', model:'Boom Arm'},{maker:'', model:'Mini Boom'}],
+  boom:      [{maker:'', model:'Boom Arm'}],
   reflector: [
-    {maker:'', model:'白レフ'},{maker:'', model:'黒レフ'},
-    {maker:'', model:'シルバーレフ'},{maker:'', model:'トランスルーセント'},
+    {maker:'', model:'白レフ'},
   ],
   flag:      [
-    {maker:'', model:'Flag Frame S'},{maker:'', model:'Flag Frame M'},
-    {maker:'', model:'Flag Frame L'},
+    {maker:'', model:'Flag Frame S'},
   ],
 };
 
@@ -1216,7 +1207,6 @@ function showAddItemDialog(catId) {
     const newItem = { maker, model };
     if (newItemImgData) newItem.img = newItemImgData;
 
-    // 画像キー：catId + maker + model
     // 画像キー：機材名（メーカー+型番）そのもの。カテゴリIDにアンダースコアが
     // 含まれる場合（video_stick, custom_xxxx等）でも安全に一致させるため、
     // カテゴリIDをキーに含めず名前だけで管理する。
