@@ -618,9 +618,12 @@ function buildNodeHTML(l){
       html+='<div style="display:flex;flex-direction:column;align-items:center;gap:0">';
       if(hasLight){
         const src=getItemImgSrc(lights_[0]);
+        // 土台（スタンド/ブーム）がある場合のみ、光源を土台の上に重ねて表示
+        const lightSize=hasBase?21:48;
+        const overlapStyle=hasBase?'margin-bottom:-21px;':'';
         html+=src
-          ?`<img src="${src}" style="width:21px;height:21px;object-fit:contain;margin-bottom:-21px;">`
-          :`<span style="font-size:12px">⚡</span>`;
+          ?`<img src="${src}" style="width:${lightSize}px;height:${lightSize}px;object-fit:contain;${overlapStyle}">`
+          :`<span style="font-size:${hasBase?12:28}px">⚡</span>`;
       }
       if(baseImgSrc){
         html+=`<img src="${baseImgSrc}" style="width:${baseW}px;height:${baseH}px;object-fit:contain;">`;
@@ -1125,7 +1128,16 @@ function renderBeams(){
       }
       const baseX=(l.x??20)/100*W;
       cx=flipped ? baseX - beamOffsetX/100*W : baseX + beamOffsetX/100*W;
-      cy=(l.y??30)/100*H - LIGHT_OFFSET_RATIO*H;
+      const hasBaseHere=l.items.some(n=>getItemRole(n)==='base');
+      if(hasBaseHere){
+        // 土台あり：光源は土台上部に重なって表示される（従来の位置計算）
+        cy=(l.y??30)/100*H - LIGHT_OFFSET_RATIO*H;
+      } else {
+        // 土台なし（光源単体）：ノード下端に単独表示されるため、その中心に合わせる
+        const LIGHT_ONLY_SIZE=48; // buildNodeHTMLの単独表示サイズと一致させる
+        const nodeHalfH=145/2;
+        cy=(l.y??30)/100*H + (nodeHalfH - LIGHT_ONLY_SIZE/2);
+      }
     }
     const beam=l.beam??40;
     // 反転時は角度をミラー（180° - angle）
