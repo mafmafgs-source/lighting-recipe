@@ -565,7 +565,7 @@ const CAT_IMG_MAP={
   reflector:'icons/reflector.png', flag:'icons/flag.png',
 };
 
-// DEFAULT_DB相当（カテゴリ逆引き用）
+// DEFAULT_DB相当（カテゴリ逆引き用）※初期プリセットのみ
 const IDX_DEFAULT_DB={
   strobe:['AD100Pro','AD200Pro','AD300Pro','AD400Pro','AD600Pro'],
   video:['Forza300','Forza500','300D','600D'],
@@ -580,8 +580,28 @@ const IDX_DEFAULT_DB={
   flag:['Flag Frame S','Flag Frame M','Flag Frame L'],
 };
 
+// Builderで追加された機材（lr_defaultAdditions）も統合したカテゴリ逆引き表を構築
+// これがないと、Builderで新規追加した機材がライティング図側で「モディファイア」誤判定され、
+// 光源として認識されず出力・光パーツが使えなくなる
+function buildRoleIndex(){
+  const merged={};
+  Object.keys(IDX_DEFAULT_DB).forEach(catId=>{ merged[catId]=[...IDX_DEFAULT_DB[catId]]; });
+  try{
+    const additions=JSON.parse(localStorage.getItem('lr_defaultAdditions')||'{}');
+    Object.keys(additions).forEach(catId=>{
+      if(!merged[catId]) merged[catId]=[];
+      (additions[catId]||[]).forEach(it=>{
+        const nm=(typeof it==='object')?(it.maker?it.maker+' '+it.model:it.model):it;
+        if(nm) merged[catId].push(nm);
+      });
+    });
+  }catch(e){}
+  return merged;
+}
+let ROLE_INDEX=buildRoleIndex();
+
 function getCatImgByItemName(name){
-  for(const[catId,models]of Object.entries(IDX_DEFAULT_DB)){
+  for(const[catId,models]of Object.entries(ROLE_INDEX)){
     if(models.some(m=>name===m||name.includes(m)||m.includes(name.split(' ').pop()))){
       return CAT_IMG_MAP[catId]||null;
     }
@@ -595,8 +615,8 @@ function getCatImgByItemName(name){
 }
 
 function getItemRole(name){
-  if(['stand','boom'].some(id=>IDX_DEFAULT_DB[id]&&IDX_DEFAULT_DB[id].some(m=>name===m||name.includes(m)))) return 'base';
-  if(['strobe','video','video_stick'].some(id=>IDX_DEFAULT_DB[id]&&IDX_DEFAULT_DB[id].some(m=>name===m||name.includes(m)))) return 'light';
+  if(['stand','boom'].some(id=>ROLE_INDEX[id]&&ROLE_INDEX[id].some(m=>name===m||name.includes(m)))) return 'base';
+  if(['strobe','video','video_stick'].some(id=>ROLE_INDEX[id]&&ROLE_INDEX[id].some(m=>name===m||name.includes(m)))) return 'light';
   return 'modifier';
 }
 
