@@ -187,6 +187,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
       </label>
     </div>
     <input type="file" id="fileInput" accept="image/*" style="display:none">
+    <input type="file" id="cameraIconInput" accept="image/*" style="display:none">
 
     <div class="meta-row">
       <div class="info-box info-loc" style="flex:1">
@@ -805,11 +806,12 @@ function resetAll(){
 //  被写体アイコン
 // ══════════════════════════════════════
 const SUBJECT_OPTIONS=[
-  { id:'male',        label:'男性',       html:'🧑' },
-  { id:'male_full',   label:'男性（全身）', html:'🧍' },
-  { id:'female',      label:'女性',       html:'👩' },
-  { id:'female_full', label:'女性（全身）', html:'🧍\u200d♀️' },
-  { id:'vase',        label:'花瓶セット',  html:'<span style="font-size:1.05em">🏺</span><span style="font-size:.6em;margin-left:-5px;vertical-align:bottom">🏺</span>' },
+  { id:'male', label:'男性',
+    html:'<svg viewBox="0 0 24 24" width="27" height="27"><circle cx="12" cy="7.5" r="4.3" fill="#8a8a8a"/><path d="M4.5 21.5c0-4.8 3.2-7.7 7.5-7.7s7.5 2.9 7.5 7.7" fill="#8a8a8a"/></svg>' },
+  { id:'female', label:'女性',
+    html:'<svg viewBox="0 0 24 24" width="27" height="27"><circle cx="12" cy="7.5" r="4.3" fill="#8a8a8a"/><path d="M3 21.5c0-3 1.6-5.2 3.8-6.4-1 .9-1.6 2.1-1.6 3.5 0 2.5 2 4.5 4.5 4.5h4.6c2.5 0 4.5-2 4.5-4.5 0-1.4-.6-2.6-1.6-3.5 2.2 1.2 3.8 3.4 3.8 6.4" fill="#8a8a8a"/></svg>' },
+  { id:'vase', label:'花瓶セット',
+    html:'<svg viewBox="0 0 34 26" width="30" height="23"><path d="M11 2c-1.6 0-2.6 1-2.6 2.4 0 1.2.5 2 .9 2.9-1.7 2-2.8 4.6-2.8 7.4 0 4 2 6.3 4.5 6.3s4.5-2.3 4.5-6.3c0-2.8-1.1-5.4-2.8-7.4.4-.9.9-1.7.9-2.9C13.6 3 12.6 2 11 2z" fill="#8a8a8a"/><path d="M25.5 10c-1.1 0-1.8.7-1.8 1.7 0 .8.3 1.4.6 2-1.2 1.4-2 3.2-2 5.1 0 2.8 1.4 4.4 3.2 4.4s3.2-1.6 3.2-4.4c0-1.9-.8-3.7-2-5.1.3-.6.6-1.2.6-2 0-1-.7-1.7-1.8-1.7z" fill="#8a8a8a"/></svg>' },
 ];
 let subjectId='default'; // 'default' = 👤
 
@@ -2492,7 +2494,7 @@ function roundRect(ctx,x,y,w,h,r){
 <div id="subjectSheet" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:510;align-items:flex-end;justify-content:center">
   <div style="background:#1a1a1a;border-radius:20px 20px 0 0;padding:16px 16px 0;width:100%;max-width:430px;border-top:1px solid #333;padding-bottom:calc(env(safe-area-inset-bottom,0px) + 80px)">
     <div style="font-size:12px;font-weight:700;color:#888;letter-spacing:.06em;text-align:center;margin-bottom:14px">被写体を選択</div>
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px" id="subjectGrid"></div>
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:14px" id="subjectGrid"></div>
     <button onclick="closeSubjectSheet()" style="width:100%;padding:12px;border:1px solid #333;border-radius:12px;background:transparent;color:#888;font-size:14px;cursor:pointer;margin-bottom:4px">閉じる</button>
   </div>
 </div>
@@ -2506,7 +2508,6 @@ function roundRect(ctx,x,y,w,h,r){
     <button onclick="closeCameraSheet()" style="width:100%;padding:12px;border:1px solid #333;border-radius:12px;background:transparent;color:#888;font-size:14px;cursor:pointer;margin-bottom:4px">キャンセル</button>
   </div>
 </div>
-<input type="file" id="cameraIconInput" accept="image/*" style="display:none">
 
 <!-- 保存上限ダイアログ -->
 <div id="limitOverlay">
