@@ -50,8 +50,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
 /* キャンバス */
 .lighting-wrap{position:relative}
 #canvas{width:100%;aspect-ratio:1/1;border:1px solid #2e2e2e;border-radius:12px;background:#f0f0f0;position:relative;overflow:hidden;touch-action:none}
-.subject{position:absolute;left:50%;top:42%;transform:translate(-50%,-50%);font-size:28px;pointer-events:none;user-select:none}
-.camera-icon{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);font-size:22px;pointer-events:none;user-select:none}
+.subject{position:absolute;left:50%;top:42%;transform:translate(-50%,-50%);font-size:28px;user-select:none;cursor:pointer;z-index:5;padding:6px;line-height:1}
+.camera-icon{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);font-size:22px;user-select:none;cursor:pointer;z-index:5;padding:4px}
+.camera-icon img{width:22px;height:22px;object-fit:contain;border-radius:5px;display:block}
 #lightSvg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}
 /* ライトノード */
 .light-node{position:absolute;width:80px;height:145px;background:transparent;border:none;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;cursor:grab;user-select:none;touch-action:none;transition:filter .15s}
@@ -223,8 +224,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
     <div class="lighting-wrap">
       <div id="canvas">
         <svg id="lightSvg" xmlns="http://www.w3.org/2000/svg"><g id="bgGroup"></g></svg>
-        <div class="subject">👤</div>
-        <div class="camera-icon">📷</div>
+        <div class="subject" onclick="openSubjectSheet(event)">👤</div>
+        <div class="camera-icon" onclick="openCameraSheet(event)">📷</div>
         <div class="canvas-memo" id="canvasMemo" contenteditable="true" data-placeholder="📝 メモを入力"></div>
       </div>
     </div>
@@ -415,6 +416,7 @@ function saveSession(){
       sunPos:sunPos,
       sunBeam:sunBeam,
       sunAngle:sunAngle,
+      subjectId:subjectId,
     };
     localStorage.setItem(SS_KEY,JSON.stringify(s));
   }catch(e){}
@@ -486,7 +488,9 @@ function restoreSession(){
     if(s.sunBeam!=null)  sunBeam=s.sunBeam;
     if(s.sunAngle!=null) sunAngle=s.sunAngle;
     if(s.sunPos) sunPos=s.sunPos;
+    if(s.subjectId) subjectId=s.subjectId;
   }
+  renderSubjectIcon();
   // EXIFは専用キーから独立して復元
   restoreExif();
 
@@ -775,6 +779,10 @@ function resetAll(){
   sunOn=false; sunPos={x:20,y:15}; selectedSun=false;
   document.getElementById('sunToggleBtn').classList.remove('sun-on');
 
+  // 被写体アイコン
+  subjectId='default';
+  renderSubjectIcon();
+
   // ライト（位置・高さ・配光をリセット、機材設定はBuilderに任せるので保持）
   lights=lights.map(l=>({...l, x:20, y:30, height:HEIGHT_DEFAULT, beam:40, angle:270, output:null}));
   saveLights();
@@ -792,6 +800,110 @@ function resetAll(){
   renderCanvas();
   renderPanel();
 }
+
+// ══════════════════════════════════════
+//  被写体アイコン
+// ══════════════════════════════════════
+const SUBJECT_OPTIONS=[
+  { id:'male',        label:'男性',       html:'🧑' },
+  { id:'male_full',   label:'男性（全身）', html:'🧍' },
+  { id:'female',      label:'女性',       html:'👩' },
+  { id:'female_full', label:'女性（全身）', html:'🧍\u200d♀️' },
+  { id:'vase',        label:'花瓶セット',  html:'<span style="font-size:1.05em">🏺</span><span style="font-size:.6em;margin-left:-5px;vertical-align:bottom">🏺</span>' },
+];
+let subjectId='default'; // 'default' = 👤
+
+function renderSubjectIcon(){
+  const el=document.querySelector('.subject');
+  if(!el) return;
+  const opt=SUBJECT_OPTIONS.find(o=>o.id===subjectId);
+  el.innerHTML=opt?opt.html:'👤';
+}
+
+function openSubjectSheet(e){
+  if(e) e.stopPropagation();
+  const grid=document.getElementById('subjectGrid');
+  grid.innerHTML=
+    `<div onclick="selectSubject('default')" style="border:1.5px solid ${subjectId==='default'?'#c8a96e':'#333'};border-radius:10px;padding:10px 4px;text-align:center;cursor:pointer;background:${subjectId==='default'?'#2a2218':'#141414'}">
+      <div style="font-size:26px;margin-bottom:4px;line-height:1">👤</div>
+      <div style="font-size:10px;color:${subjectId==='default'?'#c8a96e':'#aaa'}">標準</div>
+    </div>` +
+    SUBJECT_OPTIONS.map(o=>`
+    <div onclick="selectSubject('${o.id}')" style="border:1.5px solid ${subjectId===o.id?'#c8a96e':'#333'};border-radius:10px;padding:10px 4px;text-align:center;cursor:pointer;background:${subjectId===o.id?'#2a2218':'#141414'}">
+      <div style="font-size:26px;margin-bottom:4px;line-height:1">${o.html}</div>
+      <div style="font-size:10px;color:${subjectId===o.id?'#c8a96e':'#aaa'}">${o.label}</div>
+    </div>`).join('');
+  document.getElementById('subjectSheet').style.display='flex';
+}
+function closeSubjectSheet(){
+  document.getElementById('subjectSheet').style.display='none';
+}
+function selectSubject(id){
+  subjectId=id;
+  renderSubjectIcon();
+  saveSession();
+  closeSubjectSheet();
+}
+
+// ══════════════════════════════════════
+//  カメラアイコン（自分のカメラの写真に変更）
+// ══════════════════════════════════════
+let cameraIconImg=null; // dataURL or null
+
+function loadCameraIcon(){
+  try{
+    const v=localStorage.getItem('lr_cameraIconImg');
+    if(v) cameraIconImg=v;
+  }catch(e){}
+  renderCameraIcon();
+}
+function renderCameraIcon(){
+  const el=document.querySelector('.camera-icon');
+  if(!el) return;
+  el.innerHTML=cameraIconImg?`<img src="${cameraIconImg}">`:'📷';
+}
+function openCameraSheet(e){
+  if(e) e.stopPropagation();
+  document.getElementById('cameraResetBtn').style.display=cameraIconImg?'block':'none';
+  document.getElementById('cameraSheet').style.display='flex';
+}
+function closeCameraSheet(){
+  document.getElementById('cameraSheet').style.display='none';
+}
+function triggerCameraIconUpload(){
+  document.getElementById('cameraIconInput').click();
+}
+function resetCameraIcon(){
+  cameraIconImg=null;
+  try{ localStorage.removeItem('lr_cameraIconImg'); }catch(e){}
+  renderCameraIcon();
+  closeCameraSheet();
+}
+document.getElementById('cameraIconInput').addEventListener('change',function(e){
+  const file=e.target.files[0];
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    const img=new Image();
+    img.onload=()=>{
+      // アイコンサイズに合わせて小さくリサイズしてから保存（軽量化）
+      const size=60;
+      const c=document.createElement('canvas');
+      c.width=size;c.height=size;
+      const ctx=c.getContext('2d');
+      const scale=Math.max(size/img.naturalWidth,size/img.naturalHeight);
+      const dw=img.naturalWidth*scale,dh=img.naturalHeight*scale;
+      ctx.drawImage(img,(size-dw)/2,(size-dh)/2,dw,dh);
+      cameraIconImg=c.toDataURL('image/jpeg',0.75);
+      try{ localStorage.setItem('lr_cameraIconImg',cameraIconImg); }catch(err){}
+      renderCameraIcon();
+      closeCameraSheet();
+    };
+    img.src=ev.target.result;
+  };
+  reader.readAsDataURL(file);
+  e.target.value='';
+});
 
 // ══════════════════════════════════════
 //  太陽
@@ -1617,6 +1729,7 @@ window.addEventListener('resize',()=>{renderBg();renderBeams();});
 
 applyI18n();
 lights=loadLights();
+loadCameraIcon(); // カメラアイコン（自分のカメラの写真）は端末全体の設定として復元
 
 // 機材写真（Builderで登録した写真）を読み込み、準備でき次第ライティング図に反映
 loadItemImgMap().then(map=>{
@@ -1772,6 +1885,7 @@ async function doSaveRecipe(forceNew){
       memo:getCanvasMemo(),
       bgType, bgColor:document.getElementById('bgColor')?.value||'#ffffff',
       sunOn, sunPos:{...sunPos}, sunBeam, sunAngle,
+      subjectId,
       exDate:document.getElementById('exDate')?.textContent||'',
       exCamera:document.getElementById('exCamera')?.textContent||'',
       exLens:document.getElementById('exLens')?.textContent||'',
@@ -1865,6 +1979,10 @@ async function loadRecipeFromURL(){
     if(s.sunPos)         sunPos={...s.sunPos};
     if(s.sunBeam!=null)  sunBeam=s.sunBeam;
     if(s.sunAngle!=null) sunAngle=s.sunAngle;
+
+    // 被写体アイコン
+    if(s.subjectId) subjectId=s.subjectId;
+    renderSubjectIcon();
 
     // EXIF表示
     if(s.exCamera) document.getElementById('exCamera').textContent=s.exCamera;
@@ -2369,6 +2487,26 @@ function roundRect(ctx,x,y,w,h,r){
     <button onclick="closeBgSheet()" style="width:100%;padding:12px;border:1px solid #333;border-radius:12px;background:transparent;color:#888;font-size:14px;cursor:pointer;margin-bottom:4px">閉じる</button>
   </div>
 </div>
+
+<!-- 被写体アイコン選択シート -->
+<div id="subjectSheet" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:510;align-items:flex-end;justify-content:center">
+  <div style="background:#1a1a1a;border-radius:20px 20px 0 0;padding:16px 16px 0;width:100%;max-width:430px;border-top:1px solid #333;padding-bottom:calc(env(safe-area-inset-bottom,0px) + 80px)">
+    <div style="font-size:12px;font-weight:700;color:#888;letter-spacing:.06em;text-align:center;margin-bottom:14px">被写体を選択</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px" id="subjectGrid"></div>
+    <button onclick="closeSubjectSheet()" style="width:100%;padding:12px;border:1px solid #333;border-radius:12px;background:transparent;color:#888;font-size:14px;cursor:pointer;margin-bottom:4px">閉じる</button>
+  </div>
+</div>
+
+<!-- カメラアイコン変更シート -->
+<div id="cameraSheet" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:510;align-items:flex-end;justify-content:center">
+  <div style="background:#1a1a1a;border-radius:20px 20px 0 0;padding:16px 16px 0;width:100%;max-width:430px;border-top:1px solid #333;padding-bottom:calc(env(safe-area-inset-bottom,0px) + 80px)">
+    <div style="font-size:12px;font-weight:700;color:#888;letter-spacing:.06em;text-align:center;margin-bottom:14px">カメラアイコン</div>
+    <button onclick="triggerCameraIconUpload()" style="width:100%;padding:13px;border:none;border-radius:12px;background:#c8a96e;color:#0f0f0f;font-size:14px;font-weight:700;cursor:pointer;margin-bottom:8px">📷 自分のカメラの写真を選択</button>
+    <button id="cameraResetBtn" onclick="resetCameraIcon()" style="display:none;width:100%;padding:13px;border:1px solid #333;border-radius:12px;background:#252525;color:#e8e8e8;font-size:14px;cursor:pointer;margin-bottom:8px">🔄 アイコンに戻す</button>
+    <button onclick="closeCameraSheet()" style="width:100%;padding:12px;border:1px solid #333;border-radius:12px;background:transparent;color:#888;font-size:14px;cursor:pointer;margin-bottom:4px">キャンセル</button>
+  </div>
+</div>
+<input type="file" id="cameraIconInput" accept="image/*" style="display:none">
 
 <!-- 保存上限ダイアログ -->
 <div id="limitOverlay">
