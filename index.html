@@ -505,8 +505,46 @@ function saveLights(){
   try{localStorage.setItem(LS_KEY,JSON.stringify(lights));}catch(e){}
 }
 
-// 機材名から画像を全localStorage DBで検索
+// ══════════════════════════════════════
+//  機材写真（IndexedDB）：Builderで登録した写真をライティング図にも反映
+// ══════════════════════════════════════
+const ITEM_IMG_IDB_NAME='lr_item_imgs', ITEM_IMG_IDB_STORE='imgs';
+let itemImgMap={}; // 機材名（メーカー+型番） → 写真dataURL
+
+function openItemImgIDB(){
+  return new Promise((resolve,reject)=>{
+    const req=indexedDB.open(ITEM_IMG_IDB_NAME,1);
+    req.onupgradeneeded=e=>{
+      if(!e.target.result.objectStoreNames.contains(ITEM_IMG_IDB_STORE)){
+        e.target.result.createObjectStore(ITEM_IMG_IDB_STORE);
+      }
+    };
+    req.onsuccess=e=>resolve(e.target.result);
+    req.onerror=e=>reject(e.target.error);
+  });
+}
+
+async function loadItemImgMap(){
+  try{
+    const db=await openItemImgIDB();
+    const tx=db.transaction(ITEM_IMG_IDB_STORE,'readonly');
+    const store=tx.objectStore(ITEM_IMG_IDB_STORE);
+    const [keys,values]=await Promise.all([
+      new Promise((res,rej)=>{ const r=store.getAllKeys(); r.onsuccess=e=>res(e.target.result); r.onerror=rej; }),
+      new Promise((res,rej)=>{ const r=store.getAll();    r.onsuccess=e=>res(e.target.result); r.onerror=rej; }),
+    ]);
+    db.close();
+    const map={};
+    keys.forEach((k,i)=>{
+      if(!String(k).startsWith('catimg_')) map[k]=values[i]; // カテゴリ画像は除外
+    });
+    return map;
+  }catch(e){ return {}; }
+}
+
+// 機材名から画像を検索：まずBuilderで登録した写真（IndexedDB）、次にlocalStorage
 function findItemImg(name){
+  if(itemImgMap[name]) return itemImgMap[name];
   try{
     const customs=JSON.parse(localStorage.getItem('lr_customCats')||'[]');
     const allItems=customs.flatMap(c=>c.items||[]);
@@ -1559,6 +1597,13 @@ window.addEventListener('resize',()=>{renderBg();renderBeams();});
 
 applyI18n();
 lights=loadLights();
+
+// 機材写真（Builderで登録した写真）を読み込み、準備でき次第ライティング図に反映
+loadItemImgMap().then(map=>{
+  itemImgMap=map;
+  renderCanvas();
+  renderBeams();
+});
 
 // キャンバス内メモ（contenteditable）の保存・取得
 function getCanvasMemo(){ return document.getElementById('canvasMemo')?.innerText||''; }
