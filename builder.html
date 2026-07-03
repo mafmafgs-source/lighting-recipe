@@ -80,7 +80,7 @@ body{-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%;font-
 .lc-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
 .lc-label{font-weight:700;font-size:13px;color:#e8e8e8}
 .btn-clear{background:#c0392b;color:#fff;border:none;border-radius:50%;width:22px;height:22px;font-size:13px;cursor:pointer;line-height:1}
-.preview{font-size:24px;min-height:150px;display:flex;align-items:flex-end;justify-content:center;gap:3px;margin-bottom:6px;padding:4px 2px;overflow:hidden}
+.preview{font-size:24px;min-height:150px;display:flex;align-items:flex-end;justify-content:center;gap:3px;margin-bottom:6px;padding:4px 2px;overflow:hidden;background:#2a2a2a;border-radius:8px}
 .preview-base-col{display:flex;flex-direction:column;align-items:center;gap:0;flex-shrink:0}
 .preview-base-col img{display:block}
 .preview-mod-col{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:2px;flex-shrink:0}
@@ -140,9 +140,9 @@ body{-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%;font-
 .icon-opt.selected{border-color:#c8a96e;background:#2a2218}
 /* タブバー */
 .tab-bar{position:fixed;bottom:0;left:0;right:0;display:flex;background:#111;border-top:1px solid #2e2e2e;z-index:500;max-width:100%}
-.tab-bar a{flex:1;display:flex;align-items:center;justify-content:center;padding:14px 0 env(safe-area-inset-bottom,14px);text-decoration:none;font-size:13px;font-weight:600;color:#666;-webkit-tap-highlight-color:transparent;transition:color .15s}
+.tab-bar a{flex:1;display:flex;align-items:flex-start;justify-content:center;padding:14px 0 calc(env(safe-area-inset-bottom,0px) + 22px);text-decoration:none;font-size:13px;font-weight:600;color:#666;-webkit-tap-highlight-color:transparent;transition:color .15s}
 .tab-bar a.active{color:#c8a96e}
-.tab-spacer{height:70px}
+.tab-spacer{height:82px}
 </style>
 </head>
 <body>
