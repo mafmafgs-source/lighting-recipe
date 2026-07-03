@@ -1223,6 +1223,19 @@ function renderBeams(){
 // ══════════════════════════════════════
 //  ライトノード
 // ══════════════════════════════════════
+// ノードの可視コンテンツ高さを算出（A-Eラベル・出力表示の位置計算に使用）
+// 土台（スタンド/ブーム）ありなら従来通り113px、単体表示（光源のみ/モディファイアのみ）ならその実寸
+function getNodeContentHeight(items){
+  const hasBase =items.some(n=>getItemRole(n)==='base');
+  const hasLight=items.some(n=>getItemRole(n)==='light');
+  const hasMod  =items.some(n=>getItemRole(n)==='modifier');
+  if(hasBase) return 113; // スタンド/ブーム使用時（既存の見た目を維持）
+  let h=0;
+  if(hasLight) h=Math.max(h,48); // 光源単体表示サイズ
+  if(hasMod)   h=Math.max(h,54); // モディファイア表示サイズ
+  return h||40;
+}
+
 function renderCanvas(){
   const canvas=document.getElementById('canvas');
   canvas.querySelectorAll('.light-node').forEach(n=>n.remove());
@@ -1244,9 +1257,14 @@ function renderCanvas(){
     const outTxt=hasLightSource(l.items)?outputLabel(l):'';
     const LABELS=['A','B','C','D','E'];
 
+    // A-Eラベル・出力表示の縦位置：土台の有無で可視コンテンツの高さが変わるため動的計算
+    const contentH=getNodeContentHeight(l.items);
+    const labelTop=108-contentH;
+    const outputTop=132-contentH;
+
     node.innerHTML=
-      `<span class="ln-label" style="border-color:${col};border-width:${borderW}px;background:radial-gradient(circle,#fff 40%,${col}44 100%);color:#333">${LABELS[i]}</span>`+
-      (outTxt?`<span class="ln-output">${outTxt}</span>`:'')+
+      `<span class="ln-label" style="top:${labelTop}px;border-color:${col};border-width:${borderW}px;background:radial-gradient(circle,#fff 40%,${col}44 100%);color:#333">${LABELS[i]}</span>`+
+      (outTxt?`<span class="ln-output" style="top:${outputTop}px;">${outTxt}</span>`:'')+
       buildNodeHTML(l);
 
     node.dataset.lightOffsetY = -(145/2 - 10);
