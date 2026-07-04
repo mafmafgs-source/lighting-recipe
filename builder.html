@@ -454,9 +454,24 @@ function loadDefaultAdditions(){
   try{
     const additions=JSON.parse(localStorage.getItem('lr_defaultAdditions')||'{}');
     Object.keys(additions).forEach(catId=>{
-      if(DEFAULT_DB[catId] && Array.isArray(additions[catId]) && additions[catId].length){
-        DEFAULT_DB[catId]=additions[catId];
-      }
+      if(!DEFAULT_DB[catId] || !Array.isArray(additions[catId])) return;
+      additions[catId].forEach(storedItem=>{
+        if(typeof storedItem!=='object') return;
+        // メーカー+型番が一致するプリセットがあれば、その内容（価格・写真編集含む）で上書き。
+        // なければ新規追加分として末尾に追加。
+        // ※旧形式（追加分のみ保存）・新形式（全件保存）どちらのデータでも
+        //   プリセット機材（AD100Pro等）を消さずに安全に読み込める。
+        const idx=DEFAULT_DB[catId].findIndex(preset=>
+          typeof preset==='object' &&
+          (preset.maker||'')===(storedItem.maker||'') &&
+          preset.model===storedItem.model
+        );
+        if(idx!==-1){
+          DEFAULT_DB[catId][idx]=storedItem;
+        }else{
+          DEFAULT_DB[catId].push(storedItem);
+        }
+      });
     });
   }catch(e){}
 }
