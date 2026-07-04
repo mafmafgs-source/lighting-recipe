@@ -579,7 +579,7 @@ const CAT_IMG_MAP={
   strobe:'icons/strobe.png', video:'icons/video.png', video_stick:'icons/video_stick.png',
   softbox:'icons/softbox.png', umbrella:'icons/umbrella.png',
   beauty_dish:'icons/beauty_dish.png', snoot:'icons/snoot.png',
-  stand:'icons/stand.png', boom:'icons/boom.png',
+  stand:'icons/stand.png', boom:'icons/boom_stand.png',
   reflector:'icons/reflector.png', flag:'icons/flag.png',
 };
 
@@ -628,7 +628,7 @@ function getCatImgByItemName(name){
   try{
     const customs=JSON.parse(localStorage.getItem('lr_customCats')||'[]');
     const cat=customs.find(c=>(c.items||[]).some(it=>(it.maker?it.maker+' '+it.model:it.model)===name));
-    return cat&&cat.imgPath?cat.imgPath:null;
+    return cat ? (cat.imgData || cat.imgPath || null) : null;
   }catch(e){return null;}
 }
 
