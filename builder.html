@@ -96,6 +96,9 @@ body{-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%;font-
 /* マイセット追加ボタン（ゴミ箱の隣） */
 .item-myset-add{background:none;border:none;font-size:16px;color:#c8a96e;cursor:pointer;padding:0 3px;flex-shrink:0;line-height:1}
 .item-myset-add:active{opacity:.5}
+.item-price-btn{background:none;border:none;font-size:14px;color:#7ac87a;cursor:pointer;padding:0 3px;flex-shrink:0;line-height:1}
+.item-price-btn:active{opacity:.5}
+.item-price-tag{font-size:10px;color:#7ac87a;display:block;margin-top:1px}
 
 /* マイセット枠 */
 .myset-row{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
@@ -390,9 +393,6 @@ const DEFAULT_DB = {
   ],
 };
 
-// デフォルトDB各カテゴリの初期件数（追加分との区別用）
-const ORIGINAL_DB_COUNTS = {};
-Object.keys(DEFAULT_DB).forEach(k => { ORIGINAL_DB_COUNTS[k] = DEFAULT_DB[k].length; });
 // ══════════════════════════════════════════════
 let customCats  = loadCustomCats();   // [{id, icon, label, items:[{maker,model}]}]
 let pendingCats = loadPendingCats();  // グリッドに表示されているが未設定のダミー枠 [{id}]
@@ -435,14 +435,14 @@ function saveCustomCats()  {
 }
 function savePendingCats() { localStorage.setItem('lr_pendingCats', JSON.stringify(pendingCats)); }
 
-// デフォルトカテゴリへの追加機材を保存
+// デフォルトカテゴリの機材一覧を保存（プリセット＋追加分の全件を丸ごと保存）
+// ※以前は「追加分のみ」を保存していたが、それだとプリセット機材（AD100Pro等）の
+//   価格編集が保存されなかったため、全件保存・読み込み時に丸ごと置き換える方式に変更
 function saveDefaultAdditions(){
   try{
     const additions={};
     Object.keys(DEFAULT_DB).forEach(catId=>{
-      const origCount=ORIGINAL_DB_COUNTS[catId]||0;
-      const added=DEFAULT_DB[catId].slice(origCount);
-      if(added.length) additions[catId]=added.map(it=>{
+      additions[catId]=DEFAULT_DB[catId].map(it=>{
         if(typeof it==='object'&&it.img){const{img,...rest}=it;return rest;}
         return it;
       });
@@ -454,7 +454,9 @@ function loadDefaultAdditions(){
   try{
     const additions=JSON.parse(localStorage.getItem('lr_defaultAdditions')||'{}');
     Object.keys(additions).forEach(catId=>{
-      if(DEFAULT_DB[catId]) DEFAULT_DB[catId].push(...additions[catId]);
+      if(DEFAULT_DB[catId] && Array.isArray(additions[catId]) && additions[catId].length){
+        DEFAULT_DB[catId]=additions[catId];
+      }
     });
   }catch(e){}
 }
@@ -854,6 +856,7 @@ function buildItemPanel(catId){
       const name = displayName(item);
       const maker = (typeof item === 'object' && item.maker) ? item.maker : '';
       const model = (typeof item === 'object') ? item.model : item;
+      const price = (typeof item === 'object' && item.price) ? item.price : null;
 
       const row = document.createElement('div');
       row.className = 'item';
@@ -869,10 +872,12 @@ function buildItemPanel(catId){
         <div class="item-name">
           ${model}
           ${maker ? `<span class="item-sub">${maker}</span>` : ''}
+          ${price ? `<span class="item-price-tag">¥${price.toLocaleString()}</span>` : ''}
         </div>
         <a class="item-amz" href="${amazonUrl(searchQuery)}" target="_blank" rel="noopener">
           <span>Amazon</span>
         </a>
+        <button class="item-price-btn" title="価格を設定">💴</button>
         <button class="item-myset-add" title="${T.mySetAddTitle}">📌</button>
         <button class="item-del" title="削除">🗑️</button>
       `;
@@ -880,6 +885,7 @@ function buildItemPanel(catId){
         if (e.target.closest('.item-del')) return;
         if (e.target.closest('.item-amz')) return;
         if (e.target.closest('.item-myset-add')) return;
+        if (e.target.closest('.item-price-btn')) return;
         if (isDirectCat(catId)) {
           addDirectItem(name, catId);
         } else {
@@ -889,6 +895,10 @@ function buildItemPanel(catId){
       row.querySelector('.item-myset-add').onclick = (e) => {
         e.stopPropagation();
         addToMySet(catId, name);
+      };
+      row.querySelector('.item-price-btn').onclick = (e) => {
+        e.stopPropagation();
+        editItemPrice(catId, item, name, () => renderItems());
       };
       row.querySelector('.item-del').onclick = (e) => {
         e.stopPropagation();
@@ -1049,6 +1059,36 @@ function deleteItem(catId, item, name, showAll, rerenderFn) {
 }
 
 // ══════════════════════════════════════════════
+//  機材の価格を設定・編集
+// ══════════════════════════════════════════════
+function editItemPrice(catId, item, name, rerenderFn){
+  const current = (typeof item === 'object' && item.price) ? item.price : '';
+
+  document.getElementById('dlgTitle').textContent = '価格を設定';
+  document.getElementById('dlgBody').innerHTML = `
+    <div class="dlg-field">
+      <label>${name}</label>
+      <input id="priceEditInput" type="number" inputmode="numeric" placeholder="例：45000" value="${current}">
+    </div>
+    <div style="font-size:11px;color:#666;line-height:1.6">空欄のまま保存すると価格は未設定に戻ります</div>
+  `;
+
+  showOverlay(() => {
+    const v = document.getElementById('priceEditInput').value.trim();
+    const num = v ? Number(v) : 0;
+    if (typeof item === 'object') {
+      if (num > 0) item.price = num;
+      else delete item.price;
+    }
+    if (DEFAULT_DB[catId]) saveDefaultAdditions();
+    else saveCustomCats();
+    rerenderFn();
+    return true;
+  });
+}
+
+
+// ══════════════════════════════════════════════
 //  カテゴリ編集
 // ══════════════════════════════════════════════
 function editCategory(catId) {
@@ -1170,6 +1210,10 @@ function showAddItemDialog(catId) {
       '<input id="newModel" placeholder="' + T.dlgModelPh + '">' +
     '</div>' +
     '<div class="dlg-field">' +
+      '<label>価格（円・省略可）</label>' +
+      '<input id="newPrice" type="number" inputmode="numeric" placeholder="例：45000">' +
+    '</div>' +
+    '<div class="dlg-field">' +
       '<label style="display:block;margin-bottom:6px;font-size:12px;color:#888;font-weight:600">機材写真（省略可）</label>' +
       '<div style="display:flex;align-items:center;gap:8px">' +
         '<div id="imgPreview" style="width:48px;height:48px;border-radius:8px;background:#252525;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;overflow:hidden">' + previewInitial + '</div>' +
@@ -1210,6 +1254,8 @@ function showAddItemDialog(catId) {
 
     const newItem = { maker, model };
     if (newItemImgData) newItem.img = newItemImgData;
+    const priceVal = Number(document.getElementById('newPrice').value);
+    if (priceVal > 0) newItem.price = priceVal;
 
     // 画像キー：機材名（メーカー+型番）そのもの。カテゴリIDにアンダースコアが
     // 含まれる場合（video_stick, custom_xxxx等）でも安全に一致させるため、
