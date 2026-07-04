@@ -710,7 +710,7 @@ function getCatImgByItemName(name) {
   }
   for(const c of customCats){
     if((c.items||[]).some(it => displayName(it) === name)){
-      return c.imgPath || null;
+      return c.imgData || c.imgPath || null;
     }
   }
   return null;
