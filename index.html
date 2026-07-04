@@ -203,8 +203,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
       </div>
     </div>
     <div class="exif-names">
-      <div class="cell"><b id="exCameraLabel">カメラ</b><span id="exCamera">–</span></div>
-      <div class="cell"><b id="exLensLabel">レンズ</b><span id="exLens">–</span></div>
+      <div class="cell" onclick="editGearPrice('camera')" style="cursor:pointer"><b id="exCameraLabel">カメラ</b><span id="exCamera">–</span><span id="exCameraPrice" style="display:block;font-size:9px;color:#7ac87a;margin-top:1px;min-height:11px"></span></div>
+      <div class="cell" onclick="editGearPrice('lens')" style="cursor:pointer"><b id="exLensLabel">レンズ</b><span id="exLens">–</span><span id="exLensPrice" style="display:block;font-size:9px;color:#7ac87a;margin-top:1px;min-height:11px"></span></div>
       <div class="cell"><b id="exDateLabel">撮影日</b><span id="exDate">–</span></div>
     </div>
     <div class="exif-row">
@@ -343,6 +343,7 @@ document.getElementById('fileInput').addEventListener('change',function(e){
         iso:   document.getElementById('exISO').textContent,
         fl:    document.getElementById('exFL').textContent,
       });
+      renderGearPriceDisplay(); // 新しいカメラ・レンズ名に応じて価格表示を更新
     }catch(err){console.warn('EXIF error:',err);}
   };
   reader.readAsDataURL(file);
@@ -415,6 +416,82 @@ function restoreExif(){
     set('exISO',   ex.iso);
     set('exFL',    ex.fl);
   }catch(e){}
+  renderGearPriceDisplay();
+}
+
+// ══════════════════════════════════════
+//  機材費用（カメラ・レンズ・Light Builder機材の合計）
+// ══════════════════════════════════════
+const GEAR_PRICE_KEY='lr_gearPriceMap';
+
+function loadGearPriceMap(){
+  try{ return JSON.parse(localStorage.getItem(GEAR_PRICE_KEY)||'{}'); }catch(e){ return {}; }
+}
+function saveGearPriceMap(map){
+  try{ localStorage.setItem(GEAR_PRICE_KEY, JSON.stringify(map)); }catch(e){}
+}
+
+// カメラ・レンズの価格表示を更新（タップで編集可能）
+function renderGearPriceDisplay(){
+  const map=loadGearPriceMap();
+  const camName=document.getElementById('exCamera')?.textContent;
+  const lensName=document.getElementById('exLens')?.textContent;
+  const camEl=document.getElementById('exCameraPrice');
+  const lensEl=document.getElementById('exLensPrice');
+  if(camEl){
+    camEl.textContent = (camName&&camName!=='–') ? (map[camName]?'¥'+map[camName].toLocaleString():'💴未設定') : '';
+  }
+  if(lensEl){
+    lensEl.textContent = (lensName&&lensName!=='–') ? (map[lensName]?'¥'+map[lensName].toLocaleString():'💴未設定') : '';
+  }
+}
+
+// カメラ・レンズの価格をタップで入力（一度入力すれば同じ機材名で次回以降も自動反映）
+function editGearPrice(kind){
+  const el = kind==='camera' ? document.getElementById('exCamera') : document.getElementById('exLens');
+  const name = el?.textContent;
+  if(!name || name==='–') return; // 写真未登録でEXIFがない場合は何もしない
+  const map=loadGearPriceMap();
+  const current=map[name];
+  const input=window.prompt(`${name} の価格（円）を入力してください`, current?String(current):'');
+  if(input===null) return; // キャンセル
+  const num=Number(String(input).replace(/[^\d]/g,''));
+  if(num>0) map[name]=num;
+  else delete map[name];
+  saveGearPriceMap(map);
+  renderGearPriceDisplay();
+}
+
+// 機材名（メーカー+型番）からBuilderで設定した価格を取得
+function getGearPrice(name){
+  try{
+    const additions=JSON.parse(localStorage.getItem('lr_defaultAdditions')||'{}');
+    for(const items of Object.values(additions)){
+      const found=(items||[]).find(it=>typeof it==='object'&&(it.maker?it.maker+' '+it.model:it.model)===name);
+      if(found && found.price) return Number(found.price)||0;
+    }
+    const customs=JSON.parse(localStorage.getItem('lr_customCats')||'[]');
+    for(const c of customs){
+      const found=(c.items||[]).find(it=>typeof it==='object'&&(it.maker?it.maker+' '+it.model:it.model)===name);
+      if(found && found.price) return Number(found.price)||0;
+    }
+  }catch(e){}
+  return 0;
+}
+
+// カメラ・レンズ・ライティング図の全機材の合計費用を算出
+function computeTotalGearCost(){
+  const map=loadGearPriceMap();
+  const camName=document.getElementById('exCamera')?.textContent;
+  const lensName=document.getElementById('exLens')?.textContent;
+  let total=0;
+  if(camName && camName!=='–' && map[camName]) total+=Number(map[camName]);
+  if(lensName && lensName!=='–' && map[lensName]) total+=Number(map[lensName]);
+  const usedNames=new Set();
+  lights.forEach(l=>(l.items||[]).forEach(n=>usedNames.add(n)));
+  loadDirectItems().forEach(di=>usedNames.add(di.name));
+  usedNames.forEach(n=>{ total+=getGearPrice(n); });
+  return total;
 }
 
 function saveSession(){
@@ -777,6 +854,7 @@ function resetAll(){
   ['exCamera','exLens','exDate','exF','exSS','exISO','exFL'].forEach(id=>{
     const e=document.getElementById(id);if(e)e.textContent='–';
   });
+  renderGearPriceDisplay();
 
   // ロケ・メモ
   document.getElementById('locInput').value='';
@@ -2015,6 +2093,7 @@ async function loadRecipeFromURL(){
     if(s.exCamera) document.getElementById('exCamera').textContent=s.exCamera;
     if(s.exLens)   document.getElementById('exLens').textContent=s.exLens;
     if(s.exDate)   document.getElementById('exDate').textContent=s.exDate;
+    renderGearPriceDisplay();
 
     // 写真
     if(recipe.photoData){
@@ -2057,6 +2136,17 @@ loadRecipeFromURL();
 //  出力機能
 // ══════════════════════════════════════
 function openExportModal(){
+  const totalCost=computeTotalGearCost();
+  const costRow=document.getElementById('exportCostRow');
+  if(costRow){
+    if(totalCost>0){
+      costRow.style.display='flex';
+      const preview=document.getElementById('exportCostPreview');
+      if(preview) preview.textContent='¥'+totalCost.toLocaleString();
+    }else{
+      costRow.style.display='none';
+    }
+  }
   document.getElementById('exportModal').classList.add('open');
 }
 function closeExportModal(){
@@ -2067,6 +2157,8 @@ async function doExport(){
   closeExportModal();
   const showLoc =document.getElementById('exportLoc').checked;
   const showDate=document.getElementById('exportDate').checked;
+  const showCost=document.getElementById('exportCost')?.checked||false;
+  const totalCost=computeTotalGearCost();
 
   // ── オフスクリーンキャンバスで描画 ──
   const W=800;
@@ -2100,6 +2192,7 @@ async function doExport(){
   const HEADER_H=56;
   const PHOTO_H=hasPhoto?420:0; // 縦写真も収まる固定高
   const EXIF_H=80;
+  const COST_H=(showCost&&totalCost>0)?36:0;
   const DIAG_W=W-PADDING*2;
   const DIAG_H=DIAG_W;
   const CARD_W=activeLights.length>0?Math.min(180,Math.floor((W-PADDING*2-(activeLights.length-1)*10)/activeLights.length)):0;
@@ -2108,6 +2201,7 @@ async function doExport(){
   let totalH=HEADER_H+PADDING;
   if(hasPhoto) totalH+=PHOTO_H+16;
   totalH+=EXIF_H+16;
+  if(COST_H) totalH+=COST_H+16;
   totalH+=DIAG_H+16;
   if(activeLights.length>0) totalH+=CARD_H+16;
   totalH+=PADDING;
@@ -2214,6 +2308,22 @@ async function doExport(){
   }
 
   y+=EXIF_H+16;
+
+  // ── 機材費用合計（任意表示） ──
+  if(COST_H){
+    roundRect(ctx,PADDING,y,DIAG_W,COST_H,10);
+    ctx.fillStyle=CARD_BG;ctx.fill();
+    ctx.strokeStyle=BORDER;ctx.lineWidth=1;ctx.stroke();
+    ctx.font=`600 12px -apple-system,sans-serif`;
+    ctx.fillStyle=SUB;
+    ctx.fillText('💰 使用機材費用合計',PADDING+14,y+COST_H/2+4);
+    ctx.font=`700 16px -apple-system,sans-serif`;
+    ctx.fillStyle=GOLD;
+    const costText='¥'+totalCost.toLocaleString();
+    const costW=ctx.measureText(costText).width;
+    ctx.fillText(costText,PADDING+DIAG_W-14-costW,y+COST_H/2+5);
+    y+=COST_H+16;
+  }
 
   // ── ライティング図 ──
   await new Promise(res=>{
@@ -2454,6 +2564,10 @@ function roundRect(ctx,x,y,w,h,r){
       <label class="export-check-row">
         <input type="checkbox" id="exportDate" checked>
         <span>📅 撮影日を含める</span>
+      </label>
+      <label class="export-check-row" id="exportCostRow" style="display:none">
+        <input type="checkbox" id="exportCost">
+        <span>💰 機材費用を含める（<span id="exportCostPreview" style="color:#c8a96e;font-weight:700"></span>）</span>
       </label>
     </div>
     <button class="btn-export-go" onclick="doExport()">📸 カメラロールに保存</button>
