@@ -179,8 +179,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
   <div class="card">
     <!-- 写真エリア（リセットボタン付き） -->
     <div style="position:relative">
-      <button class="btn-reset" id="btnReset" type="button" onclick="resetAll()">🔄 新規</button>
-      <button class="btn-save-recipe" id="btnSave" type="button" onclick="saveRecipeDialog()">💾 保存</button>
+      <button class="btn-reset" id="btnReset" type="button" onclick="resetAll()" data-i18n="btnReset">🔄 新規</button>
+      <button class="btn-save-recipe" id="btnSave" type="button" onclick="saveRecipeDialog()" data-i18n="btnSave">💾 保存</button>
       <label for="fileInput" style="display:block;cursor:pointer">
         <div class="photo-box">
           <img id="photoImg" alt="">
@@ -219,8 +219,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
     <div class="card-title">
       <span id="lightingTitle">ライティング図</span>
       <div style="display:flex;align-items:center;gap:6px">
-        <button class="bg-toggle-btn" id="sunToggleBtn" onclick="toggleSun()" title="太陽">☀️ 太陽</button>
-        <button class="bg-toggle-btn" id="bgToggleBtn" onclick="openBgSheet()" title="背景">🖼 背景<span id="bgToggleSub" style="font-size:10px;margin-left:3px;opacity:.7"></span></button>
+        <button class="bg-toggle-btn" id="sunToggleBtn" onclick="toggleSun()" title="太陽" data-i18n="sunToggle" data-i18n-title="sunToggle">☀️ 太陽</button>
+        <button class="bg-toggle-btn" id="bgToggleBtn" onclick="openBgSheet()" title="背景" data-i18n-title="bgToggle"><span data-i18n="bgToggle">🖼 背景</span><span id="bgToggleSub" style="font-size:10px;margin-left:3px;opacity:.7"></span></button>
         <a class="btn-builder" href="builder.html" style="width:auto;padding:6px 14px;font-size:13px"><span id="editBtnText">＋ 機材編集</span></a>
       </div>
     </div>
@@ -229,7 +229,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
         <svg id="lightSvg" xmlns="http://www.w3.org/2000/svg"><g id="bgGroup"></g></svg>
         <div class="subject" onclick="openSubjectSheet(event)">👤</div>
         <div class="camera-icon" onclick="openCameraSheet(event)">📷</div>
-        <div class="canvas-memo" id="canvasMemo" contenteditable="true" data-placeholder="📝 メモを入力"></div>
+        <div class="canvas-memo" id="canvasMemo" contenteditable="true" data-placeholder="📝 メモを入力" data-i18n-dph="memoCanvasPh"></div>
       </div>
     </div>
     <div id="panel"></div>
@@ -255,23 +255,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
       </div>
       <div style="font-size:11px;color:#888;margin-top:4px" id="beamHint">ライトを選択すると光パーツが表示されます</div>
     </div>
-    <button class="btn-builder" onclick="openExportModal()">↑ 出力</button>
+    <button class="btn-builder" onclick="openExportModal()" data-i18n="exportBtn">↑ 出力</button>
   </div>
 </div>
 
+<script src='i18n.js'></script>
 <script>
 // ══════════════════════════════════════
 //  i18n
 // ══════════════════════════════════════
-const I18N={
-  ja:{photoHint:'📷 タップして写真を追加',locLabel:'📍 ロケーション',locPlaceholder:'スタジオ名・場所など',memoLabel:'📝 メモ',memoPlaceholder:'撮影メモ',exCamera:'カメラ',exLens:'レンズ',exDate:'撮影日',exF:'F値',exSS:'SS',exISO:'ISO',exFL:'焦点距離',lightingTitle:'ライティング図',bgBtn:'背景',editBtn:'＋ 機材編集',legendHigh:'高い',legendLow:'低い',beamTitle:'💡 光パーツ（選択中のライト）',beamLabel:'配光',angleLabel:'角度',colorLabel:'色',beamHint:'ライトを選択すると光パーツが表示されます',builderBtn:'機材を設定する (Builder)',heightLabel:'高さ',outputLabel:'出力',noItems:'機材なし（Builderで追加）',panelTitle:(l)=>`${l} の設定`},
-  en:{photoHint:'📷 Tap to add photo',locLabel:'📍 Location',locPlaceholder:'Studio name, location...',memoLabel:'📝 Memo',memoPlaceholder:'Shooting notes',exCamera:'Camera',exLens:'Lens',exDate:'Date',exF:'F',exSS:'SS',exISO:'ISO',exFL:'FL',lightingTitle:'Lighting Diagram',bgBtn:'BG',editBtn:'＋ Edit Gear',legendHigh:'High',legendLow:'Low',beamTitle:'💡 Light Beam',beamLabel:'Spread',angleLabel:'Angle',colorLabel:'Color',beamHint:'Select a light to edit beam',builderBtn:'Set up gear (Builder)',heightLabel:'Height',outputLabel:'Output',noItems:'No gear (add in Builder)',panelTitle:(l)=>`${l} Settings`},
-  zh:{photoHint:'📷 点击添加照片',locLabel:'📍 拍摄地点',locPlaceholder:'工作室名称、地点',memoLabel:'📝 备注',memoPlaceholder:'拍摄备注',exCamera:'相机',exLens:'镜头',exDate:'日期',exF:'光圈',exSS:'快门',exISO:'ISO',exFL:'焦距',lightingTitle:'布光图',bgBtn:'背景',editBtn:'＋ 编辑器材',legendHigh:'高',legendLow:'低',beamTitle:'💡 光束',beamLabel:'光束角',angleLabel:'角度',colorLabel:'颜色',beamHint:'选择灯光以编辑光束',builderBtn:'设置器材 (Builder)',heightLabel:'高度',outputLabel:'输出',noItems:'无器材（在Builder中添加）',panelTitle:(l)=>`${l} 设置`},
-  ko:{photoHint:'📷 탭하여 사진 추가',locLabel:'📍 촬영 장소',locPlaceholder:'스튜디오 이름, 장소',memoLabel:'📝 메모',memoPlaceholder:'촬영 메모',exCamera:'카메라',exLens:'렌즈',exDate:'날짜',exF:'조리개',exSS:'셔터',exISO:'ISO',exFL:'초점거리',lightingTitle:'조명 다이어그램',bgBtn:'배경',editBtn:'＋ 장비 편집',legendHigh:'높음',legendLow:'낮음',beamTitle:'💡 광원',beamLabel:'광각',angleLabel:'각도',colorLabel:'색상',beamHint:'조명을 선택하면 광원이 표시됩니다',builderBtn:'장비 설정 (Builder)',heightLabel:'높이',outputLabel:'출력',noItems:'장비 없음 (Builder에서 추가)',panelTitle:(l)=>`${l} 설정`},
-};
-function detectLang(){const n=(navigator.language||'en').toLowerCase();if(n.startsWith('ja'))return 'ja';if(n.startsWith('zh'))return 'zh';if(n.startsWith('ko'))return 'ko';return 'en';}
-const LANG=detectLang(), T=I18N[LANG];
-document.documentElement.lang=LANG;
+// i18n: loaded from shared i18n.js (I18N / detectLang / LANG / T are provided globally)
 
 function applyI18n(){
   const s=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
@@ -439,10 +432,10 @@ function renderGearPriceDisplay(){
   const camEl=document.getElementById('exCameraPrice');
   const lensEl=document.getElementById('exLensPrice');
   if(camEl){
-    camEl.textContent = (camName&&camName!=='–') ? (map[camName]?'¥'+map[camName].toLocaleString():'💴未設定') : '';
+    camEl.textContent = (camName&&camName!=='–') ? (map[camName]?formatMoney(map[camName]):T.notSet) : '';
   }
   if(lensEl){
-    lensEl.textContent = (lensName&&lensName!=='–') ? (map[lensName]?'¥'+map[lensName].toLocaleString():'💴未設定') : '';
+    lensEl.textContent = (lensName&&lensName!=='–') ? (map[lensName]?formatMoney(map[lensName]):T.notSet) : '';
   }
 }
 
@@ -453,7 +446,7 @@ function editGearPrice(kind){
   if(!name || name==='–') return; // 写真未登録でEXIFがない場合は何もしない
   const map=loadGearPriceMap();
   const current=map[name];
-  const input=window.prompt(`${name} の価格（円）を入力してください`, current?String(current):'');
+  const input=window.prompt(T.pricePromptWrap(name), current?String(current):'');
   if(input===null) return; // キャンセル
   const num=Number(String(input).replace(/[^\d]/g,''));
   if(num>0) map[name]=num;
@@ -565,7 +558,7 @@ function restoreSession(){
     if(s.bgType!=null) bgType=s.bgType;
     updateBgSelBtns();
     // ヘッダーボタン反映
-    const labels={none:'',paper:'背景紙',table:'テーブル',mountain:'山脈'};
+    const labels={none:'',paper:T.bgPaper,table:T.bgTable,mountain:T.bgMountain};
     const sub=document.getElementById('bgToggleSub');
     if(sub) sub.textContent=(bgType==='none')?'':labels[bgType]||'';
     const btn=document.getElementById('bgToggleBtn');
@@ -827,7 +820,7 @@ function outputLabel(l){
 // ══════════════════════════════════════
 function resetAll(){
   // 確認ダイアログ
-  if(!confirm('写真・EXIF・ロケーション・メモ・背景・ライト配置をすべてリセットしますか？')) return;
+  if(!confirm(T.resetConfirm)) return;
 
   // localStorageのセッションデータを削除
   try{
@@ -1091,7 +1084,7 @@ function setBgType(type){
   document.getElementById('bgColorRow').style.display=
     (type==='paper'||type==='table')?'flex':'none';
   // ヘッダーボタンのサブテキスト更新
-  const labels={none:'',paper:'背景紙',table:'テーブル',mountain:'山脈'};
+  const labels={none:'',paper:T.bgPaper,table:T.bgTable,mountain:T.bgMountain};
   const sub=document.getElementById('bgToggleSub');
   if(sub) sub.textContent=type==='none'?'':labels[type]||'';
   const btn=document.getElementById('bgToggleBtn');
@@ -1669,7 +1662,7 @@ function renderPanel(){
   if(selectedSun && selected===null && selectedDirect===null){
     panel.innerHTML=`
       <div class="panel-card" style="border-color:#ff8c00">
-        <div class="panel-title">☀️ 太陽</div>
+        <div class="panel-title">${T.sunToggle}</div>
       </div>`;
     updateBeamPanel();
     return;
@@ -1691,7 +1684,7 @@ function renderPanel(){
             style="background:linear-gradient(to right,rgb(180,220,255) 0%,rgb(80,160,240) 50%,rgb(10,60,180) 100%)">
           <span class="slider-val" id="hValDi">${h}cm</span>
         </div>
-        <button class="btn-flip${flipped?' flipped':''}" id="btnFlipDi">⇆ 反転</button>
+        <button class="btn-flip${flipped?' flipped':''}" id="btnFlipDi">${T.flipBtn}</button>
       </div>`;
     document.getElementById('hSliderDi').addEventListener('input',e=>{
       const items=loadDirectItems();
@@ -1739,7 +1732,7 @@ function renderPanel(){
         <input type="range" id="outSlider" min="0" max="${strobe?8:100}" value="${outVal}" step="1">
         <span class="slider-val" id="outVal">${strobe?strobeLabel(outVal):outVal+'%'}</span>
       </div>`:''}
-      <button class="btn-flip${flipped?' flipped':''}" id="btnFlip">⇆ 反転</button>
+      <button class="btn-flip${flipped?' flipped':''}" id="btnFlip">${T.flipBtn}</button>
       <div class="items-list">
         ${l.items.length?l.items.map(n=>`<span class="item-tag">${n}</span>`).join(''):`<span style="font-size:12px;color:#aaa">${T.noItems}</span>`}
       </div>
@@ -1924,10 +1917,10 @@ function saveRecipeDialog(){
   const input=document.getElementById('recipeTitleInput');
   input.value=localStorage.getItem('lr_recipe_title')||'';
   const overwriteRow=document.getElementById('saveOverwriteRow');
-  const overwriteTitle=document.getElementById('saveOverwriteTitle');
+  const overwriteTitle=document.getElementById('saveOverwriteLine');
   const btnOver=document.getElementById('btnSaveOverwrite');
   if(currentRecipeId){
-    if(overwriteTitle) overwriteTitle.textContent=localStorage.getItem('lr_recipe_title')||'現在のレシピ';
+    if(overwriteTitle) overwriteTitle.textContent=T.overwriteWrap(localStorage.getItem('lr_recipe_title')||T.currentRecipe);
     if(overwriteRow)   overwriteRow.style.display='flex';
     if(btnOver)        btnOver.style.display='block';
   }else{
@@ -2028,7 +2021,7 @@ function showSaveToast(msg){
   _saveToastTimer=setTimeout(()=>{el.style.opacity='0';el.style.transform='translate(-50%,-40%)';},1500);
 }
 function showSubscribeInfo(){
-  alert('サブスクリプション機能は近日公開予定です。\nリリースをお待ちください！');
+  alert(T.subInfo);
 }
 
 async function loadRecipeFromURL(){
@@ -2141,7 +2134,7 @@ function openExportModal(){
     if(totalCost>0){
       costRow.style.display='flex';
       const preview=document.getElementById('exportCostPreview');
-      if(preview) preview.textContent='¥'+totalCost.toLocaleString();
+      if(preview) preview.textContent=formatMoney(totalCost);
     }else{
       costRow.style.display='none';
     }
@@ -2318,7 +2311,7 @@ async function doExport(){
     ctx.fillText('💰 使用機材費用合計',PADDING+14,y+COST_H/2+4);
     ctx.font=`700 16px -apple-system,sans-serif`;
     ctx.fillStyle=GOLD;
-    const costText='¥'+totalCost.toLocaleString();
+    const costText=formatMoney(totalCost);
     const costW=ctx.measureText(costText).width;
     ctx.fillText(costText,PADDING+DIAG_W-14-costW,y+COST_H/2+5);
     y+=COST_H+16;
@@ -2554,42 +2547,42 @@ function roundRect(ctx,x,y,w,h,r){
 
 <div id="exportModal">
   <div class="export-sheet">
-    <h3>📷 レシピを出力</h3>
+    <h3 data-i18n="exportTitle">📷 レシピを出力</h3>
     <div class="export-checks">
       <label class="export-check-row">
         <input type="checkbox" id="exportLoc" checked>
-        <span>📍 ロケーションを含める</span>
+        <span data-i18n="inclLoc">📍 ロケーションを含める</span>
       </label>
       <label class="export-check-row">
         <input type="checkbox" id="exportDate" checked>
-        <span>📅 撮影日を含める</span>
+        <span data-i18n="inclDate">📅 撮影日を含める</span>
       </label>
       <label class="export-check-row" id="exportCostRow" style="display:none">
         <input type="checkbox" id="exportCost">
-        <span>💰 機材費用を含める（<span id="exportCostPreview" style="color:#c8a96e;font-weight:700"></span>）</span>
+        <span><span data-i18n="inclCostPre">💰 機材費用を含める（</span><span id="exportCostPreview" style="color:#c8a96e;font-weight:700"></span><span data-i18n="inclCostPost">）</span></span>
       </label>
     </div>
-    <button class="btn-export-go" onclick="doExport()">📸 カメラロールに保存</button>
-    <button class="btn-export-cancel" onclick="closeExportModal()">キャンセル</button>
+    <button class="btn-export-go" onclick="doExport()" data-i18n="exportGo">📸 カメラロールに保存</button>
+    <button class="btn-export-cancel" onclick="closeExportModal()" data-i18n="cancel">キャンセル</button>
   </div>
 </div>
 
 <!-- 保存ダイアログ -->
 <div id="saveDialog">
   <div class="save-dlg">
-    <h3>💾 レシピを保存</h3>
-    <input type="text" id="recipeTitleInput" placeholder="レシピのタイトル（例：ポートレート撮影）">
+    <h3 data-i18n="saveTitle">💾 レシピを保存</h3>
+    <input type="text" id="recipeTitleInput" placeholder="レシピのタイトル（例：ポートレート撮影）" data-i18n-ph="recipeTitlePh">
     <!-- 上書き確認行（currentRecipeIdあり時のみ表示） -->
     <div id="saveOverwriteRow" style="display:none;align-items:center;gap:8px;background:#1e1610;border:1px solid #3a2e18;border-radius:8px;padding:8px 10px;margin-bottom:12px;font-size:12px;color:#c8a96e">
       <span>⚠️</span>
-      <span>「<span id="saveOverwriteTitle"></span>」を上書きします</span>
+      <span id="saveOverwriteLine"></span>
     </div>
     <div class="save-dlg-btns" style="flex-direction:column;gap:8px">
       <!-- 上書き保存（currentRecipeIdあり時のみ有効） -->
-      <button class="btn-save-ok" id="btnSaveOverwrite" onclick="doSaveRecipe(false)" style="display:none">↩ 上書き保存</button>
+      <button class="btn-save-ok" id="btnSaveOverwrite" onclick="doSaveRecipe(false)" style="display:none" data-i18n="overwriteBtn">↩ 上書き保存</button>
       <!-- 新規保存（常に表示） -->
-      <button class="btn-save-ok" id="btnSaveNew" onclick="doSaveRecipe(true)">✨ 新規保存</button>
-      <button class="btn-save-cancel" onclick="closeSaveDialog()">キャンセル</button>
+      <button class="btn-save-ok" id="btnSaveNew" onclick="doSaveRecipe(true)" data-i18n="saveNewBtn">✨ 新規保存</button>
+      <button class="btn-save-cancel" onclick="closeSaveDialog()" data-i18n="cancel">キャンセル</button>
     </div>
   </div>
 </div>
@@ -2597,65 +2590,65 @@ function roundRect(ctx,x,y,w,h,r){
 <!-- 背景選択シート -->
 <div id="bgSheet" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:510;align-items:flex-end;justify-content:center">
   <div style="background:#1a1a1a;border-radius:20px 20px 0 0;padding:16px 16px 0;width:100%;max-width:430px;border-top:1px solid #333;padding-bottom:calc(env(safe-area-inset-bottom,0px) + 80px)">
-    <div style="font-size:12px;font-weight:700;color:#888;letter-spacing:.06em;text-align:center;margin-bottom:14px">背景を選択</div>
+    <div style="font-size:12px;font-weight:700;color:#888;letter-spacing:.06em;text-align:center;margin-bottom:14px" data-i18n="bgSelectTitle">背景を選択</div>
     <!-- 4択グリッド -->
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px">
       <div class="bg-sheet-opt" id="bsOpt_none"     onclick="setBgType('none')">
         <div class="bg-sheet-preview" style="background:#e8e8e8;display:flex;align-items:center;justify-content:center;font-size:20px;color:#aaa">✕</div>
-        <div class="bg-sheet-label">なし</div>
+        <div class="bg-sheet-label" data-i18n="bgNone">なし</div>
       </div>
       <div class="bg-sheet-opt" id="bsOpt_paper"    onclick="setBgType('paper')">
         <div class="bg-sheet-preview" id="bsPreview_paper"></div>
-        <div class="bg-sheet-label">背景紙</div>
+        <div class="bg-sheet-label" data-i18n="bgPaper">背景紙</div>
       </div>
       <div class="bg-sheet-opt" id="bsOpt_table"    onclick="setBgType('table')">
         <div class="bg-sheet-preview" id="bsPreview_table"></div>
-        <div class="bg-sheet-label">テーブル</div>
+        <div class="bg-sheet-label" data-i18n="bgTable">テーブル</div>
       </div>
       <div class="bg-sheet-opt" id="bsOpt_mountain" onclick="setBgType('mountain')">
         <div class="bg-sheet-preview" id="bsPreview_mountain"></div>
-        <div class="bg-sheet-label">山脈</div>
+        <div class="bg-sheet-label" data-i18n="bgMountain">山脈</div>
       </div>
     </div>
     <!-- カラーピッカー（背景紙・テーブル選択時のみ） -->
     <div id="bgColorRow" style="display:none;align-items:center;gap:10px;padding:10px 0 12px;border-top:1px solid #2a2a2a;margin-bottom:8px">
-      <span style="font-size:12px;color:#888;flex:1">🎨 色を選択</span>
+      <span style="font-size:12px;color:#888;flex:1" data-i18n="colorSelect">🎨 色を選択</span>
       <input type="color" id="bgColor" value="#ffffff"
         style="width:36px;height:36px;border:1px solid #444;border-radius:8px;cursor:pointer;padding:2px;background:none"
         oninput="saveSession();renderBg();updateBgPreviews()">
     </div>
-    <button onclick="closeBgSheet()" style="width:100%;padding:12px;border:1px solid #333;border-radius:12px;background:transparent;color:#888;font-size:14px;cursor:pointer;margin-bottom:4px">閉じる</button>
+    <button onclick="closeBgSheet()" style="width:100%;padding:12px;border:1px solid #333;border-radius:12px;background:transparent;color:#888;font-size:14px;cursor:pointer;margin-bottom:4px" data-i18n="close">閉じる</button>
   </div>
 </div>
 
 <!-- 被写体アイコン選択シート -->
 <div id="subjectSheet" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:510;align-items:flex-end;justify-content:center">
   <div style="background:#1a1a1a;border-radius:20px 20px 0 0;padding:16px 16px 0;width:100%;max-width:430px;border-top:1px solid #333;padding-bottom:calc(env(safe-area-inset-bottom,0px) + 80px)">
-    <div style="font-size:12px;font-weight:700;color:#888;letter-spacing:.06em;text-align:center;margin-bottom:14px">被写体を選択</div>
+    <div style="font-size:12px;font-weight:700;color:#888;letter-spacing:.06em;text-align:center;margin-bottom:14px" data-i18n="subjectSelectTitle">被写体を選択</div>
     <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:14px" id="subjectGrid"></div>
-    <button onclick="closeSubjectSheet()" style="width:100%;padding:12px;border:1px solid #333;border-radius:12px;background:transparent;color:#888;font-size:14px;cursor:pointer;margin-bottom:4px">閉じる</button>
+    <button onclick="closeSubjectSheet()" style="width:100%;padding:12px;border:1px solid #333;border-radius:12px;background:transparent;color:#888;font-size:14px;cursor:pointer;margin-bottom:4px" data-i18n="close">閉じる</button>
   </div>
 </div>
 
 <!-- カメラアイコン変更シート -->
 <div id="cameraSheet" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:510;align-items:flex-end;justify-content:center">
   <div style="background:#1a1a1a;border-radius:20px 20px 0 0;padding:16px 16px 0;width:100%;max-width:430px;border-top:1px solid #333;padding-bottom:calc(env(safe-area-inset-bottom,0px) + 80px)">
-    <div style="font-size:12px;font-weight:700;color:#888;letter-spacing:.06em;text-align:center;margin-bottom:14px">カメラアイコン</div>
-    <button onclick="triggerCameraIconUpload()" style="width:100%;padding:13px;border:none;border-radius:12px;background:#c8a96e;color:#0f0f0f;font-size:14px;font-weight:700;cursor:pointer;margin-bottom:8px">📷 自分のカメラの写真を選択</button>
-    <button id="cameraResetBtn" onclick="resetCameraIcon()" style="display:none;width:100%;padding:13px;border:1px solid #333;border-radius:12px;background:#252525;color:#e8e8e8;font-size:14px;cursor:pointer;margin-bottom:8px">🔄 アイコンに戻す</button>
-    <button onclick="closeCameraSheet()" style="width:100%;padding:12px;border:1px solid #333;border-radius:12px;background:transparent;color:#888;font-size:14px;cursor:pointer;margin-bottom:4px">キャンセル</button>
+    <div style="font-size:12px;font-weight:700;color:#888;letter-spacing:.06em;text-align:center;margin-bottom:14px" data-i18n="cameraIconTitle">カメラアイコン</div>
+    <button onclick="triggerCameraIconUpload()" style="width:100%;padding:13px;border:none;border-radius:12px;background:#c8a96e;color:#0f0f0f;font-size:14px;font-weight:700;cursor:pointer;margin-bottom:8px" data-i18n="cameraPick">📷 自分のカメラの写真を選択</button>
+    <button id="cameraResetBtn" onclick="resetCameraIcon()" style="display:none;width:100%;padding:13px;border:1px solid #333;border-radius:12px;background:#252525;color:#e8e8e8;font-size:14px;cursor:pointer;margin-bottom:8px" data-i18n="cameraReset">🔄 アイコンに戻す</button>
+    <button onclick="closeCameraSheet()" style="width:100%;padding:12px;border:1px solid #333;border-radius:12px;background:transparent;color:#888;font-size:14px;cursor:pointer;margin-bottom:4px" data-i18n="cancel">キャンセル</button>
   </div>
 </div>
 
 <!-- 保存上限ダイアログ -->
 <div id="limitOverlay">
   <div class="limit-dlg">
-    <h3>📦 保存上限に達しています</h3>
-    <p>ゲスト・無料ユーザーは最大<b style="color:#c8a96e">30件</b>まで保存できます。新しいレシピを保存するには、マイページで古いレシピを削除するか、サブスクリプションにアップグレードしてください。</p>
+    <h3 data-i18n="limitTitle">📦 保存上限に達しています</h3>
+    <p data-i18n="limitBody">ゲスト・無料ユーザーは最大30件まで保存できます。新しいレシピを保存するには、マイページで古いレシピを削除するか、サブスクリプションにアップグレードしてください。</p>
     <div class="limit-btns">
-      <button class="btn-limit-delete" onclick="document.getElementById('limitOverlay').classList.remove('open');window.location.href='mypage.html'">🗑 マイページで削除する</button>
-      <button class="btn-limit-sub" onclick="document.getElementById('limitOverlay').classList.remove('open');showSubscribeInfo()">✨ サブスクで無制限に保存</button>
-      <button class="btn-limit-cancel" onclick="document.getElementById('limitOverlay').classList.remove('open')">キャンセル</button>
+      <button class="btn-limit-delete" onclick="document.getElementById('limitOverlay').classList.remove('open');window.location.href='mypage.html'" data-i18n="limitDelete">🗑 マイページで削除する</button>
+      <button class="btn-limit-sub" onclick="document.getElementById('limitOverlay').classList.remove('open');showSubscribeInfo()" data-i18n="limitSub">✨ サブスクで無制限に保存</button>
+      <button class="btn-limit-cancel" onclick="document.getElementById('limitOverlay').classList.remove('open')" data-i18n="cancel">キャンセル</button>
     </div>
   </div>
 </div>
@@ -2663,9 +2656,9 @@ function roundRect(ctx,x,y,w,h,r){
 <!-- タブバー -->
 <div class="tab-spacer"></div>
 <nav class="tab-bar">
-  <a href="index.html" class="active">レシピ</a>
-  <a href="builder.html">機材倉庫</a>
-  <a href="mypage.html">マイページ</a>
+  <a href="index.html" class="active" data-i18n="navRecipe">レシピ</a>
+  <a href="builder.html" data-i18n="navGear">機材倉庫</a>
+  <a href="mypage.html" data-i18n="navMypage">マイページ</a>
 </nav>
 
 </body>

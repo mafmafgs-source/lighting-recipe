@@ -182,126 +182,18 @@ body{-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%;font-
     <div class="dlg-title" id="dlgTitle"></div>
     <div class="dlg-body" id="dlgBody"></div>
     <div class="dlg-btns">
-      <button class="btn-cancel" onclick="closeOverlay()" id="dlgCancel">キャンセル</button>
+      <button class="btn-cancel" onclick="closeOverlay()" id="dlgCancel" data-i18n="cancel">キャンセル</button>
       <button class="btn-ok" id="dlgOk">OK</button>
     </div>
   </div>
 </div>
 
+<script src='i18n.js'></script>
 <script>
 // ══════════════════════════════════════
 //  i18n：ブラウザ言語自動検出
 // ══════════════════════════════════════
-const I18N_DATA = {
-  ja:{
-    cats:{strobe:'ストロボ',video:'ビデオライト',video_stick:'スティック型',modifier:'モディファイア',softbox:'ソフトボックス',umbrella:'アンブレラ',beauty_dish:'ビューティーディッシュ',snoot:'スヌート',stand:'ライトスタンド',boom:'ブームアーム',reflector:'レフ板',flag:'Flag Frame'},
-    warehouseTitle:'機材倉庫', catPrompt:'カテゴリを選んでください',
-    builderTitle:'Light Builder', saveBtn:'保存して戻る',
-    addCatTile:'カテゴリ追加', tapToSet:'タップして設定',
-    addItemRow:'機材を追加', empty:'空',
-    dlgCatTitle:'カテゴリを設定', dlgCatNameLabel:'カテゴリ名', dlgCatNamePh:'例：フィルター',
-    dlgItemTitle:'機材を追加', dlgMakerLabel:'メーカー名（省略可）', dlgMakerPh:'例：Godox',
-    dlgModelLabel:'型番・モデル名', dlgModelPh:'例：AD200Pro',
-    dlgIconLabel:'アイコン（絵文字）',
-    cancel:'キャンセル', ok:'OK', outputLabel:'出力',
-    alertCatName:'カテゴリ名を入力してください',
-    alertModel:'型番・モデル名を入力してください',
-    showMore:(n)=>`残り ${n} 件を表示`,
-    deleteConfirm:(name)=>`「${name}」を削除しますか？`,
-    mySetTitle:'マイセット', mySetAddTitle:'マイセットに追加',
-    mySetPickTitle:'追加先のセットを選択',
-    mySetAdded:(n)=>`${n} を追加しました`,
-    mySetFull:'このセットは最大5点までです',
-    mySetAlready:(n)=>`${n} は既にこのセットにあります`,
-    mySetApplied:(n)=>`${n}点を追加しました`,
-    mySetEditTitle:(i)=>`セット${i} を編集`,
-    mySetEditHint:'機材リストの📌ボタンからこのセットに追加できます',
-    close:'閉じる',
-  },
-  en:{
-    cats:{strobe:'Strobe',video:'Video Light',video_stick:'Stick Light',modifier:'Modifier',softbox:'Softbox',umbrella:'Umbrella',beauty_dish:'Beauty Dish',snoot:'Snoot',stand:'Light Stand',boom:'Boom Arm',reflector:'Reflector',flag:'Flag Frame'},
-    warehouseTitle:'Gear Vault', catPrompt:'Select a category',
-    builderTitle:'Light Builder', saveBtn:'Save & Back',
-    addCatTile:'Add Category', tapToSet:'Tap to set up',
-    addItemRow:'Add gear', empty:'Empty',
-    dlgCatTitle:'Set Category', dlgCatNameLabel:'Category name', dlgCatNamePh:'e.g. Filter',
-    dlgItemTitle:'Add Gear', dlgMakerLabel:'Brand (optional)', dlgMakerPh:'e.g. Godox',
-    dlgModelLabel:'Model name', dlgModelPh:'e.g. AD200Pro',
-    dlgIconLabel:'Icon (emoji)',
-    cancel:'Cancel', ok:'OK', outputLabel:'Output',
-    alertCatName:'Please enter a category name.',
-    alertModel:'Please enter a model name.',
-    showMore:(n)=>`Show ${n} more`,
-    deleteConfirm:(name)=>`Delete "${name}"?`,
-    mySetTitle:'My Set', mySetAddTitle:'Add to My Set',
-    mySetPickTitle:'Choose a set to add to',
-    mySetAdded:(n)=>`Added ${n}`,
-    mySetFull:'This set already has 5 items (max).',
-    mySetAlready:(n)=>`${n} is already in this set`,
-    mySetApplied:(n)=>`Added ${n} items`,
-    mySetEditTitle:(i)=>`Edit Set ${i}`,
-    mySetEditHint:'Add more via the 📌 button in the gear list',
-    close:'Close',
-  },
-  zh:{
-    cats:{strobe:'频闪灯',video:'视频灯',video_stick:'棒形灯',modifier:'附件',softbox:'柔光箱',umbrella:'伞',beauty_dish:'美颜碟',snoot:'束光筒',stand:'灯架',boom:'横臂',reflector:'反光板',flag:'遮光板'},
-    warehouseTitle:'器材库', catPrompt:'请选择类别',
-    builderTitle:'灯光构建器', saveBtn:'保存并返回',
-    addCatTile:'添加类别', tapToSet:'点击设置',
-    addItemRow:'添加器材', empty:'空',
-    dlgCatTitle:'设置类别', dlgCatNameLabel:'类别名称', dlgCatNamePh:'例：滤镜',
-    dlgItemTitle:'添加器材', dlgMakerLabel:'品牌（可省略）', dlgMakerPh:'例：Godox',
-    dlgModelLabel:'型号', dlgModelPh:'例：AD200Pro',
-    dlgIconLabel:'图标（表情符号）',
-    cancel:'取消', ok:'确定', outputLabel:'输出',
-    alertCatName:'请输入类别名称。', alertModel:'请输入型号。',
-    showMore:(n)=>`显示剩余 ${n} 件`,
-    deleteConfirm:(name)=>`删除「${name}」吗？`,
-    mySetTitle:'我的套装', mySetAddTitle:'添加到我的套装',
-    mySetPickTitle:'选择要添加到的套装',
-    mySetAdded:(n)=>`已添加 ${n}`,
-    mySetFull:'该套装最多5件',
-    mySetAlready:(n)=>`${n} 已在该套装中`,
-    mySetApplied:(n)=>`已添加 ${n} 件`,
-    mySetEditTitle:(i)=>`编辑套装 ${i}`,
-    mySetEditHint:'可通过器材列表中的📌按钮添加更多',
-    close:'关闭',
-  },
-  ko:{
-    cats:{strobe:'스트로브',video:'비디오라이트',video_stick:'스틱라이트',modifier:'모디파이어',softbox:'소프트박스',umbrella:'우산',beauty_dish:'뷰티디쉬',snoot:'스누트',stand:'라이트스탠드',boom:'붐암',reflector:'반사판',flag:'플래그프레임'},
-    warehouseTitle:'장비 창고', catPrompt:'카테고리를 선택하세요',
-    builderTitle:'라이트 빌더', saveBtn:'저장 후 돌아가기',
-    addCatTile:'카테고리 추가', tapToSet:'탭하여 설정',
-    addItemRow:'장비 추가', empty:'비어 있음',
-    dlgCatTitle:'카테고리 설정', dlgCatNameLabel:'카테고리 이름', dlgCatNamePh:'예: 필터',
-    dlgItemTitle:'장비 추가', dlgMakerLabel:'브랜드 (생략 가능)', dlgMakerPh:'예: Godox',
-    dlgModelLabel:'모델명', dlgModelPh:'예: AD200Pro',
-    dlgIconLabel:'아이콘 (이모지)',
-    cancel:'취소', ok:'확인', outputLabel:'출력',
-    alertCatName:'카테고리 이름을 입력하세요.', alertModel:'모델명을 입력하세요.',
-    showMore:(n)=>`${n}개 더 보기`,
-    deleteConfirm:(name)=>`「${name}」을 삭제하시겠습니까？`,
-    mySetTitle:'마이 세트', mySetAddTitle:'마이 세트에 추가',
-    mySetPickTitle:'추가할 세트를 선택하세요',
-    mySetAdded:(n)=>`${n} 추가됨`,
-    mySetFull:'이 세트는 최대 5개까지입니다',
-    mySetAlready:(n)=>`${n}은(는) 이미 이 세트에 있습니다`,
-    mySetApplied:(n)=>`${n}개 항목을 추가했습니다`,
-    mySetEditTitle:(i)=>`세트 ${i} 편집`,
-    mySetEditHint:'장비 목록의 📌 버튼으로 더 추가할 수 있습니다',
-    close:'닫기',
-  },
-};
-function detectLang(){
-  const nav=(navigator.language||'en').toLowerCase();
-  if(nav.startsWith('ja'))return 'ja';
-  if(nav.startsWith('zh'))return 'zh';
-  if(nav.startsWith('ko'))return 'ko';
-  return 'en';
-}
-const LANG=detectLang();
-const T=I18N_DATA[LANG];
-document.documentElement.lang=LANG;
+// i18n: loaded from shared i18n.js (I18N_DATA / detectLang / LANG / T are provided globally)
 
 // ══════════════════════════════════════════════
 //  定数
@@ -545,8 +437,8 @@ function renderMySet(){
     if (hasItems) {
       const names = slot.items.map(it => it.name).join(' / ');
       box.innerHTML =
-        '<button class="myset-edit" onclick="event.stopPropagation();openMySetEditor(' + i + ')" title="編集">✏️</button>' +
-        '<button class="myset-del" onclick="event.stopPropagation();clearMySetSlot(' + i + ')" title="削除">×</button>' +
+        '<button class="myset-edit" onclick="event.stopPropagation();openMySetEditor(' + i + ')" title="' + T.edit + '">✏️</button>' +
+        '<button class="myset-del" onclick="event.stopPropagation();clearMySetSlot(' + i + ')" title="' + T.del + '">×</button>' +
         '<span class="myset-name">' + names + '</span>';
       box.onclick = () => {
         slot.items.forEach(it => {
@@ -811,7 +703,7 @@ function renderCats() {
   // カテゴリ追加ボタン
   const addTile = document.createElement('div');
   addTile.className = 'tile tile-add';
-  addTile.innerHTML = `<span class="icon">＋</span>カテゴリ追加`;
+  addTile.innerHTML = `<span class="icon">＋</span>${T.addCatTile}`;
   addTile.onclick = () => addPendingCat();
   grid.appendChild(addTile);
 }
@@ -845,8 +737,8 @@ function buildItemPanel(catId){
     '<h3>' + (cat ? cat.label : '') + '</h3>' +
     '<div class="cat-actions">' +
       (isCustom
-        ? '<button class="btn-cat-edit" onclick="editCategory(\'' + catId + '\')">✏️ 編集</button>' +
-          '<button class="btn-cat-del" onclick="deleteCategory(\'' + catId + '\')">🗑 削除</button>'
+        ? '<button class="btn-cat-edit" onclick="editCategory(\'' + catId + '\')">' + T.catEdit + '</button>' +
+          '<button class="btn-cat-del" onclick="deleteCategory(\'' + catId + '\')">' + T.catDel + '</button>'
         : '') +
     '</div>';
   panel.appendChild(header);
@@ -887,14 +779,14 @@ function buildItemPanel(catId){
         <div class="item-name">
           ${model}
           ${maker ? `<span class="item-sub">${maker}</span>` : ''}
-          ${price ? `<span class="item-price-tag">¥${price.toLocaleString()}</span>` : ''}
+          ${price ? `<span class="item-price-tag">${formatMoney(price)}</span>` : ''}
         </div>
         <a class="item-amz" href="${amazonUrl(searchQuery)}" target="_blank" rel="noopener">
           <span>Amazon</span>
         </a>
-        <button class="item-price-btn" title="価格を設定">💴</button>
+        <button class="item-price-btn" title="${T.priceSet}">💴</button>
         <button class="item-myset-add" title="${T.mySetAddTitle}">📌</button>
-        <button class="item-del" title="削除">🗑️</button>
+        <button class="item-del" title="${T.del}">🗑️</button>
       `;
       row.onclick = (e) => {
         if (e.target.closest('.item-del')) return;
@@ -953,18 +845,18 @@ function showEditPendingDialog(pendingId) {
   document.getElementById('dlgTitle').textContent = T.dlgCatTitle;
   document.getElementById('dlgBody').innerHTML = `
     <div class="dlg-field">
-      <label style="font-size:12px;color:#888;font-weight:600;display:block;margin-bottom:6px">カテゴリ画像</label>
+      <label style="font-size:12px;color:#888;font-weight:600;display:block;margin-bottom:6px">${T.catImgLabel}</label>
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
         <div id="catImgPreview" style="width:52px;height:52px;border-radius:10px;background:#252525;display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0;overflow:hidden;border:1px solid #333">${pickedIcon}</div>
         <label style="flex:1;padding:9px;border:1.5px dashed #444;border-radius:9px;text-align:center;cursor:pointer;font-size:12px;color:#888;display:block">
-          📷 画像を選択（省略可）
+          ${T.pickImage}
           <input type="file" id="catImgFile" accept="image/*" style="display:none">
         </label>
-        <button id="catImgClear" style="display:none;background:none;border:1px solid #444;color:#888;border-radius:6px;padding:5px 8px;font-size:11px;cursor:pointer;flex-shrink:0">✕ 消す</button>
+        <button id="catImgClear" style="display:none;background:none;border:1px solid #444;color:#888;border-radius:6px;padding:5px 8px;font-size:11px;cursor:pointer;flex-shrink:0">${T.clearImg}</button>
       </div>
     </div>
     <div class="dlg-field">
-      <label style="font-size:12px;color:#888;font-weight:600;display:block;margin-bottom:4px">絵文字アイコン（画像なしの場合に使用）</label>
+      <label style="font-size:12px;color:#888;font-weight:600;display:block;margin-bottom:4px">${T.emojiIconLabel}</label>
       <div class="icon-picker" id="iconPicker">
         ${ICONS_LIST.map(ic =>
           `<span class="icon-opt${ic === pickedIcon ? ' selected' : ''}" data-icon="${ic}">${ic}</span>`
@@ -972,8 +864,8 @@ function showEditPendingDialog(pendingId) {
       </div>
     </div>
     <div class="dlg-field">
-      <label>カテゴリ名</label>
-      <input id="newCatName" placeholder="例：フィルター" autofocus>
+      <label>${T.dlgCatNameLabel}</label>
+      <input id="newCatName" placeholder="${T.dlgCatNamePh}" autofocus>
     </div>
   `;
 
@@ -1079,13 +971,13 @@ function deleteItem(catId, item, name, showAll, rerenderFn) {
 function editItemPrice(catId, item, name, rerenderFn){
   const current = (typeof item === 'object' && item.price) ? item.price : '';
 
-  document.getElementById('dlgTitle').textContent = '価格を設定';
+  document.getElementById('dlgTitle').textContent = T.priceSet;
   document.getElementById('dlgBody').innerHTML = `
     <div class="dlg-field">
       <label>${name}</label>
-      <input id="priceEditInput" type="number" inputmode="numeric" placeholder="例：45000" value="${current}">
+      <input id="priceEditInput" type="number" inputmode="numeric" placeholder="${T.pricePh}" value="${current}">
     </div>
-    <div style="font-size:11px;color:#666;line-height:1.6">空欄のまま保存すると価格は未設定に戻ります</div>
+    <div style="font-size:11px;color:#666;line-height:1.6">${T.priceHint}</div>
   `;
 
   showOverlay(() => {
@@ -1116,21 +1008,21 @@ function editCategory(catId) {
     ? `<img src="${currentSrc}" style="width:100%;height:100%;object-fit:cover;border-radius:10px">`
     : cat.icon;
 
-  document.getElementById('dlgTitle').textContent = 'カテゴリを編集';
+  document.getElementById('dlgTitle').textContent = T.catEditTitle;
   document.getElementById('dlgBody').innerHTML = `
     <div class="dlg-field">
-      <label style="font-size:12px;color:#888;font-weight:600;display:block;margin-bottom:6px">カテゴリ画像</label>
+      <label style="font-size:12px;color:#888;font-weight:600;display:block;margin-bottom:6px">${T.catImgLabel}</label>
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
         <div id="catImgPreviewE" style="width:52px;height:52px;border-radius:10px;background:#252525;display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0;overflow:hidden;border:1px solid #333">${previewContent}</div>
         <label style="flex:1;padding:9px;border:1.5px dashed #444;border-radius:9px;text-align:center;cursor:pointer;font-size:12px;color:#888;display:block">
-          📷 画像を変更
+          ${T.pickImageChange}
           <input type="file" id="catImgFileE" accept="image/*" style="display:none">
         </label>
-        <button id="catImgClearE" style="${currentSrc?'':'display:none;'}background:none;border:1px solid #444;color:#888;border-radius:6px;padding:5px 8px;font-size:11px;cursor:pointer;flex-shrink:0">✕ 消す</button>
+        <button id="catImgClearE" style="${currentSrc?'':'display:none;'}background:none;border:1px solid #444;color:#888;border-radius:6px;padding:5px 8px;font-size:11px;cursor:pointer;flex-shrink:0">${T.clearImg}</button>
       </div>
     </div>
     <div class="dlg-field">
-      <label>カテゴリ名</label>
+      <label>${T.dlgCatNameLabel}</label>
       <input id="editCatName" value="${cat.label || ''}">
     </div>
   `;
@@ -1174,7 +1066,7 @@ function deleteCategory(catId) {
 
   document.getElementById('dlgTitle').textContent = `「${catLabel}」を削除しますか？`;
   document.getElementById('dlgBody').innerHTML =
-    '<p style="font-size:13px;color:#aaa;margin-bottom:8px">このカテゴリと中の機材がすべて削除されます。</p>';
+    '<p style="font-size:13px;color:#aaa;margin-bottom:8px">' + T.catDeleteWarn + '</p>';
 
   const okBtn = document.getElementById('dlgOk');
   const origOkText = okBtn.textContent;
@@ -1225,19 +1117,19 @@ function showAddItemDialog(catId) {
       '<input id="newModel" placeholder="' + T.dlgModelPh + '">' +
     '</div>' +
     '<div class="dlg-field">' +
-      '<label>価格（円・省略可）</label>' +
-      '<input id="newPrice" type="number" inputmode="numeric" placeholder="例：45000">' +
+      '<label>' + T.priceLabel + '</label>' +
+      '<input id="newPrice" type="number" inputmode="numeric" placeholder="' + T.pricePh + '">' +
     '</div>' +
     '<div class="dlg-field">' +
-      '<label style="display:block;margin-bottom:6px;font-size:12px;color:#888;font-weight:600">機材写真（省略可）</label>' +
+      '<label style="display:block;margin-bottom:6px;font-size:12px;color:#888;font-weight:600">' + T.itemPhotoLabel + '</label>' +
       '<div style="display:flex;align-items:center;gap:8px">' +
         '<div id="imgPreview" style="width:48px;height:48px;border-radius:8px;background:#252525;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;overflow:hidden">' + previewInitial + '</div>' +
         '<label style="flex:1;padding:8px;border:1px dashed #444;border-radius:8px;text-align:center;cursor:pointer;font-size:12px;color:#888">' +
-          '📷 写真を選択' +
+          T.pickPhoto +
           '<input type="file" id="newItemPhoto" accept="image/*" style="display:none">' +
         '</label>' +
       '</div>' +
-      '<div style="font-size:10px;color:#666;margin-top:5px;line-height:1.5">※背景を透明化した写真がおすすめです</div>' +
+      '<div style="font-size:10px;color:#666;margin-top:5px;line-height:1.5">' + T.photoTransparentHint + '</div>' +
     '</div>';
 
   // フォーカス
@@ -1566,9 +1458,9 @@ loadAllItemImgs().then(imgs=>{
 <!-- タブバー -->
 <div class="tab-spacer"></div>
 <nav class="tab-bar">
-  <a href="index.html">レシピ</a>
-  <a href="builder.html" class="active">機材倉庫</a>
-  <a href="mypage.html">マイページ</a>
+  <a href="index.html" data-i18n="navRecipe">レシピ</a>
+  <a href="builder.html" class="active" data-i18n="navGear">機材倉庫</a>
+  <a href="mypage.html" data-i18n="navMypage">マイページ</a>
 </nav>
 
 </body>

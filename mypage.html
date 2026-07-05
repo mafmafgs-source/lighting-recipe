@@ -81,15 +81,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
   <div class="page-header">
     <span class="page-title">MY RECIPES</span>
     <div style="display:flex;gap:8px">
-      <button class="btn-new" id="btnKml" onclick="exportKML()" style="background:#1a2a1a;border:1px solid #3a5a3a;color:#7ac87a;font-size:12px">🗺 KML出力</button>
-      <button class="btn-new" onclick="newRecipe()">＋ 新規作成</button>
+      <button class="btn-new" id="btnKml" onclick="exportKML()" style="background:#1a2a1a;border:1px solid #3a5a3a;color:#7ac87a;font-size:12px" data-i18n="kmlExport">🗺 KML出力</button>
+      <button class="btn-new" onclick="newRecipe()" data-i18n="newCreate">＋ 新規作成</button>
     </div>
   </div>
   <!-- 保存上限バナー -->
   <div class="storage-notice" id="storageNotice">
     <div class="storage-notice-text">
-      <b>⚠️ 保存上限：30件</b>（ゲスト・無料ユーザー）<br>
-      サブスクリプションで無制限に保存できます。
+      <b data-i18n="limitBanner1">⚠️ 保存上限：30件</b><span data-i18n="limitBanner2">（ゲスト・無料ユーザー）</span><br>
+      <span data-i18n="limitBanner3">サブスクリプションで無制限に保存できます。</span>
       <div class="storage-bar-wrap">
         <div class="storage-bar" id="storageBar" style="width:0%"></div>
       </div>
@@ -102,12 +102,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
 <!-- 上限超えダイアログ -->
 <div class="limit-overlay" id="limitOverlay">
   <div class="limit-dlg">
-    <h3>📦 保存上限に達しています</h3>
-    <p>ゲスト・無料ユーザーは最大<b style="color:#c8a96e">30件</b>まで保存できます。新しいレシピを保存するには、古いレシピを削除するか、サブスクリプションにアップグレードしてください。</p>
+    <h3 data-i18n="limitTitle">📦 保存上限に達しています</h3>
+    <p data-i18n="limitBodyMypage">ゲスト・無料ユーザーは最大30件まで保存できます。新しいレシピを保存するには、古いレシピを削除するか、サブスクリプションにアップグレードしてください。</p>
     <div class="limit-btns">
-      <button class="btn-limit-delete" onclick="closeLimitDialog();scrollToList()">🗑 古いレシピを削除する</button>
-      <button class="btn-limit-sub" onclick="closeLimitDialog();showSubscribeInfo()">✨ サブスクで無制限に保存</button>
-      <button class="btn-limit-cancel" onclick="closeLimitDialog()">キャンセル</button>
+      <button class="btn-limit-delete" onclick="closeLimitDialog();scrollToList()" data-i18n="limitDeleteOld">🗑 古いレシピを削除する</button>
+      <button class="btn-limit-sub" onclick="closeLimitDialog();showSubscribeInfo()" data-i18n="limitSub">✨ サブスクで無制限に保存</button>
+      <button class="btn-limit-cancel" onclick="closeLimitDialog()" data-i18n="cancel">キャンセル</button>
     </div>
   </div>
 </div>
@@ -115,10 +115,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
 <!-- 削除確認 -->
 <div class="confirm-overlay" id="confirmOverlay">
   <div class="confirm-dlg">
-    <p id="confirmMsg">このレシピを削除しますか？</p>
+    <p id="confirmMsg" data-i18n="confirmDeleteThis">このレシピを削除しますか？</p>
     <div class="confirm-btns">
-      <button class="btn-confirm-cancel" onclick="closeConfirm()">キャンセル</button>
-      <button class="btn-confirm-del" id="btnConfirmDel">削除</button>
+      <button class="btn-confirm-cancel" onclick="closeConfirm()" data-i18n="cancel">キャンセル</button>
+      <button class="btn-confirm-del" id="btnConfirmDel" data-i18n="del">削除</button>
     </div>
   </div>
 </div>
@@ -126,11 +126,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
 <!-- タブバー -->
 <div class="tab-spacer"></div>
 <nav class="tab-bar">
-  <a href="index.html">レシピ</a>
-  <a href="builder.html">機材倉庫</a>
-  <a href="mypage.html" class="active">マイページ</a>
+  <a href="index.html" data-i18n="navRecipe">レシピ</a>
+  <a href="builder.html" data-i18n="navGear">機材倉庫</a>
+  <a href="mypage.html" class="active" data-i18n="navMypage">マイページ</a>
 </nav>
 
+<script src='i18n.js'></script>
 <script>
 // ══════════════════════════════════════
 //  IndexedDB：レシピ保存用
@@ -192,7 +193,7 @@ function updateStorageBar(count){
 function closeLimitDialog(){ document.getElementById('limitOverlay').classList.remove('open'); }
 function scrollToList(){ document.getElementById('recipeList').scrollIntoView({behavior:'smooth'}); }
 function showSubscribeInfo(){
-  alert('サブスクリプション機能は近日公開予定です。\nリリースをお待ちください！');
+  alert(T.subInfo);
 }
 
 // ── 上限チェック（index.htmlの保存前に呼ぶ用・mypageからは参照不要） ──
@@ -213,8 +214,8 @@ async function renderList(){
     list.innerHTML=`
       <div class="empty-state">
         <div class="empty-icon">📷</div>
-        <p>保存されたレシピがありません<br>レシピ画面で撮影情報を入力し<br>保存してください</p>
-        <button class="btn-new" onclick="newRecipe()">＋ 新規レシピを作成</button>
+        <p>${T.noRecipesTitle}<br>${T.noRecipesHint}</p>
+        <button class="btn-new" onclick="newRecipe()">${T.newRecipeCreate}</button>
       </div>`;
     return;
   }
@@ -222,7 +223,7 @@ async function renderList(){
   list.innerHTML=recipes.map(r=>{
     const date=r.session?.exDate||r.updatedAt?.split('T')[0]||'';
     const loc=r.session?.loc||'';
-    const title=r.title||'無題のレシピ';
+    const title=r.title||T.untitled;
     const itemCount=(r.lights||[]).filter(l=>l.items&&l.items.length).length;
     const items=(r.lights||[]).flatMap(l=>l.items||[]).slice(0,3).join(', ');
     const thumbSrc=r.photoData||'';
@@ -239,9 +240,9 @@ async function renderList(){
           <div class="recipe-meta">
             ${date?`<span>📅 ${date}</span>`:''}
             ${loc?`<span>📍 ${loc.replace(/</g,'&lt;')}</span>`:''}
-            <span>💡 ${itemCount}灯</span>
+            <span>💡 ${T.lightsCountWrap(itemCount)}</span>
           </div>
-          <div class="recipe-items">${(items||'機材なし').replace(/</g,'&lt;')}</div>
+          <div class="recipe-items">${(items||T.noGearShort).replace(/</g,'&lt;')}</div>
         </div>
         <div class="recipe-actions">
           <button class="btn-del" data-id="${safeId}" onclick="event.stopPropagation();handleDelClick(this)">🗑</button>
@@ -275,7 +276,7 @@ function handleCardClick(el){
 function handleDelClick(btn){
   const id=decodeURIComponent(btn.dataset.id);
   const card=btn.closest('.recipe-card');
-  const title=card?.querySelector('.recipe-title')?.textContent||'このレシピ';
+  const title=card?.querySelector('.recipe-title')?.textContent||T.thisRecipe;
   confirmDelete(id,title);
 }
 
@@ -283,7 +284,7 @@ function handleDelClick(btn){
 let deleteTargetId=null;
 function confirmDelete(id,title){
   deleteTargetId=id;
-  document.getElementById('confirmMsg').textContent=`「${title}」を削除しますか？`;
+  document.getElementById('confirmMsg').textContent=T.confirmDeleteWrap(title);
   document.getElementById('confirmOverlay').classList.add('open');
 }
 function closeConfirm(){
@@ -307,12 +308,12 @@ document.getElementById('btnConfirmDel').addEventListener('click',async()=>{
 // ══════════════════════════════════════
 async function exportKML(){
   let recipes=[];
-  try{ recipes=await getAllRecipes(); }catch(e){ alert('レシピの読み込みに失敗しました'); return; }
+  try{ recipes=await getAllRecipes(); }catch(e){ alert(T.loadFailed); return; }
 
   // 座標があるレシピのみ対象
   const located=recipes.filter(r=>r.session?.locLat&&r.session?.locLon);
   if(!located.length){
-    alert('ロケーション座標が登録されたレシピがありません。\n※現在はテキスト入力のみのため、将来のGoogle Places API対応後にKML出力が有効になります。');
+    alert(T.kmlNoCoords);
     return;
   }
 
@@ -320,7 +321,7 @@ async function exportKML(){
 
   const placemarks=located.map(r=>{
     const s=r.session||{};
-    const title=esc(r.title||'無題のレシピ');
+    const title=esc(r.title||T.untitled);
     const loc=esc(s.loc||'');
     const date=esc(s.exDate||r.updatedAt?.split('T')[0]||'');
     const camera=esc(s.exCamera||'');
@@ -347,8 +348,8 @@ async function exportKML(){
   const kml=`<?xml version="1.0" encoding="UTF-8"?>
 <kml xmlns="http://www.opengis.net/kml/2.2">
 <Document>
-  <name>Lighting Recipe - 撮影ロケーション</name>
-  <description>Lighting Recipeから出力した撮影スポット一覧</description>
+  <name>${T.kmlDocName}</name>
+  <description>${T.kmlDocDesc}</description>
 ${placemarks}
 </Document>
 </kml>`;
@@ -367,7 +368,7 @@ ${placemarks}
   // ボタンに件数フィードバック
   const btn=document.getElementById('btnKml');
   const orig=btn.textContent;
-  btn.textContent=`✓ ${located.length}件を出力`;
+  btn.textContent=T.kmlExportedWrap(located.length);
   setTimeout(()=>{btn.textContent=orig;},2500);
 }
 

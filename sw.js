@@ -1,10 +1,11 @@
 // Lighting Recipe Service Worker
-const CACHE_NAME = 'lr-cache-v3';
+const CACHE_NAME = 'lr-cache-v4';
 const ASSETS = [
   './',
   './index.html',
   './builder.html',
   './mypage.html',
+  './i18n.js',
   './manifest.json',
   './icons/icon-192.png',
   './icons/icon-512.png',
@@ -38,8 +39,8 @@ self.addEventListener('activate', e => {
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
 
-  // HTMLファイルはネットワーク優先（キャッシュは使わない）
-  if (e.request.destination === 'document') {
+  // HTMLと i18n.js はネットワーク優先（常に最新を取得。翻訳更新を即反映）
+  if (e.request.destination === 'document' || e.request.url.includes('i18n.js')) {
     e.respondWith(
       fetch(e.request).then(res => {
         const clone = res.clone();
