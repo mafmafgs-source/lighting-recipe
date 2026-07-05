@@ -249,6 +249,8 @@ const DEFAULT_CATS = [
   { id:'boom',      icon:'┐',  imgPath:'icons/boom_stand.png', get label(){ return T.cats.boom; } },
   { id:'reflector', icon:'◻',  imgPath:'icons/reflector.png',get label(){ return T.cats.reflector; } },
   { id:'flag',      icon:'▬',  imgPath:'icons/flag.png',     get label(){ return T.cats.flag; } },
+  // レンズ：資産管理専用（ライトビルダー／ライティング図には載せない）
+  { id:'lens',      icon:'🔭', imgPath:'icons/lens.png',     get label(){ return T.cats.lens; } },
 ];
 
 // デフォルト機材：{ maker, model } 形式（各カテゴリ、すぐ使えるサンプルとして先頭1点のみ残す）
@@ -283,6 +285,9 @@ const DEFAULT_DB = {
   ],
   flag:      [
     {maker:'', model:'Flag Frame S'},
+  ],
+  lens:      [
+    {maker:'', model:'50mm F1.8'},
   ],
 };
 
@@ -808,7 +813,7 @@ function buildItemPanel(catId){
           <span>Amazon</span>
         </a>
         <button class="item-price-btn" title="${T.priceSet}">💴</button>
-        <button class="item-myset-add" title="${T.mySetAddTitle}">📌</button>
+        ${isAssetOnlyCat(catId) ? '' : `<button class="item-myset-add" title="${T.mySetAddTitle}">📌</button>`}
         <button class="item-del" title="${T.del}">🗑️</button>
       `;
       row.onclick = (e) => {
@@ -816,13 +821,17 @@ function buildItemPanel(catId){
         if (e.target.closest('.item-amz')) return;
         if (e.target.closest('.item-myset-add')) return;
         if (e.target.closest('.item-price-btn')) return;
-        if (isDirectCat(catId)) {
+        if (isAssetOnlyCat(catId)) {
+          // 資産専用：ライトに載せず、タップで価格編集（資産登録）を開く
+          editItemPrice(catId, item, name, () => renderItems());
+        } else if (isDirectCat(catId)) {
           addDirectItem(name, catId);
         } else {
           addItemToLight(name);
         }
       };
-      row.querySelector('.item-myset-add').onclick = (e) => {
+      const mysetBtn = row.querySelector('.item-myset-add');
+      if (mysetBtn) mysetBtn.onclick = (e) => {
         e.stopPropagation();
         addToMySet(catId, name);
       };
@@ -1216,6 +1225,13 @@ const DIRECT_CATS = ['reflector','flag'];
 
 function isDirectCat(catId){
   return DIRECT_CATS.includes(catId);
+}
+
+// 資産専用カテゴリ（倉庫の資産合計には加算するが、ライト／ライティング図には一切載せない）
+const ASSET_ONLY_CATS = ['lens'];
+
+function isAssetOnlyCat(catId){
+  return ASSET_ONLY_CATS.includes(catId);
 }
 
 function addItemToLight(name, silent) {
