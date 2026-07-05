@@ -563,14 +563,14 @@
 
   // ── 追加辞書5（設定欄ラベル）─────────────
   const EXTRA5 = {
-    ja: { settingsTitle:'⚙️ 設定', langLabel:'言語', currencyLabel:'通貨' },
-    en: { settingsTitle:'⚙️ Settings', langLabel:'Language', currencyLabel:'Currency' },
-    zh: { settingsTitle:'⚙️ 设置', langLabel:'语言', currencyLabel:'货币' },
-    ko: { settingsTitle:'⚙️ 설정', langLabel:'언어', currencyLabel:'통화' },
-    de: { settingsTitle:'⚙️ Einstellungen', langLabel:'Sprache', currencyLabel:'Währung' },
-    fr: { settingsTitle:'⚙️ Paramètres', langLabel:'Langue', currencyLabel:'Devise' },
-    it: { settingsTitle:'⚙️ Impostazioni', langLabel:'Lingua', currencyLabel:'Valuta' },
-    es: { settingsTitle:'⚙️ Ajustes', langLabel:'Idioma', currencyLabel:'Moneda' },
+    ja: { settingsTitle:'⚙️ 設定', langLabel:'言語', currencyLabel:'通貨', privacyPolicy:'プライバシーポリシー' },
+    en: { settingsTitle:'⚙️ Settings', langLabel:'Language', currencyLabel:'Currency', privacyPolicy:'Privacy Policy' },
+    zh: { settingsTitle:'⚙️ 设置', langLabel:'语言', currencyLabel:'货币', privacyPolicy:'隐私政策' },
+    ko: { settingsTitle:'⚙️ 설정', langLabel:'언어', currencyLabel:'통화', privacyPolicy:'개인정보 처리방침' },
+    de: { settingsTitle:'⚙️ Einstellungen', langLabel:'Sprache', currencyLabel:'Währung', privacyPolicy:'Datenschutz' },
+    fr: { settingsTitle:'⚙️ Paramètres', langLabel:'Langue', currencyLabel:'Devise', privacyPolicy:'Politique de confidentialité' },
+    it: { settingsTitle:'⚙️ Impostazioni', langLabel:'Lingua', currencyLabel:'Valuta', privacyPolicy:'Informativa sulla privacy' },
+    es: { settingsTitle:'⚙️ Ajustes', langLabel:'Idioma', currencyLabel:'Moneda', privacyPolicy:'Política de privacidad' },
   };
   for (const k in EXTRA5) { if (I18N[k]) Object.assign(I18N[k], EXTRA5[k]); }
 
