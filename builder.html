@@ -41,6 +41,9 @@ body{-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%;font-
 
 /* 追加ボタンタイル */
 .tile-add{border:1.5px dashed #c8a96e;color:#c8a96e;background:#1a1a0a}
+/* 資産専用タイル（レンズ等）：ライティング機材とは別枠であることを控えめに示す */
+.tile-asset{border:1px solid #3a4657;background:#12161c;color:#9db4c8}
+.tile-asset:active,.tile-asset.active-cat{background:#182430;border-color:#6f97b8;color:#a9c6dc}
 
 /* 新規（未設定）カスタムタイル */
 .tile-new{border:1.5px dashed #333;color:#555;background:#141414;position:relative}
@@ -668,7 +671,8 @@ function renderCats() {
   const grid = document.getElementById('catGrid');
   grid.innerHTML = '';
 
-  allCats().forEach(cat => {
+  // 資産専用カテゴリ（レンズ等）はここでは描画せず、カテゴリ追加ボタンの右に別枠で並べる
+  allCats().filter(cat => !isAssetOnlyCat(cat.id)).forEach(cat => {
     const hasSubs = cat.subs && cat.subs.length > 0;
     const isExpanded = expandedCatId === cat.id;
     const isActive = cat.id === activeCatId;
@@ -734,6 +738,23 @@ function renderCats() {
   addTile.innerHTML = `<span class="icon">＋</span>${T.addCatTile}`;
   addTile.onclick = () => addPendingCat();
   grid.appendChild(addTile);
+
+  // 資産専用カテゴリ（レンズ等）：カテゴリ追加ボタンの右に別枠で配置。
+  // ライティング図には載せない「資産管理だけの枠」であることを視覚的に示す。
+  allCats().filter(cat => isAssetOnlyCat(cat.id)).forEach(cat => {
+    const isActive = cat.id === activeCatId;
+    const tile = document.createElement('div');
+    tile.className = 'tile tile-asset' + (isActive ? ' active-cat' : '');
+    tile.id = 'cat-' + cat.id;
+    tile.innerHTML = iconHtml(cat) + cat.label;
+    tile.onclick = () => toggleActiveCat(cat.id);
+    grid.appendChild(tile);
+
+    // 選択中ならその直下にインラインで機材リストを表示
+    if(isActive){
+      grid.appendChild(buildItemPanel(cat.id));
+    }
+  });
 }
 
 // アコーディオン式のカテゴリ選択（同じものをタップで閉じる）
