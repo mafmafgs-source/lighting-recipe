@@ -298,6 +298,16 @@ if(locClearBtn) locClearBtn.style.display='block';
 document.getElementById('fileInput').addEventListener('change',function(e){
   const file=e.target.files[0];
   if(!file)return;
+  // 既に写真がある場合は「差し替え」。写真とEXIFの差し替え可否を2段で確認する。
+  //  ・写真を差し替えるか？ → キャンセルなら何もしない
+  //  ・EXIFも新しい写真のものにするか？ → キャンセルなら元のEXIF（撮影データ）を保持
+  // ※機種変更時にスクショ等でEXIFが無い写真へ差し替えても、元の撮影データを失わないようにする。
+  const isReplacing=document.getElementById('photoImg').classList.contains('loaded');
+  let applyExif=true;
+  if(isReplacing){
+    if(!confirm(T.replacePhotoConfirm)){ e.target.value=''; return; }
+    applyExif=confirm(T.replaceExifConfirm);
+  }
   // 写真表示 + localStorageに保存（Base64）
   // FileReaderでBase64変換 → 表示・保存・EXIF解析をすべてonload内で実行
   const reader=new FileReader();
@@ -311,6 +321,8 @@ document.getElementById('fileInput').addEventListener('change',function(e){
     document.getElementById('btnReset').classList.add('visible');
     // IndexedDBに保存
     savePhotoToSession(dataUrl);
+    // 差し替えで「EXIFは元のまま保持」を選んだ場合は、新しい写真のEXIFを取り込まない
+    if(!applyExif) return;
     // EXIF解析
     try{
       const ex=await exifr.parse(file,{tiff:true,exif:true,gps:false,ifd0:true});
@@ -1964,11 +1976,14 @@ async function doSaveRecipe(forceNew){
   if(photoImg&&photoImg.classList.contains('loaded')){
     try{
       const c=document.createElement('canvas'),ctx=c.getContext('2d');
-      const maxW=200,scale=Math.min(maxW/photoImg.naturalWidth,maxW/photoImg.naturalHeight);
+      // 呼び出し表示用に中解像度で保存（長辺1280px上限・品質0.8）。
+      // 原本フル解像度はデータ量が大きすぎる（モバイルのIDBクォータ・追い出しリスク）ため、
+      // 画質と容量のバランスを取ったサイズにする。元が1280px未満なら拡大しない（scale上限1）。
+      const maxW=1280,scale=Math.min(1,maxW/photoImg.naturalWidth,maxW/photoImg.naturalHeight);
       c.width=Math.max(1,Math.round(photoImg.naturalWidth*scale));
       c.height=Math.max(1,Math.round(photoImg.naturalHeight*scale));
       ctx.drawImage(photoImg,0,0,c.width,c.height);
-      photoData=c.toDataURL('image/jpeg',0.6);
+      photoData=c.toDataURL('image/jpeg',0.8);
     }catch(e){ console.warn('photo encode error:',e); }
   }
 
