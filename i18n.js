@@ -558,6 +558,15 @@
   };
   for (const k in EXTRA5) { if (I18N[k]) Object.assign(I18N[k], EXTRA5[k]); }
 
+  // ── 追加辞書6（機材倉庫の資産合計）─────────────
+  const EXTRA6 = {
+    ja: { vaultTotalLabel:'資産合計' }, en: { vaultTotalLabel:'Total value' },
+    zh: { vaultTotalLabel:'资产合计' }, ko: { vaultTotalLabel:'자산 합계' },
+    de: { vaultTotalLabel:'Gesamtwert' }, fr: { vaultTotalLabel:'Valeur totale' },
+    it: { vaultTotalLabel:'Valore totale' }, es: { vaultTotalLabel:'Valor total' },
+  };
+  for (const k in EXTRA6) { if (I18N[k]) Object.assign(I18N[k], EXTRA6[k]); }
+
   // 切替UIに出す言語（表示名はネイティブ表記）
   const LANGS = [
     { code:'ja', label:'日本語' }, { code:'en', label:'English' }, { code:'zh', label:'中文' },

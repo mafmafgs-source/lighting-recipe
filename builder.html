@@ -154,6 +154,7 @@ body{-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%;font-
   <!-- 機材倉庫 -->
   <div class="card">
     <h3 id="warehouseTitle">機材倉庫</h3>
+    <div id="vaultTotal" style="font-size:13px;font-weight:700;color:#c8a96e;margin:2px 0 10px;display:none"></div>
     <div class="grid" id="catGrid"></div>
   </div>
 
@@ -324,8 +325,28 @@ function saveCustomCats()  {
     }));
     localStorage.setItem('lr_customCats', JSON.stringify(slim));
   }catch(e){ console.warn('saveCustomCats error:',e); }
+  if(typeof updateVaultTotal==='function') updateVaultTotal();
 }
 function savePendingCats() { localStorage.setItem('lr_pendingCats', JSON.stringify(pendingCats)); }
+
+// 機材倉庫の資産合計（価格が設定された全機材の合算・選択通貨で表示）
+function computeVaultTotal(){
+  let sum=0, count=0;
+  const add=it=>{ if(it && typeof it==='object' && it.price){ sum+=Number(it.price)||0; count++; } };
+  Object.values(DEFAULT_DB).flat().forEach(add);
+  customCats.forEach(c=>(c.items||[]).forEach(add));
+  return { sum, count };
+}
+function updateVaultTotal(){
+  const el=document.getElementById('vaultTotal');
+  if(!el) return;
+  const { sum, count }=computeVaultTotal();
+  if(!count){ el.style.display='none'; return; }  // 価格設定済みの機材が無ければ非表示
+  el.style.display='';
+  const fmt=(typeof formatMoney==='function')?formatMoney(sum):String(sum);
+  const label=(typeof T==='object' && T.vaultTotalLabel)?T.vaultTotalLabel:'資産合計';
+  el.textContent=label+': '+fmt;
+}
 
 // デフォルトカテゴリの機材一覧を保存（プリセット＋追加分の全件を丸ごと保存）
 // ※以前は「追加分のみ」を保存していたが、それだとプリセット機材（AD100Pro等）の
@@ -341,6 +362,7 @@ function saveDefaultAdditions(){
     });
     localStorage.setItem('lr_defaultAdditions',JSON.stringify(additions));
   }catch(e){}
+  if(typeof updateVaultTotal==='function') updateVaultTotal();
 }
 function loadDefaultAdditions(){
   try{
@@ -952,6 +974,7 @@ function deleteItem(catId, item, name, showAll, rerenderFn) {
     okBtn.textContent = origOkText;
     okBtn.style.background = '';
     rerenderFn(showAll);
+    if(typeof updateVaultTotal==='function') updateVaultTotal();
     return true;
   });
 
@@ -1432,6 +1455,7 @@ function applyI18n(){
 
 applyI18n();
 loadDefaultAdditions();
+updateVaultTotal();
 // IDB画像を復元してからレンダリング
 loadAllItemImgs().then(imgs=>{
   // customCatsのカテゴリ画像を復元
