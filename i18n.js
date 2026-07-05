@@ -545,6 +545,19 @@
   };
   for (const k in EXTRA4) { if (I18N[k]) Object.assign(I18N[k], EXTRA4[k]); }
 
+  // ── 追加辞書5（設定欄ラベル）─────────────
+  const EXTRA5 = {
+    ja: { settingsTitle:'⚙️ 設定', langLabel:'言語', currencyLabel:'通貨' },
+    en: { settingsTitle:'⚙️ Settings', langLabel:'Language', currencyLabel:'Currency' },
+    zh: { settingsTitle:'⚙️ 设置', langLabel:'语言', currencyLabel:'货币' },
+    ko: { settingsTitle:'⚙️ 설정', langLabel:'언어', currencyLabel:'통화' },
+    de: { settingsTitle:'⚙️ Einstellungen', langLabel:'Sprache', currencyLabel:'Währung' },
+    fr: { settingsTitle:'⚙️ Paramètres', langLabel:'Langue', currencyLabel:'Devise' },
+    it: { settingsTitle:'⚙️ Impostazioni', langLabel:'Lingua', currencyLabel:'Valuta' },
+    es: { settingsTitle:'⚙️ Ajustes', langLabel:'Idioma', currencyLabel:'Moneda' },
+  };
+  for (const k in EXTRA5) { if (I18N[k]) Object.assign(I18N[k], EXTRA5[k]); }
+
   // 切替UIに出す言語（表示名はネイティブ表記）
   const LANGS = [
     { code:'ja', label:'日本語' }, { code:'en', label:'English' }, { code:'zh', label:'中文' },
@@ -605,47 +618,45 @@
   global.LR_CURRENCIES = CURRENCIES;
 
   // 右上に言語セレクタを自動注入（選択変更で保存→リロード）
+  // 設定ページ（マイページ）にだけインライン描画する。
+  // マウント先 #lrLangMount / #lrCurMount が無いページでは何もしない（フローティングは廃止＝他ページのボタンと被らない）。
   function mountSwitcher() {
-    if (document.getElementById('lrLangSwitcher')) return;
-    const wrap = document.createElement('div');
-    wrap.id = 'lrLangSwitcher';
-    wrap.style.cssText =
-      'position:fixed;top:8px;right:8px;z-index:9999;font-size:12px;display:flex;gap:6px;';
-    const sel = document.createElement('select');
-    sel.setAttribute('aria-label', 'Language');
-    sel.style.cssText =
-      'background:rgba(30,30,30,.85);color:#e8e8e8;border:1px solid #c8a96e;' +
-      'border-radius:8px;padding:4px 8px;font-size:12px;font-weight:600;' +
+    const selCss =
+      'background:#252525;color:#e8e8e8;border:1px solid #c8a96e;' +
+      'border-radius:8px;padding:6px 10px;font-size:13px;font-weight:600;' +
       'outline:none;cursor:pointer;-webkit-appearance:none;appearance:none;';
-    for (const l of LANGS) {
-      const o = document.createElement('option');
-      o.value = l.code; o.textContent = '🌐 ' + l.label;
-      if (l.code === LANG) o.selected = true;
-      sel.appendChild(o);
+    const langMount = document.getElementById('lrLangMount');
+    if (langMount && !langMount.querySelector('select')) {
+      const sel = document.createElement('select');
+      sel.setAttribute('aria-label', 'Language');
+      sel.style.cssText = selCss;
+      for (const l of LANGS) {
+        const o = document.createElement('option');
+        o.value = l.code; o.textContent = '🌐 ' + l.label;
+        if (l.code === LANG) o.selected = true;
+        sel.appendChild(o);
+      }
+      sel.addEventListener('change', function () {
+        localStorage.setItem(LANG_KEY, sel.value); location.reload();
+      });
+      langMount.appendChild(sel);
     }
-    sel.addEventListener('change', function () {
-      localStorage.setItem(LANG_KEY, sel.value);
-      location.reload();
-    });
-    wrap.appendChild(sel);
-
-    // 通貨セレクタ（言語の隣）
-    const csel = document.createElement('select');
-    csel.setAttribute('aria-label', 'Currency');
-    csel.style.cssText = sel.style.cssText;
-    for (const c of CURRENCIES) {
-      const o = document.createElement('option');
-      o.value = c.code; o.textContent = c.symbol + ' ' + c.code;
-      if (c.code === CUR) o.selected = true;
-      csel.appendChild(o);
+    const curMount = document.getElementById('lrCurMount');
+    if (curMount && !curMount.querySelector('select')) {
+      const csel = document.createElement('select');
+      csel.setAttribute('aria-label', 'Currency');
+      csel.style.cssText = selCss;
+      for (const c of CURRENCIES) {
+        const o = document.createElement('option');
+        o.value = c.code; o.textContent = c.symbol + ' ' + c.code;
+        if (c.code === CUR) o.selected = true;
+        csel.appendChild(o);
+      }
+      csel.addEventListener('change', function () {
+        localStorage.setItem(CUR_KEY, csel.value); location.reload();
+      });
+      curMount.appendChild(csel);
     }
-    csel.addEventListener('change', function () {
-      localStorage.setItem(CUR_KEY, csel.value);
-      location.reload();
-    });
-    wrap.appendChild(csel);
-
-    document.body.appendChild(wrap);
   }
   // data-i18n 属性を走査して翻訳を適用（動的DOM後にも呼べるよう root 指定可）
   //   data-i18n       … textContent

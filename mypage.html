@@ -97,6 +97,18 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
     <span id="storageCount" style="font-size:13px;font-weight:700;color:#c8a96e;flex-shrink:0">0/30</span>
   </div>
   <div class="recipe-list" id="recipeList"></div>
+  <!-- 設定（言語・通貨）※このページにだけ表示 -->
+  <div style="margin:20px 0 8px;padding:14px 16px;background:#181818;border:1px solid #333;border-radius:12px">
+    <div style="font-size:13px;font-weight:700;color:#c8a96e;letter-spacing:.04em;margin-bottom:12px" data-i18n="settingsTitle">⚙️ 設定</div>
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
+      <label style="min-width:72px;font-size:13px;color:#aaa" data-i18n="langLabel">言語</label>
+      <span id="lrLangMount"></span>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px">
+      <label style="min-width:72px;font-size:13px;color:#aaa" data-i18n="currencyLabel">通貨</label>
+      <span id="lrCurMount"></span>
+    </div>
+  </div>
 </div>
 
 <!-- 上限超えダイアログ -->
