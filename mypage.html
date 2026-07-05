@@ -20,6 +20,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
 .page-title{font-size:20px;font-weight:800;color:#e8e8e8;letter-spacing:.02em}
 .btn-new{padding:8px 16px;border:none;border-radius:10px;background:#c8a96e;color:#0f0f0f;font-size:13px;font-weight:700;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .btn-new:active{background:#b8956a}
+.btn-gear{width:38px;height:38px;display:flex;align-items:center;justify-content:center;border:1px solid #2e2e2e;border-radius:10px;background:#1a1a1a;color:#e8e8e8;font-size:18px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.btn-gear:active{background:#252525}
+
+/* 設定パネル */
+.settings-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:800;align-items:flex-start;justify-content:flex-end;padding:56px 12px 0}
+.settings-overlay.open{display:flex}
+.settings-panel{background:#181818;border:1px solid #333;border-radius:14px;padding:16px 18px;width:100%;max-width:300px;box-shadow:0 12px 40px rgba(0,0,0,.5)}
+.settings-head{display:flex;align-items:center;justify-content:space-between;font-size:14px;font-weight:700;color:#c8a96e;letter-spacing:.04em;margin-bottom:16px}
+.settings-close{background:none;border:none;color:#888;font-size:16px;cursor:pointer;padding:4px;-webkit-tap-highlight-color:transparent}
+.settings-close:active{color:#e8e8e8}
 
 /* レシピカード */
 .recipe-list{display:flex;flex-direction:column;gap:10px}
@@ -80,10 +90,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
 <div class="wrap">
   <div class="page-header">
     <span class="page-title">MY RECIPES</span>
-    <div style="display:flex;gap:8px">
-      <button class="btn-new" id="btnKml" onclick="exportKML()" style="background:#1a2a1a;border:1px solid #3a5a3a;color:#7ac87a;font-size:12px" data-i18n="kmlExport">🗺 KML出力</button>
-      <button class="btn-new" onclick="newRecipe()" data-i18n="newCreate">＋ 新規作成</button>
-    </div>
+    <button class="btn-gear" id="btnGear" onclick="toggleSettings()" aria-label="Settings">⚙️</button>
   </div>
   <!-- 保存上限バナー -->
   <div class="storage-notice" id="storageNotice">
@@ -97,10 +104,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
     <span id="storageCount" style="font-size:13px;font-weight:700;color:#c8a96e;flex-shrink:0">0/30</span>
   </div>
   <div class="recipe-list" id="recipeList"></div>
-  <!-- 設定（言語・通貨）※このページにだけ表示 -->
-  <div style="margin:20px 0 8px;padding:14px 16px;background:#181818;border:1px solid #333;border-radius:12px">
-    <div style="font-size:13px;font-weight:700;color:#c8a96e;letter-spacing:.04em;margin-bottom:12px" data-i18n="settingsTitle">⚙️ 設定</div>
-    <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
+</div>
+
+<!-- 設定パネル（歯車から開閉） -->
+<div class="settings-overlay" id="settingsOverlay" onclick="if(event.target===this)toggleSettings()">
+  <div class="settings-panel">
+    <div class="settings-head">
+      <span data-i18n="settingsTitle">⚙️ 設定</span>
+      <button class="settings-close" onclick="toggleSettings()" aria-label="Close">✕</button>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
       <label style="min-width:72px;font-size:13px;color:#aaa" data-i18n="langLabel">言語</label>
       <span id="lrLangMount"></span>
     </div>
@@ -316,72 +329,10 @@ document.getElementById('btnConfirmDel').addEventListener('click',async()=>{
 });
 
 // ══════════════════════════════════════
-//  KML出力（Googleマップインポート用）
+//  設定パネル（歯車で開閉）
 // ══════════════════════════════════════
-async function exportKML(){
-  let recipes=[];
-  try{ recipes=await getAllRecipes(); }catch(e){ alert(T.loadFailed); return; }
-
-  // 座標があるレシピのみ対象
-  const located=recipes.filter(r=>r.session?.locLat&&r.session?.locLon);
-  if(!located.length){
-    alert(T.kmlNoCoords);
-    return;
-  }
-
-  const esc=s=>(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-
-  const placemarks=located.map(r=>{
-    const s=r.session||{};
-    const title=esc(r.title||T.untitled);
-    const loc=esc(s.loc||'');
-    const date=esc(s.exDate||r.updatedAt?.split('T')[0]||'');
-    const camera=esc(s.exCamera||'');
-    const lens=esc(s.exLens||'');
-    const lights=(r.lights||[]).filter(l=>l.items?.length);
-    const gear=lights.flatMap(l=>l.items||[]).join('、');
-    const desc=[
-      loc?`📍 ${loc}`:'',
-      date?`📅 ${date}`:'',
-      camera?`📷 ${camera}`:'',
-      lens?`🔭 ${lens}`:'',
-      gear?`💡 ${esc(gear)}`:'',
-    ].filter(Boolean).join('&#10;');
-
-    return `  <Placemark>
-    <name>${title}</name>
-    <description>${desc}</description>
-    <Point>
-      <coordinates>${s.locLon},${s.locLat},0</coordinates>
-    </Point>
-  </Placemark>`;
-  }).join('\n');
-
-  const kml=`<?xml version="1.0" encoding="UTF-8"?>
-<kml xmlns="http://www.opengis.net/kml/2.2">
-<Document>
-  <name>${T.kmlDocName}</name>
-  <description>${T.kmlDocDesc}</description>
-${placemarks}
-</Document>
-</kml>`;
-
-  // ダウンロード
-  const blob=new Blob([kml],{type:'application/vnd.google-earth.kml+xml'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');
-  a.href=url;
-  a.download=`lighting-recipe-locations-${new Date().toISOString().slice(0,10)}.kml`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-
-  // ボタンに件数フィードバック
-  const btn=document.getElementById('btnKml');
-  const orig=btn.textContent;
-  btn.textContent=T.kmlExportedWrap(located.length);
-  setTimeout(()=>{btn.textContent=orig;},2500);
+function toggleSettings(){
+  document.getElementById('settingsOverlay').classList.toggle('open');
 }
 
 // 初期化

@@ -345,7 +345,8 @@ function updateVaultTotal(){
   el.style.display='';
   const fmt=(typeof formatMoney==='function')?formatMoney(sum):String(sum);
   const label=(typeof T==='object' && T.vaultTotalLabel)?T.vaultTotalLabel:'資産合計';
-  el.textContent=label+': '+fmt;
+  const cntStr=(typeof T==='object' && typeof T.vaultCountWrap==='function')?T.vaultCountWrap(count):(count+'点');
+  el.textContent=label+': '+fmt+'（'+cntStr+'）';
 }
 
 // デフォルトカテゴリの機材一覧を保存（プリセット＋追加分の全件を丸ごと保存）

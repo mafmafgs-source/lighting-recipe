@@ -560,10 +560,14 @@
 
   // ── 追加辞書6（機材倉庫の資産合計）─────────────
   const EXTRA6 = {
-    ja: { vaultTotalLabel:'資産合計' }, en: { vaultTotalLabel:'Total value' },
-    zh: { vaultTotalLabel:'资产合计' }, ko: { vaultTotalLabel:'자산 합계' },
-    de: { vaultTotalLabel:'Gesamtwert' }, fr: { vaultTotalLabel:'Valeur totale' },
-    it: { vaultTotalLabel:'Valore totale' }, es: { vaultTotalLabel:'Valor total' },
+    ja: { vaultTotalLabel:'資産合計', vaultCountWrap:(n)=>`${n}点` },
+    en: { vaultTotalLabel:'Total value', vaultCountWrap:(n)=>`${n} item${n===1?'':'s'}` },
+    zh: { vaultTotalLabel:'资产合计', vaultCountWrap:(n)=>`${n}件` },
+    ko: { vaultTotalLabel:'자산 합계', vaultCountWrap:(n)=>`${n}점` },
+    de: { vaultTotalLabel:'Gesamtwert', vaultCountWrap:(n)=>`${n} Artikel` },
+    fr: { vaultTotalLabel:'Valeur totale', vaultCountWrap:(n)=>`${n} article${n===1?'':'s'}` },
+    it: { vaultTotalLabel:'Valore totale', vaultCountWrap:(n)=>`${n} articol${n===1?'o':'i'}` },
+    es: { vaultTotalLabel:'Valor total', vaultCountWrap:(n)=>`${n} artículo${n===1?'':'s'}` },
   };
   for (const k in EXTRA6) { if (I18N[k]) Object.assign(I18N[k], EXTRA6[k]); }
 
