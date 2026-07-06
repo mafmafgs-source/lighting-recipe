@@ -636,14 +636,14 @@
 
   // ── 追加辞書10（カスタム機材の光源スイッチ）─────────────
   const EXTRA10 = {
-    ja: { lightSourceToggle:'💡 光源として扱う', lightSourceHint:'ONにするとライトに光パーツ（配光・出力）と反転が有効になります' },
-    en: { lightSourceToggle:'💡 Treat as light source', lightSourceHint:'When on, light controls (beam, output) and flip are enabled.' },
-    zh: { lightSourceToggle:'💡 作为光源', lightSourceHint:'开启后，灯光的配光、输出与翻转将可用。' },
-    ko: { lightSourceToggle:'💡 광원으로 사용', lightSourceHint:'켜면 조명의 배광·출력과 반전을 사용할 수 있습니다.' },
-    de: { lightSourceToggle:'💡 Als Lichtquelle', lightSourceHint:'Wenn aktiv, sind Lichtsteuerung (Abstrahlung, Leistung) und Spiegeln verfügbar.' },
-    fr: { lightSourceToggle:'💡 Traiter comme source', lightSourceHint:'Activé, les réglages de lumière (diffusion, puissance) et le miroir sont disponibles.' },
-    it: { lightSourceToggle:'💡 Tratta come fonte di luce', lightSourceHint:'Se attivo, i controlli luce (diffusione, potenza) e il ribaltamento sono disponibili.' },
-    es: { lightSourceToggle:'💡 Tratar como fuente de luz', lightSourceHint:'Al activar, se habilitan los controles de luz (haz, potencia) y el volteo.' },
+    ja: { lightSourceToggle:'💡 光源として扱う', lightSourceHint:'ONにするとライトに光パーツ（配光・出力）が有効になります' },
+    en: { lightSourceToggle:'💡 Treat as light source', lightSourceHint:'When on, light controls (beam, output) are enabled.' },
+    zh: { lightSourceToggle:'💡 作为光源', lightSourceHint:'开启后，灯光的配光、输出将可用。' },
+    ko: { lightSourceToggle:'💡 광원으로 사용', lightSourceHint:'켜면 조명의 배광·출력을 사용할 수 있습니다.' },
+    de: { lightSourceToggle:'💡 Als Lichtquelle', lightSourceHint:'Wenn aktiv, ist die Lichtsteuerung (Abstrahlung, Leistung) verfügbar.' },
+    fr: { lightSourceToggle:'💡 Traiter comme source', lightSourceHint:'Activé, les réglages de lumière (diffusion, puissance) sont disponibles.' },
+    it: { lightSourceToggle:'💡 Tratta come fonte di luce', lightSourceHint:'Se attivo, i controlli luce (diffusione, potenza) sono disponibili.' },
+    es: { lightSourceToggle:'💡 Tratar como fuente de luz', lightSourceHint:'Al activar, se habilitan los controles de luz (haz, potencia).' },
   };
   for (const k in EXTRA10) { if (I18N[k]) Object.assign(I18N[k], EXTRA10[k]); }
 
