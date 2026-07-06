@@ -35,7 +35,7 @@ body{-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%;font-
 .tile-sub .icon-img{width:40px;height:40px;object-fit:contain;display:block;margin:0 auto 3px;border-radius:4px}
 
 /* 機材リストパネル（大アイコン／中アイコンの直下にインライン表示） */
-.item-panel{grid-column:1/-1;background:#161616;border-radius:10px;padding:10px;margin-top:-4px;border:1px solid #2a2a2a}
+.item-panel{grid-column:1/-1;background:#232019;border:1.5px solid #c8a96e;border-radius:10px;padding:10px;margin-top:-4px;box-shadow:0 4px 16px rgba(0,0,0,.5)}
 .item-panel .cat-header{margin-bottom:8px}
 .item-panel .cat-header h3{font-size:13px;color:#e8e8e8;text-transform:none;letter-spacing:0;font-weight:700;margin-bottom:0}
 
@@ -419,6 +419,29 @@ async function saveItemImg(key, dataUrl){
     await new Promise((res,rej)=>{tx.oncomplete=res;tx.onerror=rej;});
     db.close();
   }catch(e){console.warn('saveItemImg error:',e);}
+}
+
+// 機材・カテゴリ写真は表示が小さい（一覧サムネ36px〜ライティング図上でも最大~40px）ため、
+// 追加時に長辺maxWまで縮小して保存する。ユーザーがフル解像度の写真を大量に追加すると
+// IDBが肥大化して重くなる（クォータ・追い出しリスク）ため、ここで軽量化しておく。
+// 透過PNG（機材の切り抜き）は透過を保持するためPNGのまま、それ以外はJPEGで圧縮する。
+function shrinkImageDataURL(dataUrl, maxW){
+  return new Promise(resolve=>{
+    const img=new Image();
+    img.onload=()=>{
+      try{
+        const scale=Math.min(1,maxW/img.naturalWidth,maxW/img.naturalHeight);
+        const c=document.createElement('canvas');
+        c.width=Math.max(1,Math.round(img.naturalWidth*scale));
+        c.height=Math.max(1,Math.round(img.naturalHeight*scale));
+        c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+        const isPng=/^data:image\/png/i.test(dataUrl);
+        resolve(isPng?c.toDataURL('image/png'):c.toDataURL('image/jpeg',0.8));
+      }catch(e){ resolve(dataUrl); } // 失敗時は元データをそのまま使う
+    };
+    img.onerror=()=>resolve(dataUrl);
+    img.src=dataUrl;
+  });
 }
 async function loadAllItemImgs(){
   try{
@@ -932,8 +955,8 @@ function showEditPendingDialog(pendingId) {
     const file = this.files[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = ev => {
-      pickedImgData = ev.target.result;
+    reader.onload = async ev => {
+      pickedImgData = await shrinkImageDataURL(ev.target.result, 400);
       const preview = document.getElementById('catImgPreview');
       preview.innerHTML = `<img src="${pickedImgData}" style="width:100%;height:100%;object-fit:cover;border-radius:10px">`;
       document.getElementById('catImgClear').style.display = 'block';
@@ -1090,8 +1113,8 @@ function editCategory(catId) {
     const file = this.files[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = ev => {
-      pickedImgData = ev.target.result;
+    reader.onload = async ev => {
+      pickedImgData = await shrinkImageDataURL(ev.target.result, 400);
       document.getElementById('catImgPreviewE').innerHTML = `<img src="${pickedImgData}" style="width:100%;height:100%;object-fit:cover;border-radius:10px">`;
       document.getElementById('catImgClearE').style.display = 'block';
     };
@@ -1205,8 +1228,8 @@ function showAddItemDialog(catId) {
     const file = this.files[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = ev => {
-      newItemImgData = ev.target.result;
+    reader.onload = async ev => {
+      newItemImgData = await shrinkImageDataURL(ev.target.result, 400);
       document.getElementById('imgPreview').innerHTML =
         '<img src="' + newItemImgData + '" style="width:100%;height:100%;object-fit:cover;border-radius:8px;">';
     };
@@ -1261,10 +1284,11 @@ function isAssetOnlyCat(catId){
 }
 
 function addItemToLight(name, silent) {
+  const slot=(lights[currentLight]&&lights[currentLight].id)||'';
   lights[currentLight].items.push(name);
   persistLights();
   renderLights();
-  if (!silent) showToast(`${name} を追加しました`);
+  if (!silent) showToast(T.addedToLight(name, slot));
 }
 
 // ライト配置を即座にlocalStorageへ保存（保存ボタンを押さずに他画面へ移動しても消えないように）
@@ -1278,7 +1302,7 @@ function addDirectItem(name, catId, silent){
   const imgPath = cat && cat.imgPath ? cat.imgPath : null;
   items.push({ name, catId, imgPath, x:70, y:50, height:150, flipped:false });
   localStorage.setItem('lr_direct_items', JSON.stringify(items));
-  if (!silent) showToast(`${name} をライティング図に追加しました`);
+  if (!silent) showToast(T.addedToDiagram(name));
 }
 
 let _toastTimer=null;
