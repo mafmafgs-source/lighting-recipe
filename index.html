@@ -2524,7 +2524,8 @@ async function doExport(){
 
   // ── 写真アプリへの保存（Android / iPhone 両対応） ──
   canvas.toBlob(async blob=>{
-    const file=new File([blob],'lighting-recipe.png',{type:'image/png'});
+    const fname=buildExportFilename();
+    const file=new File([blob],fname,{type:'image/png'});
     const isIOS=/iP(hone|od|ad)/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
 
     // ① Web Share API：共有シートの「画像を保存」で写真アプリに直接保存できる（iOS/Android共通で最も確実）
@@ -2547,12 +2548,36 @@ async function doExport(){
     }else{
       // Androidはdownloadリンクでダウンロードフォルダに保存される
       const link=document.createElement('a');
-      link.download='lighting-recipe.png';
+      link.download=fname;
       link.href=url;
       link.click();
       showSaveToast('保存しました（ダウンロードフォルダ）');
     }
   },'image/png');
+}
+
+// PNG出力のファイル名を組み立てる。撮影日を先頭に置き、端末で日付順に並べ替え・管理しやすくする。
+//  例: 2026-07-06_夕焼けポートレート_LR.png ／ タイトル無し: 2026-07-06_LR.png
+//  末尾の _LR はアプリ(Lighting Recipe)由来であることの識別子。
+//  撮影日(EXIF)が無ければ出力日(本日)で補完。
+function buildExportFilename(){
+  const exRaw=(document.getElementById('exDate')?.textContent||'').trim();
+  const m=exRaw.match(/(\d{4})\D+(\d{1,2})\D+(\d{1,2})/);
+  let datePart;
+  if(m){
+    datePart=`${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`;
+  }else{
+    const d=new Date();
+    datePart=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  }
+  // タイトル：OSでファイル名に使えない文字を除去、空白は_、前後の記号を整理、長すぎたら切り詰め
+  const title=(localStorage.getItem('lr_recipe_title')||'').trim()
+    .replace(/[\\/:*?"<>|\x00-\x1f]/g,'')
+    .replace(/\s+/g,'_')
+    .replace(/^[.\s_]+|[.\s_]+$/g,'')
+    .slice(0,40);
+  const base=title?`${datePart}_${title}_LR`:`${datePart}_LR`;
+  return `${base}.png`;
 }
 
 function roundRect(ctx,x,y,w,h,r){
