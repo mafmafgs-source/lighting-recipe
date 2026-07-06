@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>Lighting Recipe - 防湿庫</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="LR">
+<meta name="theme-color" content="#0f0f0f">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-serif;background:#0f0f0f;color:#e8e8e8;-webkit-text-size-adjust:100%}
+.wrap{max-width:430px;margin:auto;padding:10px}
+.page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;padding:4px 0}
+.page-title{font-size:20px;font-weight:800;color:#e8e8e8;letter-spacing:.02em}
+.vault-total{font-size:13px;font-weight:700;color:#c8a96e;margin:0 4px 12px}
+
+/* 防湿庫フレーム */
+.cabinet{background:#161616;border:1px solid #2e2e2e;border-radius:14px;padding:12px 12px 6px;box-shadow:0 4px 18px rgba(0,0,0,.4)}
+.cab-topbar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+.cab-brand{font-size:17px;font-weight:800;color:#fff;letter-spacing:.01em;outline:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:56%;border-bottom:1px solid transparent;padding:1px 2px;-webkit-user-modify:read-write-plaintext-only}
+.cab-brand:focus{border-bottom-color:#c8a96e}
+.cab-brand:empty:before{content:attr(data-placeholder);color:#555}
+.cab-display{display:flex;align-items:center;gap:12px;background:#050505;border:1px solid #333;border-radius:7px;padding:5px 10px}
+.cab-display .num{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:16px;color:#d8d8d8;letter-spacing:.02em}
+.cab-display .num small{font-size:11px}
+.cab-set{display:flex;flex-direction:column;align-items:center;color:#777;line-height:.9}
+.cab-set .lbl{font-size:8px;letter-spacing:.08em}
+.cab-set .arw{font-size:11px;line-height:1}
+.cab-inner{position:relative;overflow:hidden;background:radial-gradient(130% 85% at 50% -8%, #2b2a22 0%, #131311 42%, #070707 100%);border:1px solid #2b2a24;border-radius:10px;padding:14px 10px 10px}
+.cab-inner:before{content:'';position:absolute;top:0;left:10%;right:10%;height:3px;border-radius:0 0 5px 5px;background:#efe4c6;box-shadow:0 0 16px 4px rgba(239,228,198,.45);opacity:.85}
+
+/* 棚 */
+.shelf{padding:6px 0 12px}
+.shelf+.shelf{border-top:3px solid #232323;padding-top:12px}
+.shelf-label{font-size:11px;font-weight:700;color:#8a8a8a;letter-spacing:.06em;margin:0 2px 8px;display:flex;align-items:center;gap:6px}
+.slot-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.slot{position:relative;background:linear-gradient(180deg,#34342d 0%,#1d1d19 100%);border:1px solid #46453a;box-shadow:inset 0 1px 0 rgba(255,255,255,.06);border-radius:9px;padding:8px 5px 7px;text-align:center;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:filter .12s,border-color .12s;min-height:98px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px}
+.slot:active{filter:brightness(1.12)}
+.slot-icon{font-size:24px;line-height:1}
+.slot-thumb{width:60px;height:60px;border-radius:8px;object-fit:contain;background:radial-gradient(circle at 50% 42%,#57564c 0%,#2a2a25 72%)}
+.slot-name{font-size:10.5px;color:#dcdcdc;line-height:1.25;word-break:break-word;max-width:100%}
+.slot-price{font-size:9px;color:#c8a96e;font-weight:700}
+.slot-empty{border-style:dashed;border-color:#3a3a3a;background:#131313;color:#5a5a5a}
+.slot-empty:active{background:#181818}
+.slot-empty .slot-icon{font-size:20px;color:#5a5a5a}
+.slot-empty .slot-name{color:#666}
+.cab-feet{display:flex;justify-content:space-between;padding:6px 26px 0}
+.cab-feet span{width:16px;height:7px;background:#000;border-radius:0 0 7px 7px}
+
+/* オーバーレイ */
+#overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:100;align-items:center;justify-content:center;padding:20px}
+#overlay.open{display:flex}
+.dlg{background:#1e1e1e;border-radius:16px;padding:20px;width:100%;max-width:340px;box-shadow:0 8px 40px rgba(0,0,0,.6);border:1px solid #333}
+.dlg-title{font-size:16px;font-weight:700;margin-bottom:14px;color:#e8e8e8}
+.dlg-field{margin-bottom:12px}
+.dlg-field label{font-size:12px;color:#888;display:block;margin-bottom:4px;font-weight:600}
+.dlg-field input{width:100%;padding:10px;border:1px solid #333;border-radius:8px;font-size:14px;outline:none;background:#141414;color:#e8e8e8}
+.dlg-field input:focus{border-color:#c8a96e}
+.img-row{display:flex;align-items:center;gap:12px}
+.img-prev{width:56px;height:56px;border-radius:8px;background:#141414;border:1px solid #333;display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0;overflow:hidden}
+.img-prev img{width:100%;height:100%;object-fit:cover}
+.btn-photo{padding:9px 12px;border:1px solid #444;border-radius:8px;background:#252525;color:#e8e8e8;font-size:12px;font-weight:600;cursor:pointer}
+.img-hint{font-size:10px;color:#666;margin-top:5px;line-height:1.5}
+.dlg-btns{display:flex;gap:8px;margin-top:16px}
+.btn-cancel{flex:1;padding:12px;border:1px solid #333;border-radius:10px;background:#252525;font-size:14px;cursor:pointer;color:#aaa}
+.btn-ok{flex:1;padding:12px;border:none;border-radius:10px;background:#c8a96e;color:#0f0f0f;font-size:14px;font-weight:700;cursor:pointer}
+.btn-del-full{width:100%;padding:11px;border:1px solid #5a2222;border-radius:10px;background:#1e1010;color:#e08a8a;font-size:13px;font-weight:600;cursor:pointer;margin-top:8px}
+
+/* トースト */
+.toast{position:fixed;top:50%;left:50%;transform:translate(-50%,-40%);background:#1e1e1e;color:#e8e8e8;border:1px solid #c8a96e;border-radius:14px;padding:16px 26px;font-size:14px;font-weight:600;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,.6);opacity:0;transition:opacity .2s,transform .2s;z-index:999;pointer-events:none;white-space:nowrap}
+.toast.show{opacity:1;transform:translate(-50%,-50%)}
+
+/* タブバー */
+.tab-bar{position:fixed;bottom:0;left:0;right:0;display:flex;background:#111;border-top:1px solid #2e2e2e;z-index:500;max-width:100%}
+.tab-bar a{flex:1;display:flex;align-items:flex-start;justify-content:center;padding:14px 0 calc(env(safe-area-inset-bottom,0px) + 22px);text-decoration:none;font-size:12px;font-weight:600;color:#666;-webkit-tap-highlight-color:transparent;transition:color .15s}
+.tab-bar a.active{color:#c8a96e}
+.tab-spacer{height:82px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="page-header">
+    <span class="page-title" data-i18n="cabinetTitle">防湿庫</span>
+  </div>
+  <div class="vault-total" id="vaultTotal" style="display:none"></div>
+
+  <div class="cabinet">
+    <div class="cab-topbar">
+      <div class="cab-brand" id="cabBrand" contenteditable="true" spellcheck="false" data-placeholder="Lighting-recipe" aria-label="ブランド名"></div>
+      <div class="cab-display">
+        <span class="num">40<small>%</small></span>
+        <span class="num">25<small>℃</small></span>
+        <span class="cab-set">
+          <span class="lbl">SET</span>
+          <span class="arw">⌃⌄</span>
+        </span>
+      </div>
+    </div>
+    <div class="cab-inner">
+      <div class="shelf">
+        <div class="shelf-label"><img src="icons/camera.png" style="width:16px;height:16px;object-fit:contain" alt=""><span data-i18n="cabinetCamera">カメラ</span></div>
+        <div class="slot-grid" id="cameraGrid"></div>
+      </div>
+      <div class="shelf">
+        <div class="shelf-label"><img src="icons/lens.png" style="width:16px;height:16px;object-fit:contain" alt=""><span data-i18n="cabinetLens">レンズ</span></div>
+        <div class="slot-grid" id="lensGrid"></div>
+      </div>
+    </div>
+    <div class="cab-feet"><span></span><span></span></div>
+  </div>
+</div>
+
+<!-- オーバーレイ -->
+<div id="overlay">
+  <div class="dlg">
+    <div class="dlg-title" id="dlgTitle"></div>
+    <div id="dlgBody"></div>
+    <div class="dlg-btns">
+      <button class="btn-cancel" onclick="closeOverlay()" data-i18n="cancel">キャンセル</button>
+      <button class="btn-ok" id="dlgOk" data-i18n="save">保存</button>
+    </div>
+  </div>
+</div>
+
+<div class="tab-spacer"></div>
+<nav class="tab-bar">
+  <a href="index.html" data-i18n="navRecipe">レシピ</a>
+  <a href="builder.html" data-i18n="navGear">機材倉庫</a>
+  <a href="cabinet.html" class="active" data-i18n="navCabinet">防湿庫</a>
+  <a href="mypage.html" data-i18n="navMypage">マイページ</a>
+</nav>
+
+<script src='i18n.js'></script>
+<script>
+// ══════════════════════════════════════
+//  防湿庫：所有カメラ・レンズの管理（ローカル保存）
+// ══════════════════════════════════════
+const CAB_KEY='lr_cabinet';
+const CAMERA_MAX=6;              // 上段カメラの枠数（横3×2段）
+// 機材未登録／画像未設定時のデフォルト画像（icons/フォルダ）
+const DEFAULT_IMG={camera:'icons/camera.png', lens:'icons/lens.png'};
+
+// Amazonアソシエイト（機材倉庫と同じタグ）。メーカー+型番で検索。
+const AMAZON_TAG='hiroyukinak01-22';
+function amazonUrl(query){ return `https://www.amazon.co.jp/s?k=${encodeURIComponent(query)}&tag=${AMAZON_TAG}`; }
+
+function loadCabinet(){
+  try{
+    const c=JSON.parse(localStorage.getItem(CAB_KEY));
+    if(c && typeof c==='object') return { cameras:c.cameras||[], lenses:c.lenses||[] };
+  }catch(e){}
+  return { cameras:[], lenses:[] };
+}
+// 保存。成功=true / 失敗（容量超過など）=false を返す。
+function saveCabinet(c){
+  try{ localStorage.setItem(CAB_KEY, JSON.stringify(c)); return true; }
+  catch(e){ console.warn('saveCabinet',e); return false; }
+}
+let cabinet=loadCabinet();
+
+const esc=s=>String(s||'').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+// 追加写真は表示が小さいので縮小して保存（フル解像度を溜めると重くなるため）。透過PNGは保持。
+function shrinkImageDataURL(dataUrl, maxW){
+  return new Promise(resolve=>{
+    const img=new Image();
+    img.onload=()=>{
+      try{
+        const scale=Math.min(1,maxW/img.naturalWidth,maxW/img.naturalHeight);
+        const c=document.createElement('canvas');
+        c.width=Math.max(1,Math.round(img.naturalWidth*scale));
+        c.height=Math.max(1,Math.round(img.naturalHeight*scale));
+        c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+        const isPng=/^data:image\/png/i.test(dataUrl);
+        resolve(isPng?c.toDataURL('image/png'):c.toDataURL('image/jpeg',0.8));
+      }catch(e){ resolve(dataUrl); }
+    };
+    img.onerror=()=>resolve(dataUrl);
+    img.src=dataUrl;
+  });
+}
+
+// ── 資産合計（価格が設定された機材の合算） ──
+function computeCabinetTotal(){
+  let sum=0, count=0;
+  [...cabinet.cameras, ...cabinet.lenses].forEach(it=>{ if(it && it.price){ sum+=Number(it.price)||0; count++; } });
+  return { sum, count };
+}
+function updateVaultTotal(){
+  const el=document.getElementById('vaultTotal');
+  if(!el) return;
+  const { sum, count }=computeCabinetTotal();
+  if(!count){ el.style.display='none'; return; }
+  el.style.display='';
+  const fmt=(typeof formatMoney==='function')?formatMoney(sum):String(sum);
+  const label=(typeof T==='object' && T.vaultTotalLabel)?T.vaultTotalLabel:'資産合計';
+  const cntStr=(typeof T==='object' && typeof T.vaultCountWrap==='function')?T.vaultCountWrap(count):(count+'点');
+  el.textContent=label+': '+fmt+'（'+cntStr+'）';
+}
+
+// ══════════════════════════════════════
+//  描画
+// ══════════════════════════════════════
+function tileHTML(item, type, index){
+  const model=esc(item.model||item.maker||'');
+  const priceTag=item.price?`<span class="slot-price">${(typeof formatMoney==='function')?formatMoney(item.price):item.price}</span>`:'';
+  const src=item.img||DEFAULT_IMG[type];
+  return `<div class="slot" onclick="openEdit('${type}',${index})"><img class="slot-thumb" src="${src}"><span class="slot-name">${model}</span>${priceTag}</div>`;
+}
+function addTileHTML(type){
+  return `<div class="slot slot-empty" onclick="openAdd('${type}')"><span class="slot-icon">＋</span><span class="slot-name">${T.cabinetAdd||'追加'}</span></div>`;
+}
+
+function render(){
+  cabinet=loadCabinet();
+  // カメラ：6枠固定。埋まっていない枠は「＋追加」（6枠埋まったら追加枠なし）
+  const camGrid=document.getElementById('cameraGrid');
+  let camHtml=cabinet.cameras.map((it,i)=>tileHTML(it,'camera',i)).join('');
+  if(cabinet.cameras.length<CAMERA_MAX) camHtml+=addTileHTML('camera');
+  camGrid.innerHTML=camHtml;
+
+  // レンズ：既存＋末尾に「＋追加」（枠数上限なし・3列で折り返し）
+  const lensGrid=document.getElementById('lensGrid');
+  lensGrid.innerHTML=cabinet.lenses.map((it,i)=>tileHTML(it,'lens',i)).join('')+addTileHTML('lens');
+
+  updateVaultTotal();
+}
+
+// ══════════════════════════════════════
+//  追加ダイアログ
+// ══════════════════════════════════════
+let pendingImg=null; // 追加/編集中に選択した画像
+
+function openOverlay(){ document.getElementById('overlay').classList.add('open'); }
+function closeOverlay(){ document.getElementById('overlay').classList.remove('open'); document.getElementById('dlgOk').onclick=null; }
+
+function imgFieldHTML(type, currentImg){
+  const prev=`<img src="${currentImg||DEFAULT_IMG[type]}">`;
+  return `
+    <div class="dlg-field">
+      <label>${T.cabinetImage||'画像'}</label>
+      <div class="img-row">
+        <div class="img-prev" id="imgPrev">${prev}</div>
+        <button type="button" class="btn-photo" onclick="document.getElementById('cabPhoto').click()">${T.cabinetChoosePhoto||'写真を選ぶ'}</button>
+        <input type="file" id="cabPhoto" accept="image/*" style="display:none">
+      </div>
+      <div class="img-hint">${T.cabinetImgHint||'未選択ならデフォルト画像を使います'}</div>
+    </div>`;
+}
+
+function wirePhotoInput(type){
+  const inp=document.getElementById('cabPhoto');
+  if(!inp) return;
+  inp.onchange=function(){
+    const file=this.files[0];
+    if(!file) return;
+    const reader=new FileReader();
+    reader.onload=async ev=>{
+      pendingImg=await shrinkImageDataURL(ev.target.result, 400);
+      const prev=document.getElementById('imgPrev');
+      if(prev) prev.innerHTML=`<img src="${pendingImg}">`;
+    };
+    reader.readAsDataURL(file);
+  };
+}
+
+function openAdd(type){
+  pendingImg=null;
+  const isCam=type==='camera';
+  document.getElementById('dlgTitle').textContent = isCam ? (T.cabinetAddCamera||'カメラを追加') : (T.cabinetAddLens||'レンズを追加');
+  document.getElementById('dlgBody').innerHTML=`
+    <div class="dlg-field"><label>${T.cabinetMaker||'メーカー'}</label><input id="cabMaker" type="text" placeholder="${isCam?'Sony / Canon…':'Sony / Sigma…'}"></div>
+    <div class="dlg-field"><label>${T.cabinetModel||'型番'}</label><input id="cabModel" type="text" placeholder="${isCam?'α7 IV':'24-70mm F2.8'}"></div>
+    <div class="dlg-field"><label>${T.priceSet||'価格'}</label><input id="cabPrice" type="number" inputmode="numeric" placeholder="${T.pricePh||'例: 200000'}"></div>
+    ${imgFieldHTML(type,null)}`;
+  document.getElementById('dlgOk').textContent=T.save||'保存';
+  document.getElementById('dlgOk').onclick=()=>{
+    const maker=document.getElementById('cabMaker').value.trim();
+    const model=document.getElementById('cabModel').value.trim();
+    if(!model){ alert(T.alertModel||'型番を入力してください'); return; }
+    const priceVal=Number(document.getElementById('cabPrice').value);
+    const item={ maker, model };
+    if(priceVal>0) item.price=priceVal;
+    if(pendingImg) item.img=pendingImg;
+    const list=(type==='camera'?cabinet.cameras:cabinet.lenses);
+    list.push(item);
+    if(!saveCabinet(cabinet)){
+      list.pop(); // ロールバック（保存できていないので状態を戻す）
+      alert(T.cabinetStorageFull||'保存容量の上限に達しました。写真を減らすか、画像なしで登録してください。');
+      return;     // ダイアログは開いたまま（入力を残す）
+    }
+    closeOverlay();
+    render();
+    showToast((T.cabinetAdded?T.cabinetAdded(model):`${model} を追加しました`));
+  };
+  openOverlay();
+  wirePhotoInput(type);
+  const m=document.getElementById('cabMaker'); if(m) m.focus();
+}
+
+// ── 編集/削除ダイアログ ──
+function openEdit(type, index){
+  const list=(type==='camera'?cabinet.cameras:cabinet.lenses);
+  const item=list[index];
+  if(!item) return;
+  pendingImg=null;
+  const dispName=item.maker?item.maker+' '+item.model:item.model;
+  const amzQuery=(item.maker?item.maker+' ':'')+item.model;
+  document.getElementById('dlgTitle').innerHTML=
+    `<div style="display:flex;align-items:center;justify-content:space-between;gap:10px">`+
+      `<span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(dispName)}</span>`+
+      `<a href="${amazonUrl(amzQuery)}" target="_blank" rel="noopener" style="flex-shrink:0;font-size:11px;font-weight:700;color:#c8a96e;border:1px solid #c8a96e;border-radius:6px;padding:4px 9px;text-decoration:none">Amazon</a>`+
+    `</div>`;
+  document.getElementById('dlgBody').innerHTML=`
+    <div class="dlg-field"><label>${T.priceSet||'価格'}</label><input id="cabPrice" type="number" inputmode="numeric" value="${item.price||''}" placeholder="${T.pricePh||'例: 200000'}"></div>
+    ${imgFieldHTML(type,item.img||null)}
+    <button type="button" class="btn-del-full" id="cabDelBtn">🗑 ${T.del||'削除'}</button>`;
+  document.getElementById('dlgOk').textContent=T.save||'保存';
+  document.getElementById('dlgOk').onclick=()=>{
+    const prevPrice=item.price, prevImg=item.img; // ロールバック用
+    const priceVal=Number(document.getElementById('cabPrice').value);
+    if(priceVal>0) item.price=priceVal; else delete item.price;
+    if(pendingImg) item.img=pendingImg;
+    if(!saveCabinet(cabinet)){
+      if(prevPrice===undefined) delete item.price; else item.price=prevPrice;
+      if(prevImg===undefined) delete item.img; else item.img=prevImg;
+      alert(T.cabinetStorageFull||'保存容量の上限に達しました。写真を減らすか、画像なしで登録してください。');
+      return;
+    }
+    closeOverlay();
+    render();
+  };
+  document.getElementById('cabDelBtn').onclick=()=>{
+    if(!confirm(T.cabinetConfirmDelete||'この機材を削除しますか？')) return;
+    list.splice(index,1);
+    saveCabinet(cabinet);
+    closeOverlay();
+    render();
+  };
+  openOverlay();
+  wirePhotoInput(type);
+}
+
+// ── トースト ──
+let _toastTimer=null;
+function showToast(msg){
+  let el=document.getElementById('toast');
+  if(!el){ el=document.createElement('div'); el.id='toast'; el.className='toast'; document.body.appendChild(el); }
+  el.textContent=msg;
+  el.classList.add('show');
+  clearTimeout(_toastTimer);
+  _toastTimer=setTimeout(()=>el.classList.remove('show'),1800);
+}
+
+// ══════════════════════════════════════
+//  防湿庫のブランド名（メーカーロゴ風・編集可能／端末に保存）
+// ══════════════════════════════════════
+const BRAND_KEY='lr_cabinet_brand';
+const BRAND_DEFAULT='Lighting-recipe';
+const BRAND_MAX=24;
+function initBrand(){
+  const el=document.getElementById('cabBrand');
+  if(!el) return;
+  let saved=BRAND_DEFAULT;
+  try{ const v=localStorage.getItem(BRAND_KEY); if(v!==null) saved=v; }catch(e){}
+  el.textContent=saved;
+  const commit=()=>{
+    let v=(el.textContent||'').replace(/\s+/g,' ').trim().slice(0,BRAND_MAX);
+    if(!v){ v=BRAND_DEFAULT; el.textContent=v; }
+    try{ localStorage.setItem(BRAND_KEY, v); }catch(e){}
+  };
+  el.addEventListener('blur', commit);
+  el.addEventListener('keydown', e=>{
+    if(e.key==='Enter'){ e.preventDefault(); el.blur(); }
+    if((el.textContent||'').length>=BRAND_MAX && e.key.length===1 && !e.metaKey && !e.ctrlKey){ e.preventDefault(); }
+  });
+}
+
+// 背景タップで閉じる
+document.getElementById('overlay').addEventListener('click',e=>{ if(e.target.id==='overlay') closeOverlay(); });
+
+initBrand();
+render();
+</script>
+</body>
+</html>
