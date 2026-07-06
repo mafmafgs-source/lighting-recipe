@@ -608,6 +608,19 @@
   };
   for (const k in EXTRA7) { if (I18N[k]) Object.assign(I18N[k], EXTRA7[k]); }
 
+  // ── 追加辞書8（防湿庫ページ）─────────────
+  const EXTRA8 = {
+    ja: { navCabinet:'防湿庫', cabinetTitle:'防湿庫', cabinetCamera:'カメラ', cabinetLens:'レンズ', cabinetAdd:'追加', cabinetAddCamera:'カメラを追加', cabinetAddLens:'レンズを追加', cabinetMaker:'メーカー', cabinetModel:'型番', cabinetImage:'画像', cabinetChoosePhoto:'写真を選ぶ', cabinetImgHint:'未選択ならデフォルト画像を使います', cabinetAdded:(n)=>`${n} を追加しました`, cabinetConfirmDelete:'この機材を削除しますか？', save:'保存' },
+    en: { navCabinet:'Dry Cabinet', cabinetTitle:'Dry Cabinet', cabinetCamera:'Camera', cabinetLens:'Lens', cabinetAdd:'Add', cabinetAddCamera:'Add camera', cabinetAddLens:'Add lens', cabinetMaker:'Maker', cabinetModel:'Model', cabinetImage:'Image', cabinetChoosePhoto:'Choose photo', cabinetImgHint:'Uses a default image if none is chosen', cabinetAdded:(n)=>`Added ${n}`, cabinetConfirmDelete:'Delete this gear?', save:'Save' },
+    zh: { navCabinet:'防潮箱', cabinetTitle:'防潮箱', cabinetCamera:'相机', cabinetLens:'镜头', cabinetAdd:'添加', cabinetAddCamera:'添加相机', cabinetAddLens:'添加镜头', cabinetMaker:'厂商', cabinetModel:'型号', cabinetImage:'图片', cabinetChoosePhoto:'选择照片', cabinetImgHint:'未选择时使用默认图片', cabinetAdded:(n)=>`已添加 ${n}`, cabinetConfirmDelete:'要删除该器材吗？', save:'保存' },
+    ko: { navCabinet:'방습고', cabinetTitle:'방습고', cabinetCamera:'카메라', cabinetLens:'렌즈', cabinetAdd:'추가', cabinetAddCamera:'카메라 추가', cabinetAddLens:'렌즈 추가', cabinetMaker:'제조사', cabinetModel:'모델', cabinetImage:'이미지', cabinetChoosePhoto:'사진 선택', cabinetImgHint:'선택하지 않으면 기본 이미지를 사용합니다', cabinetAdded:(n)=>`${n} 추가됨`, cabinetConfirmDelete:'이 장비를 삭제할까요?', save:'저장' },
+    de: { navCabinet:'Trockenschrank', cabinetTitle:'Trockenschrank', cabinetCamera:'Kamera', cabinetLens:'Objektiv', cabinetAdd:'Hinzufügen', cabinetAddCamera:'Kamera hinzufügen', cabinetAddLens:'Objektiv hinzufügen', cabinetMaker:'Hersteller', cabinetModel:'Modell', cabinetImage:'Bild', cabinetChoosePhoto:'Foto wählen', cabinetImgHint:'Ohne Auswahl wird ein Standardbild verwendet', cabinetAdded:(n)=>`${n} hinzugefügt`, cabinetConfirmDelete:'Dieses Gerät löschen?', save:'Speichern' },
+    fr: { navCabinet:'Boîte anti-humidité', cabinetTitle:'Boîte anti-humidité', cabinetCamera:'Appareil', cabinetLens:'Objectif', cabinetAdd:'Ajouter', cabinetAddCamera:'Ajouter un appareil', cabinetAddLens:'Ajouter un objectif', cabinetMaker:'Marque', cabinetModel:'Modèle', cabinetImage:'Image', cabinetChoosePhoto:'Choisir une photo', cabinetImgHint:'Sans sélection, une image par défaut est utilisée', cabinetAdded:(n)=>`${n} ajouté`, cabinetConfirmDelete:'Supprimer ce matériel ?', save:'Enregistrer' },
+    it: { navCabinet:'Vetrina antiumidità', cabinetTitle:'Vetrina antiumidità', cabinetCamera:'Fotocamera', cabinetLens:'Obiettivo', cabinetAdd:'Aggiungi', cabinetAddCamera:'Aggiungi fotocamera', cabinetAddLens:'Aggiungi obiettivo', cabinetMaker:'Marca', cabinetModel:'Modello', cabinetImage:'Immagine', cabinetChoosePhoto:'Scegli foto', cabinetImgHint:'Senza selezione si usa un\'immagine predefinita', cabinetAdded:(n)=>`${n} aggiunto`, cabinetConfirmDelete:'Eliminare questa attrezzatura?', save:'Salva' },
+    es: { navCabinet:'Vitrina antihumedad', cabinetTitle:'Vitrina antihumedad', cabinetCamera:'Cámara', cabinetLens:'Objetivo', cabinetAdd:'Añadir', cabinetAddCamera:'Añadir cámara', cabinetAddLens:'Añadir objetivo', cabinetMaker:'Marca', cabinetModel:'Modelo', cabinetImage:'Imagen', cabinetChoosePhoto:'Elegir foto', cabinetImgHint:'Si no se elige, se usa una imagen predeterminada', cabinetAdded:(n)=>`${n} añadido`, cabinetConfirmDelete:'¿Eliminar este equipo?', save:'Guardar' },
+  };
+  for (const k in EXTRA8) { if (I18N[k]) Object.assign(I18N[k], EXTRA8[k]); }
+
   // 切替UIに出す言語（表示名はネイティブ表記）
   const LANGS = [
     { code:'ja', label:'日本語' }, { code:'en', label:'English' }, { code:'zh', label:'中文' },

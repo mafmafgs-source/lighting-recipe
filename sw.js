@@ -1,9 +1,10 @@
 // Lighting Recipe Service Worker
-const CACHE_NAME = 'lr-cache-v4';
+const CACHE_NAME = 'lr-cache-v5';
 const ASSETS = [
   './',
   './index.html',
   './builder.html',
+  './cabinet.html',
   './mypage.html',
   './i18n.js',
   './manifest.json',

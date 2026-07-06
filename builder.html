@@ -148,7 +148,7 @@ body{-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%;font-
 .icon-opt.selected{border-color:#c8a96e;background:#2a2218}
 /* タブバー */
 .tab-bar{position:fixed;bottom:0;left:0;right:0;display:flex;background:#111;border-top:1px solid #2e2e2e;z-index:500;max-width:100%}
-.tab-bar a{flex:1;display:flex;align-items:flex-start;justify-content:center;padding:14px 0 calc(env(safe-area-inset-bottom,0px) + 22px);text-decoration:none;font-size:13px;font-weight:600;color:#666;-webkit-tap-highlight-color:transparent;transition:color .15s}
+.tab-bar a{flex:1;display:flex;align-items:flex-start;justify-content:center;padding:14px 0 calc(env(safe-area-inset-bottom,0px) + 22px);text-decoration:none;font-size:12px;font-weight:600;color:#666;-webkit-tap-highlight-color:transparent;transition:color .15s}
 .tab-bar a.active{color:#c8a96e}
 .tab-spacer{height:82px}
 </style>
@@ -254,8 +254,6 @@ const DEFAULT_CATS = [
   { id:'boom',      icon:'┐',  imgPath:'icons/boom_stand.png', get label(){ return T.cats.boom; } },
   { id:'reflector', icon:'◻',  imgPath:'icons/reflector.png',get label(){ return T.cats.reflector; } },
   { id:'flag',      icon:'▬',  imgPath:'icons/flag.png',     get label(){ return T.cats.flag; } },
-  // レンズ：資産管理専用（ライトビルダー／ライティング図には載せない）
-  { id:'lens',      icon:'🔭', imgPath:'icons/lens.png',     get label(){ return T.cats.lens; } },
 ];
 
 // デフォルト機材：{ maker, model } 形式（各カテゴリ、すぐ使えるサンプルとして先頭1点のみ残す）
@@ -290,9 +288,6 @@ const DEFAULT_DB = {
   ],
   flag:      [
     {maker:'', model:'Flag Frame S'},
-  ],
-  lens:      [
-    {maker:'', model:'50mm F1.8'},
   ],
 };
 
@@ -345,6 +340,11 @@ function computeVaultTotal(){
   const add=it=>{ if(it && typeof it==='object' && it.price){ sum+=Number(it.price)||0; count++; } };
   Object.values(DEFAULT_DB).flat().forEach(add);
   customCats.forEach(c=>(c.items||[]).forEach(add));
+  // 防湿庫(cabinet.html)のカメラ・レンズも資産合計に含める
+  try{
+    const cab=JSON.parse(localStorage.getItem('lr_cabinet'));
+    if(cab){ [...(cab.cameras||[]), ...(cab.lenses||[])].forEach(add); }
+  }catch(e){}
   return { sum, count };
 }
 function updateVaultTotal(){
@@ -1277,7 +1277,8 @@ function isDirectCat(catId){
 }
 
 // 資産専用カテゴリ（倉庫の資産合計には加算するが、ライト／ライティング図には一切載せない）
-const ASSET_ONLY_CATS = ['lens'];
+// ※レンズは防湿庫ページ(cabinet.html)へ一本化したため現在は空。仕組みは将来用に残置。
+const ASSET_ONLY_CATS = [];
 
 function isAssetOnlyCat(catId){
   return ASSET_ONLY_CATS.includes(catId);
@@ -1552,6 +1553,7 @@ loadAllItemImgs().then(imgs=>{
 <nav class="tab-bar">
   <a href="index.html" data-i18n="navRecipe">レシピ</a>
   <a href="builder.html" class="active" data-i18n="navGear">機材倉庫</a>
+  <a href="cabinet.html" data-i18n="navCabinet">防湿庫</a>
   <a href="mypage.html" data-i18n="navMypage">マイページ</a>
 </nav>
 
