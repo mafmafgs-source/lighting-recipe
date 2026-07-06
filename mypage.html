@@ -313,7 +313,8 @@ function recipeCardHTML(r){
   const title=r.title||T.untitled;
   const itemCount=(r.lights||[]).filter(l=>l.items&&l.items.length).length;
   const items=(r.lights||[]).flatMap(l=>l.items||[]).slice(0,3).join(', ');
-  const thumbSrc=r.photoData||'';
+  // 一覧は小サムネ(thumbData)を優先。旧レシピ（thumbData無し）は中解像度photoDataにフォールバック。
+  const thumbSrc=r.thumbData||r.photoData||'';
   // IDとタイトルはdata属性で渡す（onclick文字列埋め込みを避ける）
   const safeId=encodeURIComponent(r.id);
 
