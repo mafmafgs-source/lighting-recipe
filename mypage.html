@@ -30,6 +30,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
 .settings-head{display:flex;align-items:center;justify-content:space-between;font-size:14px;font-weight:700;color:#c8a96e;letter-spacing:.04em;margin-bottom:16px}
 .settings-close{background:none;border:none;color:#888;font-size:16px;cursor:pointer;padding:4px;-webkit-tap-highlight-color:transparent}
 .settings-close:active{color:#e8e8e8}
+.btn-reset-all{width:100%;padding:11px;border:1px solid #5a2222;border-radius:10px;background:#1e1010;color:#e08a8a;font-size:13px;font-weight:700;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.btn-reset-all:active{background:#2a1414}
 
 /* 検索・並べ替え */
 .list-controls{display:flex;gap:8px;margin-bottom:14px}
@@ -136,6 +138,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
     </div>
     <div style="margin-top:16px;padding-top:14px;border-top:1px solid #2e2e2e">
       <a href="privacy.html" style="font-size:13px;color:#c8a96e;text-decoration:none;display:inline-flex;align-items:center;gap:6px">🔒 <span data-i18n="privacyPolicy">プライバシーポリシー</span></a>
+    </div>
+    <div style="margin-top:14px;padding-top:14px;border-top:1px solid #2e2e2e">
+      <button class="btn-reset-all" onclick="resetEverything()" data-i18n="resetAll">🗑 すべてリセット（初期化）</button>
+      <div style="font-size:10px;color:#666;line-height:1.5;margin-top:6px" data-i18n="resetAllHint">レシピ・機材・防湿庫・設定をすべて削除して初期状態に戻します。</div>
     </div>
   </div>
 </div>
@@ -407,6 +413,23 @@ document.getElementById('btnConfirmDel').addEventListener('click',async()=>{
 // ══════════════════════════════════════
 function toggleSettings(){
   document.getElementById('settingsOverlay').classList.toggle('open');
+}
+
+// ══════════════════════════════════════
+//  すべてリセット（初期化）：全データを削除して初期状態へ
+// ══════════════════════════════════════
+async function resetEverything(){
+  const msg=(typeof T==='object'&&T.resetAllConfirm)?T.resetAllConfirm:'全データ（レシピ・機材・防湿庫・設定）を削除して初期状態に戻します。元に戻せません。よろしいですか？';
+  if(!confirm(msg)) return;
+  // 2段階確認（誤タップ防止）
+  const msg2=(typeof T==='object'&&T.resetAllConfirm2)?T.resetAllConfirm2:'本当に初期化しますか？この操作は取り消せません。';
+  if(!confirm(msg2)) return;
+  // localStorage を全消去（ライト配置・機材・防湿庫・マイセット・設定・言語通貨など全て）
+  try{ localStorage.clear(); }catch(e){}
+  // IndexedDB（レシピ本体・写真・機材画像）を削除
+  ['lr_recipes_db','lr_db','lr_item_imgs'].forEach(name=>{ try{ indexedDB.deleteDatabase(name); }catch(e){} });
+  // 少し待ってからレシピ画面へ（初期状態で再スタート）
+  setTimeout(()=>{ window.location.href='index.html'; }, 300);
 }
 
 // 初期化
