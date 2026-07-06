@@ -1288,7 +1288,8 @@ function addItemToLight(name, silent) {
   lights[currentLight].items.push(name);
   persistLights();
   renderLights();
-  if (!silent) showToast(T.addedToLight(name, slot));
+  // i18n.jsが未反映でもトーストが必ず出るようフォールバックを用意（T.addedToLight未定義でも壊れない）
+  if (!silent) showToast(typeof T.addedToLight==='function' ? T.addedToLight(name, slot) : `${name} → ${slot}`);
 }
 
 // ライト配置を即座にlocalStorageへ保存（保存ボタンを押さずに他画面へ移動しても消えないように）
@@ -1302,7 +1303,7 @@ function addDirectItem(name, catId, silent){
   const imgPath = cat && cat.imgPath ? cat.imgPath : null;
   items.push({ name, catId, imgPath, x:70, y:50, height:150, flipped:false });
   localStorage.setItem('lr_direct_items', JSON.stringify(items));
-  if (!silent) showToast(T.addedToDiagram(name));
+  if (!silent) showToast(typeof T.addedToDiagram==='function' ? T.addedToDiagram(name) : `${name} ✓`);
 }
 
 let _toastTimer=null;
