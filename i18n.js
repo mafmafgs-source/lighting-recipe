@@ -595,6 +595,19 @@
   };
   for (const k in EXTRA6) { if (I18N[k]) Object.assign(I18N[k], EXTRA6[k]); }
 
+  // ── 追加辞書7（ライトへの機材追加トースト：どの枠A-Jに追加したか明示）─────
+  const EXTRA7 = {
+    ja: { addedToLight:(name,slot)=>`${name} を ライト${slot} に追加しました`, addedToDiagram:(name)=>`${name} をライティング図に追加しました` },
+    en: { addedToLight:(name,slot)=>`Added ${name} to Light ${slot}`, addedToDiagram:(name)=>`Added ${name} to the diagram` },
+    zh: { addedToLight:(name,slot)=>`已将 ${name} 添加到 灯${slot}`, addedToDiagram:(name)=>`已将 ${name} 添加到布光图` },
+    ko: { addedToLight:(name,slot)=>`${name}을(를) 조명 ${slot}에 추가했습니다`, addedToDiagram:(name)=>`${name}을(를) 조명도에 추가했습니다` },
+    de: { addedToLight:(name,slot)=>`${name} zu Licht ${slot} hinzugefügt`, addedToDiagram:(name)=>`${name} zum Diagramm hinzugefügt` },
+    fr: { addedToLight:(name,slot)=>`${name} ajouté à Lumière ${slot}`, addedToDiagram:(name)=>`${name} ajouté au schéma` },
+    it: { addedToLight:(name,slot)=>`${name} aggiunto a Luce ${slot}`, addedToDiagram:(name)=>`${name} aggiunto allo schema` },
+    es: { addedToLight:(name,slot)=>`${name} añadido a Luz ${slot}`, addedToDiagram:(name)=>`${name} añadido al esquema` },
+  };
+  for (const k in EXTRA7) { if (I18N[k]) Object.assign(I18N[k], EXTRA7[k]); }
+
   // 切替UIに出す言語（表示名はネイティブ表記）
   const LANGS = [
     { code:'ja', label:'日本語' }, { code:'en', label:'English' }, { code:'zh', label:'中文' },
