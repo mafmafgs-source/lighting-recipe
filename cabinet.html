@@ -20,7 +20,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
 
 /* 防湿庫フレーム */
 .cabinet{background:#161616;border:1px solid #2e2e2e;border-radius:14px;padding:12px 12px 6px;box-shadow:0 4px 18px rgba(0,0,0,.4)}
-.cab-topbar{display:flex;justify-content:flex-end;margin-bottom:12px}
+.cab-topbar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+.cab-brand{font-size:17px;font-weight:800;color:#fff;letter-spacing:.01em;outline:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:56%;border-bottom:1px solid transparent;padding:1px 2px;-webkit-user-modify:read-write-plaintext-only}
+.cab-brand:focus{border-bottom-color:#c8a96e}
+.cab-brand:empty:before{content:attr(data-placeholder);color:#555}
 .cab-display{display:flex;align-items:center;gap:12px;background:#050505;border:1px solid #333;border-radius:7px;padding:5px 10px}
 .cab-display .num{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:16px;color:#d8d8d8;letter-spacing:.02em}
 .cab-display .num small{font-size:11px}
@@ -86,6 +89,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
 
   <div class="cabinet">
     <div class="cab-topbar">
+      <div class="cab-brand" id="cabBrand" contenteditable="true" spellcheck="false" data-placeholder="Lighting-recipe" aria-label="ブランド名"></div>
       <div class="cab-display">
         <span class="num">40<small>%</small></span>
         <span class="num">25<small>℃</small></span>
@@ -327,9 +331,34 @@ function showToast(msg){
   _toastTimer=setTimeout(()=>el.classList.remove('show'),1800);
 }
 
+// ══════════════════════════════════════
+//  防湿庫のブランド名（メーカーロゴ風・編集可能／端末に保存）
+// ══════════════════════════════════════
+const BRAND_KEY='lr_cabinet_brand';
+const BRAND_DEFAULT='Lighting-recipe';
+const BRAND_MAX=24;
+function initBrand(){
+  const el=document.getElementById('cabBrand');
+  if(!el) return;
+  let saved=BRAND_DEFAULT;
+  try{ const v=localStorage.getItem(BRAND_KEY); if(v!==null) saved=v; }catch(e){}
+  el.textContent=saved;
+  const commit=()=>{
+    let v=(el.textContent||'').replace(/\s+/g,' ').trim().slice(0,BRAND_MAX);
+    if(!v){ v=BRAND_DEFAULT; el.textContent=v; }
+    try{ localStorage.setItem(BRAND_KEY, v); }catch(e){}
+  };
+  el.addEventListener('blur', commit);
+  el.addEventListener('keydown', e=>{
+    if(e.key==='Enter'){ e.preventDefault(); el.blur(); }
+    if((el.textContent||'').length>=BRAND_MAX && e.key.length===1 && !e.metaKey && !e.ctrlKey){ e.preventDefault(); }
+  });
+}
+
 // 背景タップで閉じる
 document.getElementById('overlay').addEventListener('click',e=>{ if(e.target.id==='overlay') closeOverlay(); });
 
+initBrand();
 render();
 </script>
 </body>
