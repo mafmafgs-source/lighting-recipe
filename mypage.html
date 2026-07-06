@@ -31,6 +31,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
 .settings-close{background:none;border:none;color:#888;font-size:16px;cursor:pointer;padding:4px;-webkit-tap-highlight-color:transparent}
 .settings-close:active{color:#e8e8e8}
 
+/* 検索・並べ替え */
+.list-controls{display:flex;gap:8px;margin-bottom:14px}
+.search-input{flex:1;min-width:0;padding:9px 12px;border:1px solid #2e2e2e;border-radius:10px;background:#1a1a1a;color:#e8e8e8;font-size:13px;outline:none;-webkit-appearance:none;-webkit-tap-highlight-color:transparent}
+.search-input::placeholder{color:#666}
+.search-input:focus{border-color:#c8a96e}
+.sort-toggle{flex-shrink:0;padding:9px 12px;border:1px solid #2e2e2e;border-radius:10px;background:#1a1a1a;color:#c8a96e;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;-webkit-tap-highlight-color:transparent}
+.sort-toggle:active{background:#252525}
+
 /* レシピカード */
 .recipe-list{display:flex;flex-direction:column;gap:10px}
 .recipe-card{display:flex;gap:12px;background:#1a1a1a;border:1px solid #2e2e2e;border-radius:12px;padding:10px;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:background .15s}
@@ -102,6 +110,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
       </div>
     </div>
     <span id="storageCount" style="font-size:13px;font-weight:700;color:#c8a96e;flex-shrink:0">0/30</span>
+  </div>
+  <!-- 検索・並べ替え -->
+  <div class="list-controls" id="listControls" style="display:none">
+    <input type="search" id="searchInput" class="search-input" data-i18n-ph="searchPlaceholder" placeholder="🔍 タイトル・場所・日付で検索" oninput="applyFilterSort()" autocomplete="off">
+    <button class="sort-toggle" id="sortToggle" onclick="toggleSortDir()"></button>
   </div>
   <div class="recipe-list" id="recipeList"></div>
 </div>
@@ -230,15 +243,22 @@ function showSubscribeInfo(){
 // ══════════════════════════════════════
 //  レシピ一覧描画
 // ══════════════════════════════════════
+// 全レシピをキャッシュし、検索語＋並べ替えを適用して描画する
+let allRecipes=[];
+let sortDesc=true; // true=撮影日 新しい順（既定）／false=古い順
+
 async function renderList(){
   const list=document.getElementById('recipeList');
-  let recipes=[];
-  try{ recipes=await getAllRecipes(); }catch(e){ console.error(e); }
+  try{ allRecipes=await getAllRecipes(); }catch(e){ console.error(e); allRecipes=[]; }
 
   // バナー更新
-  updateStorageBar(recipes.length);
+  updateStorageBar(allRecipes.length);
 
-  if(!recipes.length){
+  // 検索・並べ替えUIは、レシピが1件以上あるときだけ表示
+  const controls=document.getElementById('listControls');
+  if(controls) controls.style.display=allRecipes.length?'flex':'none';
+
+  if(!allRecipes.length){
     list.innerHTML=`
       <div class="empty-state">
         <div class="empty-icon">📷</div>
@@ -248,35 +268,84 @@ async function renderList(){
     return;
   }
 
-  list.innerHTML=recipes.map(r=>{
-    const date=r.session?.exDate||r.updatedAt?.split('T')[0]||'';
-    const loc=r.session?.loc||'';
-    const title=r.title||T.untitled;
-    const itemCount=(r.lights||[]).filter(l=>l.items&&l.items.length).length;
-    const items=(r.lights||[]).flatMap(l=>l.items||[]).slice(0,3).join(', ');
-    const thumbSrc=r.photoData||'';
-    // IDとタイトルはdata属性で渡す（onclick文字列埋め込みを避ける）
-    const safeId=encodeURIComponent(r.id);
+  updateSortToggleLabel();
+  applyFilterSort();
+}
 
-    return `
-      <div class="recipe-card" data-id="${safeId}" onclick="handleCardClick(this)">
-        <div class="recipe-thumb">
-          ${thumbSrc?`<img src="${thumbSrc}">`:'<span class="recipe-thumb-empty">📷</span>'}
-        </div>
-        <div class="recipe-info">
-          <div class="recipe-title">${title.replace(/</g,'&lt;')}</div>
-          <div class="recipe-meta">
-            ${date?`<span>📅 ${date}</span>`:''}
-            ${loc?`<span>📍 ${loc.replace(/</g,'&lt;')}</span>`:''}
-            <span>💡 ${T.lightsCountWrap(itemCount)}</span>
-          </div>
-          <div class="recipe-items">${(items||T.noGearShort).replace(/</g,'&lt;')}</div>
-        </div>
-        <div class="recipe-actions">
-          <button class="btn-del" data-id="${safeId}" onclick="event.stopPropagation();handleDelClick(this)">🗑</button>
-        </div>
+// 撮影日（無ければ更新日）を YYYYMMDD の数値にして並べ替えキーにする。
+// exDateは 'YYYY/MM/DD'、updatedAtは 'YYYY-MM-DD...' と区切りが違うので数字だけ抽出して統一する。
+function recipeSortKey(r){
+  const raw=(r.session&&r.session.exDate)||(r.updatedAt?r.updatedAt.split('T')[0]:'')||'';
+  const digits=raw.replace(/\D/g,'').slice(0,8);
+  return digits?Number(digits.padEnd(8,'0')):0;
+}
+
+// 検索対象：タイトル・ロケ地・日付（撮影日/更新日、年・月で引けるよう複数表記を含める）
+function recipeHaystack(r){
+  const title=r.title||'';
+  const loc=(r.session&&r.session.loc)||'';
+  const exDate=(r.session&&r.session.exDate)||'';
+  const upDate=r.updatedAt?r.updatedAt.split('T')[0]:'';
+  return `${title} ${loc} ${exDate} ${exDate.replace(/\D/g,'')} ${upDate}`.toLowerCase();
+}
+
+function applyFilterSort(){
+  const list=document.getElementById('recipeList');
+  const q=(document.getElementById('searchInput')?.value||'').trim().toLowerCase();
+  let rows=allRecipes.slice();
+  if(q) rows=rows.filter(r=>recipeHaystack(r).includes(q));
+  rows.sort((a,b)=>{ const ka=recipeSortKey(a),kb=recipeSortKey(b); return sortDesc?kb-ka:ka-kb; });
+
+  if(!rows.length){
+    list.innerHTML=`
+      <div class="empty-state">
+        <div class="empty-icon">🔍</div>
+        <p>${T.noSearchResults}</p>
       </div>`;
-  }).join('');
+    return;
+  }
+  list.innerHTML=rows.map(recipeCardHTML).join('');
+}
+
+function recipeCardHTML(r){
+  const date=r.session?.exDate||r.updatedAt?.split('T')[0]||'';
+  const loc=r.session?.loc||'';
+  const title=r.title||T.untitled;
+  const itemCount=(r.lights||[]).filter(l=>l.items&&l.items.length).length;
+  const items=(r.lights||[]).flatMap(l=>l.items||[]).slice(0,3).join(', ');
+  const thumbSrc=r.photoData||'';
+  // IDとタイトルはdata属性で渡す（onclick文字列埋め込みを避ける）
+  const safeId=encodeURIComponent(r.id);
+
+  return `
+    <div class="recipe-card" data-id="${safeId}" onclick="handleCardClick(this)">
+      <div class="recipe-thumb">
+        ${thumbSrc?`<img src="${thumbSrc}">`:'<span class="recipe-thumb-empty">📷</span>'}
+      </div>
+      <div class="recipe-info">
+        <div class="recipe-title">${title.replace(/</g,'&lt;')}</div>
+        <div class="recipe-meta">
+          ${date?`<span>📅 ${date}</span>`:''}
+          ${loc?`<span>📍 ${loc.replace(/</g,'&lt;')}</span>`:''}
+          <span>💡 ${T.lightsCountWrap(itemCount)}</span>
+        </div>
+        <div class="recipe-items">${(items||T.noGearShort).replace(/</g,'&lt;')}</div>
+      </div>
+      <div class="recipe-actions">
+        <button class="btn-del" data-id="${safeId}" onclick="event.stopPropagation();handleDelClick(this)">🗑</button>
+      </div>
+    </div>`;
+}
+
+// 並べ替え方向の切替（撮影日 新しい順 ⇄ 古い順）
+function toggleSortDir(){
+  sortDesc=!sortDesc;
+  updateSortToggleLabel();
+  applyFilterSort();
+}
+function updateSortToggleLabel(){
+  const btn=document.getElementById('sortToggle');
+  if(btn) btn.textContent=sortDesc?T.sortNewest:T.sortOldest;
 }
 
 // ══════════════════════════════════════
