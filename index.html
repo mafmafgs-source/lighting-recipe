@@ -716,11 +716,15 @@ function getCatImgByItemName(name){
 function getItemRole(name){
   if(['stand','boom'].some(id=>ROLE_INDEX[id]&&ROLE_INDEX[id].some(m=>name===m||name.includes(m)))) return 'base';
   if(['strobe','video','video_stick'].some(id=>ROLE_INDEX[id]&&ROLE_INDEX[id].some(m=>name===m||name.includes(m)))) return 'light';
-  // カスタムカテゴリの機材は光源(light)として扱う。ユーザーが独自の光源を追加する想定で、
-  // 光パーツ（配光・出力）の操作と反転を有効にするため。
+  // カスタムカテゴリの機材：機材ごとの光源フラグ(light)で判定。
+  //  light!==false → 'light'（光パーツ・反転が有効）、light===false → 'modifier'。
+  //  フラグ未設定の旧データは光源として扱う（従来挙動）。
   try{
     const customs=JSON.parse(localStorage.getItem('lr_customCats')||'[]');
-    if(customs.some(c=>(c.items||[]).some(it=>(it.maker?it.maker+' '+it.model:it.model)===name))) return 'light';
+    for(const c of customs){
+      const it=(c.items||[]).find(it=>(it.maker?it.maker+' '+it.model:it.model)===name);
+      if(it) return it.light===false ? 'modifier' : 'light';
+    }
   }catch(e){}
   return 'modifier';
 }

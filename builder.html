@@ -142,6 +142,15 @@ body{-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%;font-
 .dlg-field label{font-size:12px;color:#888;display:block;margin-bottom:4px;font-weight:600}
 .dlg-field input{width:100%;padding:10px;border:1px solid #333;border-radius:8px;font-size:14px;outline:none;background:#141414;color:#e8e8e8}
 .dlg-field input:focus{border-color:#c8a96e}
+/* 光源トグルスイッチ */
+.dlg-toggle{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.dlg-toggle .tg-label{font-size:13px;color:#e8e8e8;font-weight:600}
+.tg-switch{position:relative;display:inline-block;width:46px;height:26px;flex-shrink:0}
+.tg-switch input{opacity:0;width:0;height:0;position:absolute}
+.tg-track{position:absolute;inset:0;background:#2a2a2a;border:1px solid #3a3a3a;border-radius:13px;cursor:pointer;transition:background .15s,border-color .15s}
+.tg-track:before{content:'';position:absolute;left:3px;top:3px;width:18px;height:18px;background:#888;border-radius:50%;transition:transform .15s,background .15s}
+.tg-switch input:checked + .tg-track{background:#2a2218;border-color:#c8a96e}
+.tg-switch input:checked + .tg-track:before{transform:translateX(20px);background:#c8a96e}
 .dlg-btns{display:flex;gap:8px}
 .btn-cancel{flex:1;padding:12px;border:1px solid #333;border-radius:10px;background:#252525;font-size:14px;cursor:pointer;color:#aaa}
 .btn-ok{flex:1;padding:12px;border:none;border-radius:10px;background:#c8a96e;color:#0f0f0f;font-size:14px;font-weight:700;cursor:pointer}
@@ -1194,6 +1203,8 @@ function showAddItemDialog(catId) {
     : catIcon;
 
   let newItemImgData = null;
+  // カスタムカテゴリのときだけ「光源」スイッチを出す（標準カテゴリは役割がカテゴリで確定するため不要）
+  const isCustom = !DEFAULT_DB[catId];
 
   document.getElementById('dlgTitle').textContent = T.dlgItemTitle;
   document.getElementById('dlgBody').innerHTML =
@@ -1219,7 +1230,16 @@ function showAddItemDialog(catId) {
         '</label>' +
       '</div>' +
       '<div style="font-size:10px;color:#666;margin-top:5px;line-height:1.5">' + T.photoTransparentHint + '</div>' +
-    '</div>';
+    '</div>' +
+    (isCustom ?
+      '<div class="dlg-field">' +
+        '<div class="dlg-toggle">' +
+          '<span class="tg-label">' + (T.lightSourceToggle || '💡 光源として扱う') + '</span>' +
+          '<label class="tg-switch"><input type="checkbox" id="newIsLight" checked><span class="tg-track"></span></label>' +
+        '</div>' +
+        '<div style="font-size:10px;color:#666;margin-top:5px;line-height:1.5">' + (T.lightSourceHint || 'ONにするとライトに光パーツ（配光・出力）と反転が有効になります') + '</div>' +
+      '</div>'
+    : '');
 
   // フォーカス
   const makerEl = document.getElementById('newMaker');
@@ -1262,6 +1282,9 @@ function showAddItemDialog(catId) {
       DEFAULT_DB[catId].push(newItem);
       saveDefaultAdditions();
     } else {
+      // カスタム機材：光源スイッチの状態を保存（getItemRoleがこれを見て光源/モディファイアを判定）
+      const lightEl = document.getElementById('newIsLight');
+      newItem.light = lightEl ? lightEl.checked : true;
       const cat = customCats.find(c => c.id === catId);
       if (cat) { cat.items.push(newItem); saveCustomCats(); }
     }
@@ -1352,9 +1375,13 @@ function getItemRole(name) {
       if(['softbox','umbrella','beauty_dish','snoot','flag','reflector'].includes(catId)) return 'modifier';
     }
   }
-  // カスタム機材は光源(light)として扱う（index.html のライティング図と挙動・見た目を揃える）
+  // カスタム機材：機材ごとの光源フラグ(light)で判定（index.html と挙動・見た目を揃える）。
+  //  light!==false → 'light'、light===false → 'modifier'。未設定の旧データは光源扱い。
   try{
-    if(customCats.some(c=>(c.items||[]).some(it=>displayName(it)===name))) return 'light';
+    for(const c of customCats){
+      const it=(c.items||[]).find(it=>displayName(it)===name);
+      if(it) return it.light===false ? 'modifier' : 'light';
+    }
   }catch(e){}
   return 'modifier';
 }
