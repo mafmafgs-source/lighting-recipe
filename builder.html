@@ -1352,7 +1352,10 @@ function getItemRole(name) {
       if(['softbox','umbrella','beauty_dish','snoot','flag','reflector'].includes(catId)) return 'modifier';
     }
   }
-  // カスタム機材はmodifierとして扱う
+  // カスタム機材は光源(light)として扱う（index.html のライティング図と挙動・見た目を揃える）
+  try{
+    if(customCats.some(c=>(c.items||[]).some(it=>displayName(it)===name))) return 'light';
+  }catch(e){}
   return 'modifier';
 }
 
