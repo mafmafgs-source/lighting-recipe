@@ -396,8 +396,9 @@ let sunHue=48;    // 色相（光パーツカラー、初期値は既存の暖�
 let selectedSun=false;
 
 // ライティング図の表示ズーム（作業補助・表示のみ。保存レイアウトや出力画像には影響しない）。1.0=100%〜0.5=50%
-let diagZoom=1;
-const DIAG_ZOOM_MIN=0.5, DIAG_ZOOM_MAX=1;
+const DIAG_ZOOM_MIN=0.5, DIAG_ZOOM_MAX=1, DIAG_ZOOM_KEY='lr_diag_zoom';
+// 別ページから戻っても維持されるようlocalStorageから復元
+let diagZoom=(function(){ try{ const z=parseFloat(localStorage.getItem(DIAG_ZOOM_KEY)); return (z>=DIAG_ZOOM_MIN&&z<=DIAG_ZOOM_MAX)?z:1; }catch(e){ return 1; } })();
 
 const DEFAULT_HUE=48; // 既存の見た目（#ffcc00相当）を再現するデフォルト色相
 
@@ -1682,6 +1683,7 @@ function renderAll(){renderCanvas();}
 // ══════════════════════════════════════
 function setDiagZoom(z){
   diagZoom=Math.max(DIAG_ZOOM_MIN,Math.min(DIAG_ZOOM_MAX, Math.round(z*100)/100));
+  try{ localStorage.setItem(DIAG_ZOOM_KEY, diagZoom); }catch(e){} // 遷移後も維持
   const el=document.getElementById('zoomPct'); if(el) el.textContent=Math.round(diagZoom*100)+'%';
   // 白ステージ(#canvas)は原寸のまま。中身（背景紙・被写体・カメラ・機材・ビーム）だけ縮小し、
   // 位置(%)は不変なので機材を実質的に多く配置できる。保存レイアウト・出力には影響しない。
@@ -1703,6 +1705,12 @@ function applyStaticZoom(){
     if(e.touches.length===2 && startDist>0){ e.preventDefault(); setDiagZoom(startZoom*(dist(e.touches)/startDist)); }
   },{passive:false});
   cv.addEventListener('touchend',e=>{ if(e.touches.length<2) startDist=0; },{passive:true});
+})();
+
+// 復元したズームを読み込み時にUIへ反映（ノードはrenderCanvasがdiagZoomで描画、被写体/カメラ/ラベルはここで反映）
+(function(){
+  const el=document.getElementById('zoomPct'); if(el) el.textContent=Math.round(diagZoom*100)+'%';
+  if(typeof applyStaticZoom==='function') applyStaticZoom();
 })();
 
 
@@ -2277,7 +2285,11 @@ async function doExport(){
   const COST_H=(showCost&&totalCost>0)?36:0;
   const DIAG_W=W-PADDING*2;
   const DIAG_H=DIAG_W;
-  const CARD_W=activeLights.length>0?Math.min(180,Math.floor((W-PADDING*2-(activeLights.length-1)*10)/activeLights.length)):0;
+  // ライトカードは最大5列。6本以上(サブスクのA-J)は2段に折り返して機材名が枠から溢れないようにする
+  const CARD_COLS=activeLights.length>0?Math.min(5,activeLights.length):0;
+  const CARD_ROWS=activeLights.length>0?Math.ceil(activeLights.length/CARD_COLS):0;
+  const CARD_ROWGAP=16;
+  const CARD_W=CARD_COLS>0?Math.min(180,Math.floor((W-PADDING*2-(CARD_COLS-1)*10)/CARD_COLS)):0;
   const CARD_H=activeLights.length>0?220:0;
 
   let totalH=HEADER_H+PADDING;
@@ -2285,7 +2297,7 @@ async function doExport(){
   totalH+=EXIF_H+16;
   if(COST_H) totalH+=COST_H+16;
   totalH+=DIAG_H+16;
-  if(activeLights.length>0) totalH+=CARD_H+16;
+  if(activeLights.length>0) totalH+=CARD_ROWS*CARD_H+(CARD_ROWS-1)*CARD_ROWGAP+16;
   totalH+=PADDING;
 
   canvas.width=W;
@@ -2558,20 +2570,22 @@ async function doExport(){
   // ── ライトカード ──
   if(activeLights.length>0){
     activeLights.forEach((l,i)=>{
-      const x=PADDING+i*(CARD_W+10);
-      roundRect(ctx,x,y,CARD_W,CARD_H,10);
+      const col=i%CARD_COLS, row=Math.floor(i/CARD_COLS);
+      const x=PADDING+col*(CARD_W+10);
+      const cy=y+row*(CARD_H+CARD_ROWGAP);
+      roundRect(ctx,x,cy,CARD_W,CARD_H,10);
       ctx.fillStyle=CARD_BG;ctx.fill();
       ctx.strokeStyle=BORDER;ctx.lineWidth=1;ctx.stroke();
 
       // ラベル
       ctx.font=`700 14px -apple-system,sans-serif`;
       ctx.fillStyle=GOLD;
-      ctx.fillText((typeof LIGHT_LABELS!=='undefined'?LIGHT_LABELS:['A','B','C','D','E','F','G','H','I','J'])[lights.indexOf(l)],x+12,y+22);
+      ctx.fillText((typeof LIGHT_LABELS!=='undefined'?LIGHT_LABELS:['A','B','C','D','E','F','G','H','I','J'])[lights.indexOf(l)],x+12,cy+22);
 
       // 機材名
       ctx.font=`400 11px -apple-system,sans-serif`;
       ctx.fillStyle=TEXT;
-      let ty=y+44;
+      let ty=cy+44;
       l.items.slice(0,7).forEach(name=>{
         const n=name.length>18?name.slice(0,17)+'…':name;
         ctx.fillText(n,x+12,ty);
@@ -2583,10 +2597,10 @@ async function doExport(){
       if(outTxt){
         // 仕切り線
         ctx.strokeStyle=BORDER;ctx.lineWidth=1;
-        ctx.beginPath();ctx.moveTo(x+12,y+CARD_H-34);ctx.lineTo(x+CARD_W-12,y+CARD_H-34);ctx.stroke();
+        ctx.beginPath();ctx.moveTo(x+12,cy+CARD_H-34);ctx.lineTo(x+CARD_W-12,cy+CARD_H-34);ctx.stroke();
         ctx.font=`700 15px -apple-system,sans-serif`;
         ctx.fillStyle=GOLD;
-        ctx.fillText(outTxt,x+12,y+CARD_H-14);
+        ctx.fillText(outTxt,x+12,cy+CARD_H-14);
       }
     });
   }
