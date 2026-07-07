@@ -53,7 +53,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
 .zoom-ctrl button{width:26px;height:26px;border:none;background:transparent;color:#e8e8e8;font-size:16px;font-weight:700;cursor:pointer;border-radius:6px;-webkit-tap-highlight-color:transparent}
 .zoom-ctrl button:active{background:rgba(255,255,255,.15)}
 .zoom-ctrl span{font-size:11px;color:#c8a96e;font-weight:700;min-width:36px;text-align:center;cursor:pointer;-webkit-tap-highlight-color:transparent}
-#canvas{width:100%;aspect-ratio:1/1;border:1px solid #2e2e2e;border-radius:12px;background:#f0f0f0;position:relative;overflow:hidden;touch-action:none;transform-origin:center center;transition:transform .12s ease-out}
+#canvas{width:100%;aspect-ratio:1/1;border:1px solid #2e2e2e;border-radius:12px;background:#f0f0f0;position:relative;overflow:hidden;touch-action:none}
 .subject{position:absolute;left:50%;top:42%;transform:translate(-50%,-50%);font-size:28px;user-select:none;cursor:pointer;z-index:5;padding:6px;line-height:1}
 .camera-icon{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);font-size:22px;user-select:none;cursor:pointer;z-index:5;padding:4px}
 .camera-icon img{width:22px;height:22px;object-fit:contain;border-radius:5px;display:block}
@@ -1178,6 +1178,8 @@ function renderBg(){
   svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
   const g=document.getElementById('bgGroup');
   g.innerHTML='';
+  // ズーム反映：背景紙は白ステージ中央を基点に縮小（白い背景=#canvasは原寸のまま）
+  g.setAttribute('transform', diagZoom!==1 ? `translate(${W/2} ${H/2}) scale(${diagZoom}) translate(${-W/2} ${-H/2})` : '');
   if(bgType==='none') return;
 
   const ns='http://www.w3.org/2000/svg';
@@ -1454,6 +1456,11 @@ function renderBeams(){
 
     const grp=document.createElementNS(ns,'g');
     grp.setAttribute('class','beam-group');
+    // ズーム反映：ノード中心を基点にビームを縮小（ノードのscaleと整合させる）
+    if(diagZoom!==1){
+      const ncx=(l.x??20)/100*W, ncy=(l.y??30)/100*H;
+      grp.setAttribute('transform',`translate(${ncx} ${ncy}) scale(${diagZoom}) translate(${-ncx} ${-ncy})`);
+    }
     if(spreadDeg>=359.9){
       const circle=document.createElementNS(ns,'circle');
       circle.setAttribute('cx',cx);circle.setAttribute('cy',cy);circle.setAttribute('r',R);
@@ -1544,7 +1551,7 @@ function renderCanvas(){
     node.dataset.idx=i;
     node.style.left=(l.x??20)+'%';
     node.style.top=(l.y??30)+'%';
-    node.style.transform='translate(-50%,-50%)';
+    node.style.transform='translate(-50%,-50%) scale('+diagZoom+')';
 
     const h=l.height??HEIGHT_DEFAULT;
     const col=heightToColor(h);
@@ -1599,7 +1606,7 @@ function renderDirectItems(canvas){
     el.className='direct-item'+(selectedDirect===idx?' selected':'');
     el.style.left=(di.x??50)+'%';
     el.style.top=(di.y??50)+'%';
-    el.style.transform='translate(-50%,-50%)';
+    el.style.transform='translate(-50%,-50%) scale('+diagZoom+')';
 
     const h=di.height??HEIGHT_DEFAULT;
     const col=heightToColor(h);
@@ -1667,9 +1674,14 @@ function renderAll(){renderCanvas();}
 function setDiagZoom(z){
   diagZoom=Math.max(DIAG_ZOOM_MIN,Math.min(DIAG_ZOOM_MAX, Math.round(z*100)/100));
   const el=document.getElementById('zoomPct'); if(el) el.textContent=Math.round(diagZoom*100)+'%';
-  // 図全体（背景・被写体・カメラ・ノード・ビーム・メモ）を一括スケール。
-  // 座標(%)は不変なので保存レイアウト・出力には影響しない。ドラッグはgetBoundingClientRect基準で自動整合。
-  const cv=document.getElementById('canvas'); if(cv) cv.style.transform='scale('+diagZoom+')';
+  // 白ステージ(#canvas)は原寸のまま。中身（背景紙・被写体・カメラ・機材・ビーム）だけ縮小し、
+  // 位置(%)は不変なので機材を実質的に多く配置できる。保存レイアウト・出力には影響しない。
+  renderCanvas();     // ノード・ダイレクト・背景紙・ビームにscaleを反映
+  applyStaticZoom();  // 被写体・カメラ（静的要素）にscaleを反映
+}
+function applyStaticZoom(){
+  const s=document.querySelector('.subject');     if(s) s.style.transform='translate(-50%,-50%) scale('+diagZoom+')';
+  const c=document.querySelector('.camera-icon'); if(c) c.style.transform='translateX(-50%) scale('+diagZoom+')';
 }
 // 2本指ピンチでズーム
 (function(){
