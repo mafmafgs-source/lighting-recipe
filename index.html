@@ -1178,8 +1178,10 @@ function renderBg(){
   svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
   const g=document.getElementById('bgGroup');
   g.innerHTML='';
-  // ズーム反映：背景紙は白ステージ中央を基点に縮小（白い背景=#canvasは原寸のまま）
-  g.setAttribute('transform', diagZoom!==1 ? `translate(${W/2} ${H/2}) scale(${diagZoom}) translate(${-W/2} ${-H/2})` : '');
+  // ズーム反映：背景紙・テーブルは“物”なので白ステージ中央を基点に縮小。
+  // 山脈は全面背景（空＋山＋地面でキャンバス全体を埋める）なので縮小すると余白が出るため、原寸のまま維持。
+  const scaleBg = diagZoom!==1 && (bgType==='paper' || bgType==='table');
+  g.setAttribute('transform', scaleBg ? `translate(${W/2} ${H/2}) scale(${diagZoom}) translate(${-W/2} ${-H/2})` : '');
   if(bgType==='none') return;
 
   const ns='http://www.w3.org/2000/svg';
