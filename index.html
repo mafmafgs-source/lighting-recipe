@@ -149,9 +149,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
 .btn-save-cancel{background:#252525;border:1px solid #333;color:#aaa}
 .btn-save-ok{background:#c8a96e;border:none;color:#0f0f0f}
 /* ── 出力モーダル ── */
-#exportModal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:300;align-items:flex-end;justify-content:center;padding:0}
+#exportModal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:300;align-items:center;justify-content:center;padding:20px;overflow-y:auto}
 #exportModal.open{display:flex}
-.export-sheet{background:#1a1a1a;border-radius:20px 20px 0 0;padding:20px;width:100%;max-width:430px;border-top:1px solid #333}
+.export-sheet{background:#1a1a1a;border-radius:16px;padding:20px;width:100%;max-width:400px;border:1px solid #333;max-height:calc(100vh - 40px);overflow-y:auto}
 .export-sheet h3{font-size:15px;font-weight:700;color:#e8e8e8;margin-bottom:16px;text-align:center}
 .export-checks{display:flex;flex-direction:column;gap:12px;margin-bottom:20px}
 .export-check-row{display:flex;align-items:center;gap:10px;cursor:pointer}
@@ -2582,18 +2582,40 @@ async function doExport(){
       ctx.fillStyle=GOLD;
       ctx.fillText((typeof LIGHT_LABELS!=='undefined'?LIGHT_LABELS:['A','B','C','D','E','F','G','H','I','J'])[lights.indexOf(l)],x+12,cy+22);
 
-      // 機材名
-      ctx.font=`400 11px -apple-system,sans-serif`;
+      // 出力（先に計算：機材名エリアの下端を確保するため）
+      const outTxt=outputLabel(l);
+
+      // 機材名：長い名前は折り返し、点数が多い場合はフォントを自動縮小して枠内に収める
+      const areaX=x+12, areaTop=cy+38, areaW=CARD_W-24;
+      const areaBottom=cy+CARD_H-(outTxt?40:14);
+      const areaH=areaBottom-areaTop;
+      let fit=null;
+      for(const fs of [11,10,9,8]){
+        ctx.font=`400 ${fs}px -apple-system,sans-serif`;
+        const lineH=fs+4;
+        let lines=[];
+        for(const name of l.items){ lines=lines.concat(fitWrap(ctx,name,areaW)); }
+        if(lines.length*lineH<=areaH){ fit={fs,lineH,lines}; break; }
+      }
+      if(!fit){
+        // 最小サイズでも入りきらない：入る分だけ描き、末尾に残数を表示
+        const fs=8, lineH=12; ctx.font=`400 ${fs}px -apple-system,sans-serif`;
+        const maxLines=Math.max(1,Math.floor(areaH/lineH)-1);
+        let lines=[], shown=0;
+        for(let k=0;k<l.items.length;k++){
+          const wl=fitWrap(ctx,l.items[k],areaW);
+          if(lines.length+wl.length>maxLines) break;
+          lines=lines.concat(wl); shown++;
+        }
+        if(shown<l.items.length) lines.push('…+'+(l.items.length-shown));
+        fit={fs,lineH,lines};
+      }
+      ctx.font=`400 ${fit.fs}px -apple-system,sans-serif`;
       ctx.fillStyle=TEXT;
-      let ty=cy+44;
-      l.items.slice(0,7).forEach(name=>{
-        const n=name.length>18?name.slice(0,17)+'…':name;
-        ctx.fillText(n,x+12,ty);
-        ty+=17;
-      });
+      let ty=areaTop+fit.fs;
+      for(const line of fit.lines){ ctx.fillText(line,areaX,ty); ty+=fit.lineH; }
 
       // 出力
-      const outTxt=outputLabel(l);
       if(outTxt){
         // 仕切り線
         ctx.strokeStyle=BORDER;ctx.lineWidth=1;
@@ -2666,6 +2688,28 @@ function buildExportFilename(){
     .slice(0,40);
   const base=title?`${datePart}_${title}_LR`:`${datePart}_LR`;
   return `${base}.png`;
+}
+
+// 機材名を指定幅で折り返す（空白優先。1トークンが長すぎる場合は文字単位で分割）。ctxのfontは呼び出し側で設定済み。
+function fitWrap(ctx, text, maxW){
+  const words=String(text).trim().split(/\s+/);
+  const lines=[]; let cur='';
+  for(const word of words){
+    const test=cur?cur+' '+word:word;
+    if(ctx.measureText(test).width<=maxW){ cur=test; continue; }
+    if(cur) lines.push(cur);
+    if(ctx.measureText(word).width<=maxW){ cur=word; }
+    else{
+      let piece='';
+      for(const ch of word){
+        if(ctx.measureText(piece+ch).width<=maxW){ piece+=ch; }
+        else{ if(piece) lines.push(piece); piece=ch; }
+      }
+      cur=piece;
+    }
+  }
+  if(cur) lines.push(cur);
+  return lines.length?lines:[''];
 }
 
 function roundRect(ctx,x,y,w,h,r){
