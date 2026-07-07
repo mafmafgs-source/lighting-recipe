@@ -327,11 +327,14 @@ function loadPendingCats() {
   try { return JSON.parse(localStorage.getItem('lr_pendingCats') || '[]'); } catch(e){ return []; }
 }
 function loadLights() {
-  try {
-    const s = JSON.parse(localStorage.getItem('lightingRecipeLights'));
-    if (Array.isArray(s) && s.length > 0) return s;
-  } catch(e){}
-  return Array.from({length:5}, (_,i) => ({id:['A','B','C','D','E'][i], items:[], height:150, x:50, y:50, output:null}));
+  let s=null;
+  try { s = JSON.parse(localStorage.getItem('lightingRecipeLights')); } catch(e){}
+  const n=(typeof maxLights==='function')?maxLights():5;  // 無料5(A-E) / 有料10(A-J)
+  const labels=(typeof LIGHT_LABELS!=='undefined')?LIGHT_LABELS:['A','B','C','D','E','F','G','H','I','J'];
+  const arr=Array.isArray(s)?s:[];
+  const out=[];
+  for(let i=0;i<n;i++){ out.push(arr[i]||{id:labels[i], items:[], height:150, x:50, y:50, output:null}); }
+  return out;
 }
 function saveCustomCats()  {
   // 画像データを除いた軽量版を保存、画像はIDBに別保存
@@ -481,19 +484,18 @@ async function loadAllItemImgs(){
 //  マイセット（1〜5点を1まとめにした機材セット×5枠）
 // ══════════════════════════════════════════════
 function loadMySet(){
-  try{
-    const s = JSON.parse(localStorage.getItem('lr_mySet'));
-    if(Array.isArray(s) && s.length===5){
-      // 旧フォーマット（単一機材 {name,catId}）との互換変換
-      return s.map(slot=>{
-        if(!slot) return null;
-        if(Array.isArray(slot.items)) return slot;
-        if(slot.name) return { items:[{ name:slot.name, catId:slot.catId }] };
-        return null;
-      });
-    }
-  }catch(e){}
-  return [null,null,null,null,null];
+  const n=(typeof maxMyset==='function')?maxMyset():5;  // 無料5 / 有料10
+  let s=null;
+  try{ s=JSON.parse(localStorage.getItem('lr_mySet')); }catch(e){}
+  const arr=Array.isArray(s)?s:[];
+  const out=[];
+  for(let i=0;i<n;i++){
+    let slot=arr[i]||null;
+    // 旧フォーマット（単一機材 {name,catId}）との互換変換
+    if(slot && !Array.isArray(slot.items)) slot = slot.name ? { items:[{ name:slot.name, catId:slot.catId }] } : null;
+    out.push(slot);
+  }
+  return out;
 }
 function saveMySet(mySet){
   try{ localStorage.setItem('lr_mySet', JSON.stringify(mySet)); }catch(e){}
@@ -1517,7 +1519,7 @@ function renderLights() {
 
     card.innerHTML = `
       <div class="lc-header">
-        <span class="lc-label">${['A','B','C','D','E'][i]}</span>
+        <span class="lc-label">${(typeof LIGHT_LABELS!=='undefined'?LIGHT_LABELS:['A','B','C','D','E','F','G','H','I','J'])[i]}</span>
         <button class="btn-clear" onclick="clearLight(${i});event.stopPropagation()">×</button>
       </div>
       <div class="preview">${previewHTML}</div>

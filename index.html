@@ -401,12 +401,19 @@ const DIAG_ZOOM_MIN=0.5, DIAG_ZOOM_MAX=1;
 
 const DEFAULT_HUE=48; // 既存の見た目（#ffcc00相当）を再現するデフォルト色相
 
+// 新規ライトのデフォルト（A-Eは1段目、F-J（有料枠）は2段目に配置）
+function defLight(i){
+  const lbl=(typeof LIGHT_LABELS!=='undefined')?LIGHT_LABELS[i]:['A','B','C','D','E','F','G','H','I','J'][i];
+  return {id:lbl,items:[],height:HEIGHT_DEFAULT,x:20+(i%5)*15,y:30+Math.floor(i/5)*24,beam:40,angle:270,output:null};
+}
 function loadLights(){
-  try{
-    const s=JSON.parse(localStorage.getItem(LS_KEY));
-    if(Array.isArray(s)&&s.length>0)return s;
-  }catch(e){}
-  return Array.from({length:5},(_,i)=>({id:['A','B','C','D','E'][i],items:[],height:HEIGHT_DEFAULT,x:20+i*15,y:30,beam:40,angle:270,output:null}));
+  let s=null;
+  try{ s=JSON.parse(localStorage.getItem(LS_KEY)); }catch(e){}
+  const n=(typeof maxLights==='function')?maxLights():5;  // 無料5(A-E) / 有料10(A-J)
+  const arr=Array.isArray(s)?s:[];
+  const out=[];
+  for(let i=0;i<n;i++){ out.push(arr[i]||defLight(i)); }
+  return out;
 }
 
 // ══════════════════════════════════════
@@ -1559,7 +1566,7 @@ function renderCanvas(){
     const col=heightToColor(h);
     const borderW=Math.round(1+(h/HEIGHT_MAX)*4);
     const outTxt=hasLightSource(l.items)?outputLabel(l):'';
-    const LABELS=['A','B','C','D','E'];
+    const LABELS=(typeof LIGHT_LABELS!=='undefined')?LIGHT_LABELS:['A','B','C','D','E','F','G','H','I','J'];
 
     // A-Eラベル・出力表示の縦位置：土台の有無で可視コンテンツの高さが変わるため動的計算
     const contentH=getNodeContentHeight(l.items);
@@ -1792,7 +1799,7 @@ function renderPanel(){
   const flipped=l.flipped||false;
   panel.innerHTML=`
     <div class="panel-card" style="border-color:${color}">
-      <div class="panel-title">${T.panelTitle(['A','B','C','D','E'][selected])}</div>
+      <div class="panel-title">${T.panelTitle((typeof LIGHT_LABELS!=='undefined'?LIGHT_LABELS:['A','B','C','D','E','F','G','H','I','J'])[selected])}</div>
       <div class="slider-row">
         <label>${T.heightLabel}</label>
         <input type="range" id="hSlider" min="${HEIGHT_MIN}" max="${HEIGHT_MAX}" value="${h}" step="5"
@@ -2014,8 +2021,9 @@ async function doSaveRecipe(forceNew){
   const title=document.getElementById('recipeTitleInput').value.trim()||'無題のレシピ';
   const now=new Date().toISOString();
 
-  // ── 新規保存時のみ30件上限チェック ──
-  if(isNew){
+  // ── 新規保存時のみ保存上限チェック（無料30件 / 有料は無制限） ──
+  const recipeCap=(typeof maxRecipes==='function')?maxRecipes():30;
+  if(isNew && recipeCap!==Infinity){
     try{
       const db=await openRecipeDB();
       const count=await new Promise((res,rej)=>{
@@ -2024,7 +2032,7 @@ async function doSaveRecipe(forceNew){
         req.onsuccess=()=>res(req.result);
         req.onerror=e=>rej(e.target.error);
       });
-      if(count>=30){
+      if(count>=recipeCap){
         closeSaveDialog();
         document.getElementById('limitOverlay').classList.add('open');
         return;
@@ -2558,7 +2566,7 @@ async function doExport(){
       // ラベル
       ctx.font=`700 14px -apple-system,sans-serif`;
       ctx.fillStyle=GOLD;
-      ctx.fillText(['A','B','C','D','E'][lights.indexOf(l)],x+12,y+22);
+      ctx.fillText((typeof LIGHT_LABELS!=='undefined'?LIGHT_LABELS:['A','B','C','D','E','F','G','H','I','J'])[lights.indexOf(l)],x+12,y+22);
 
       // 機材名
       ctx.font=`400 11px -apple-system,sans-serif`;

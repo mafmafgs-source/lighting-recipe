@@ -32,6 +32,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
 .settings-close:active{color:#e8e8e8}
 .btn-reset-all{width:100%;padding:11px;border:1px solid #5a2222;border-radius:10px;background:#1e1010;color:#e08a8a;font-size:13px;font-weight:700;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .btn-reset-all:active{background:#2a1414}
+/* トグルスイッチ（dev用） */
+.tg-switch{position:relative;display:inline-block;width:46px;height:26px;flex-shrink:0}
+.tg-switch input{opacity:0;width:0;height:0;position:absolute}
+.tg-track{position:absolute;inset:0;background:#2a2a2a;border:1px solid #3a3a3a;border-radius:13px;cursor:pointer;transition:background .15s,border-color .15s}
+.tg-track:before{content:'';position:absolute;left:3px;top:3px;width:18px;height:18px;background:#888;border-radius:50%;transition:transform .15s,background .15s}
+.tg-switch input:checked + .tg-track{background:#2a2218;border-color:#c8a96e}
+.tg-switch input:checked + .tg-track:before{transform:translateX(20px);background:#c8a96e}
 
 /* 検索・並べ替え */
 .list-controls{display:flex;gap:8px;margin-bottom:14px}
@@ -125,7 +132,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
 <div class="settings-overlay" id="settingsOverlay" onclick="if(event.target===this)toggleSettings()">
   <div class="settings-panel">
     <div class="settings-head">
-      <span data-i18n="settingsTitle">⚙️ 設定</span>
+      <span data-i18n="settingsTitle" onclick="devTapTitle()">⚙️ 設定</span>
       <button class="settings-close" onclick="toggleSettings()" aria-label="Close">✕</button>
     </div>
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
@@ -142,6 +149,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
     <div style="margin-top:14px;padding-top:14px;border-top:1px solid #2e2e2e">
       <button class="btn-reset-all" onclick="resetEverything()" data-i18n="resetAll">🗑 すべてリセット（初期化）</button>
       <div style="font-size:10px;color:#666;line-height:1.5;margin-top:6px" data-i18n="resetAllHint">レシピ・機材・防湿庫・設定をすべて削除して初期状態に戻します。</div>
+    </div>
+    <!-- 開発用（隠し）：設定タイトルを5回タップで表示。決済実装までのサブスク状態切替 -->
+    <div id="devSubRow" style="display:none;margin-top:14px;padding-top:14px;border-top:1px dashed #444">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+        <span style="font-size:12px;color:#8ba7bf;font-weight:700">🧪 サブスク状態（dev）</span>
+        <label class="tg-switch"><input type="checkbox" id="devSubToggle" onchange="devToggleSub(this.checked)"><span class="tg-track"></span></label>
+      </div>
+      <div style="font-size:10px;color:#666;line-height:1.5;margin-top:6px">ONで有料枠（レシピ無制限・ライト10枠A-J・マイセット10）を解錠。※開発用。決済実装まで。</div>
     </div>
   </div>
 </div>
@@ -226,15 +241,21 @@ async function deleteRecipe(id){
   });
 }
 
-const MAX_RECIPES=30;
-
-// ── 保存上限バナー更新 ──
+// ── 保存上限バナー更新（無料30件 / 有料は無制限） ──
 function updateStorageBar(count){
   const bar=document.getElementById('storageBar');
   const cnt=document.getElementById('storageCount');
-  const pct=Math.min(100,Math.round(count/MAX_RECIPES*100));
-  if(bar){ bar.style.width=pct+'%'; bar.classList.toggle('full',count>=MAX_RECIPES); }
-  if(cnt){ cnt.textContent=`${count}/${MAX_RECIPES}`; cnt.style.color=count>=MAX_RECIPES?'#c0392b':'#c8a96e'; }
+  const notice=document.getElementById('storageNotice');
+  const cap=(typeof maxRecipes==='function')?maxRecipes():30;
+  if(cap===Infinity){
+    // サブスク：保存上限なし → 上限バナー（＝無料枠向けの案内）は非表示
+    if(notice) notice.style.display='none';
+    return;
+  }
+  if(notice) notice.style.display='';
+  const pct=Math.min(100,Math.round(count/cap*100));
+  if(bar){ bar.style.width=pct+'%'; bar.classList.toggle('full',count>=cap); }
+  if(cnt){ cnt.textContent=`${count}/${cap}`; cnt.style.color=count>=cap?'#c0392b':'#c8a96e'; }
 }
 
 // ── 上限ダイアログ ──
@@ -413,6 +434,27 @@ document.getElementById('btnConfirmDel').addEventListener('click',async()=>{
 // ══════════════════════════════════════
 function toggleSettings(){
   document.getElementById('settingsOverlay').classList.toggle('open');
+}
+
+// 開発用の隠しトグル：設定タイトルを5回タップで出現（決済実装までのサブスク状態切替）
+let _devTap=0, _devTapTimer=null;
+function devTapTitle(){
+  _devTap++;
+  clearTimeout(_devTapTimer);
+  _devTapTimer=setTimeout(()=>{ _devTap=0; }, 1500);
+  if(_devTap>=5){
+    _devTap=0;
+    const row=document.getElementById('devSubRow');
+    if(row){
+      row.style.display='block';
+      const t=document.getElementById('devSubToggle');
+      if(t) t.checked=(typeof isSubscribed==='function' && isSubscribed());
+    }
+  }
+}
+function devToggleSub(on){
+  if(typeof setSubscribed==='function') setSubscribed(on);
+  location.reload(); // 枠数・保存上限を反映
 }
 
 // ══════════════════════════════════════

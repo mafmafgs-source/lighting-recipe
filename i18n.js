@@ -777,6 +777,19 @@
     initI18n();
   }
 
+  // ── サブスクリプション（無料枠 vs 有料枠）の共通判定 ─────────────
+  //  決済・クラウドは未実装。lr_subscribed フラグ（開発用トグルで切替）で有料枠を解錠する。
+  //  無料: レシピ30 / ライト5(A-E) / マイセット5　　有料: 無制限 / 10(A-J) / 10
+  const SUB_KEY = 'lr_subscribed';
+  function isSubscribed(){ try{ return localStorage.getItem(SUB_KEY) === '1'; }catch(e){ return false; } }
+  function setSubscribed(on){ try{ localStorage.setItem(SUB_KEY, on ? '1' : '0'); }catch(e){} }
+  global.isSubscribed = isSubscribed;
+  global.setSubscribed = setSubscribed;
+  global.maxRecipes = function(){ return isSubscribed() ? Infinity : 30; };
+  global.maxLights  = function(){ return isSubscribed() ? 10 : 5; };
+  global.maxMyset   = function(){ return isSubscribed() ? 10 : 5; };
+  global.LIGHT_LABELS = ['A','B','C','D','E','F','G','H','I','J'];
+
   // 既存コードとの互換：グローバルに公開（各HTMLの旧定義を置き換える）
   global.I18N = I18N;          // index.html 互換
   global.I18N_DATA = I18N;     // builder.html 互換（同じ辞書を参照）
