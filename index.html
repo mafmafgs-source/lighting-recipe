@@ -49,6 +49,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
 .exif-names .cell{flex:1;padding:6px 4px;font-size:11px;text-align:center;color:#e8e8e8}
 /* キャンバス */
 .lighting-wrap{position:relative}
+.zoom-ctrl{position:absolute;right:8px;bottom:8px;z-index:6;display:flex;align-items:center;gap:2px;background:rgba(0,0,0,.55);border:1px solid #333;border-radius:8px;padding:2px;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}
+.zoom-ctrl button{width:26px;height:26px;border:none;background:transparent;color:#e8e8e8;font-size:16px;font-weight:700;cursor:pointer;border-radius:6px;-webkit-tap-highlight-color:transparent}
+.zoom-ctrl button:active{background:rgba(255,255,255,.15)}
+.zoom-ctrl span{font-size:11px;color:#c8a96e;font-weight:700;min-width:36px;text-align:center;cursor:pointer;-webkit-tap-highlight-color:transparent}
 #canvas{width:100%;aspect-ratio:1/1;border:1px solid #2e2e2e;border-radius:12px;background:#f0f0f0;position:relative;overflow:hidden;touch-action:none}
 .subject{position:absolute;left:50%;top:42%;transform:translate(-50%,-50%);font-size:28px;user-select:none;cursor:pointer;z-index:5;padding:6px;line-height:1}
 .camera-icon{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);font-size:22px;user-select:none;cursor:pointer;z-index:5;padding:4px}
@@ -231,6 +235,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
         <div class="camera-icon" onclick="openCameraSheet(event)">📷</div>
         <div class="canvas-memo" id="canvasMemo" contenteditable="true" data-placeholder="📝 メモを入力" data-i18n-dph="memoCanvasPh"></div>
       </div>
+      <!-- ズーム（表示のみ。ピンチ＋ボタン。保存レイアウト・出力には影響しない） -->
+      <div class="zoom-ctrl">
+        <button onclick="setDiagZoom(diagZoom-0.1)" aria-label="zoom out">−</button>
+        <span id="zoomPct" onclick="setDiagZoom(1)" title="100%に戻す">100%</span>
+        <button onclick="setDiagZoom(diagZoom+0.1)" aria-label="zoom in">＋</button>
+      </div>
     </div>
     <div id="panel"></div>
   </div>
@@ -384,6 +394,10 @@ let sunBeam=60;   // 配光%
 let sunAngle=90;  // 角度° (下向きがデフォルト)
 let sunHue=48;    // 色相（光パーツカラー、初期値は既存の暖色ゴールドと同じ）
 let selectedSun=false;
+
+// ライティング図の表示ズーム（作業補助・表示のみ。保存レイアウトや出力画像には影響しない）。1.0=100%〜0.5=50%
+let diagZoom=1;
+const DIAG_ZOOM_MIN=0.5, DIAG_ZOOM_MAX=1;
 
 const DEFAULT_HUE=48; // 既存の見た目（#ffcc00相当）を再現するデフォルト色相
 
@@ -1078,7 +1092,7 @@ function makeDraggableSun(node,canvas){
   });
   node.addEventListener('touchstart',e=>{
     const t=e.touches[0];sx=t.clientX;sy=t.clientY;spx=sunPos.x;spy=sunPos.y;
-    const mvT=e=>{const t=e.touches[0];mv(t.clientX,t.clientY);};
+    const mvT=e=>{if(e.touches.length>1)return;const t=e.touches[0];mv(t.clientX,t.clientY);};
     const up=()=>{document.removeEventListener('touchmove',mvT);document.removeEventListener('touchend',up);};
     document.addEventListener('touchmove',mvT,{passive:true});document.addEventListener('touchend',up);
   },{passive:true});
@@ -1440,6 +1454,11 @@ function renderBeams(){
 
     const grp=document.createElementNS(ns,'g');
     grp.setAttribute('class','beam-group');
+    // ズーム反映：ノード中心を基点にビームを縮小（ノードのscaleと整合させる）
+    if(diagZoom!==1){
+      const ncx=(l.x??20)/100*W, ncy=(l.y??30)/100*H;
+      grp.setAttribute('transform',`translate(${ncx} ${ncy}) scale(${diagZoom}) translate(${-ncx} ${-ncy})`);
+    }
     if(spreadDeg>=359.9){
       const circle=document.createElementNS(ns,'circle');
       circle.setAttribute('cx',cx);circle.setAttribute('cy',cy);circle.setAttribute('r',R);
@@ -1530,7 +1549,7 @@ function renderCanvas(){
     node.dataset.idx=i;
     node.style.left=(l.x??20)+'%';
     node.style.top=(l.y??30)+'%';
-    node.style.transform='translate(-50%,-50%)';
+    node.style.transform='translate(-50%,-50%) scale('+diagZoom+')';
 
     const h=l.height??HEIGHT_DEFAULT;
     const col=heightToColor(h);
@@ -1585,7 +1604,7 @@ function renderDirectItems(canvas){
     el.className='direct-item'+(selectedDirect===idx?' selected':'');
     el.style.left=(di.x??50)+'%';
     el.style.top=(di.y??50)+'%';
-    el.style.transform='translate(-50%,-50%)';
+    el.style.transform='translate(-50%,-50%) scale('+diagZoom+')';
 
     const h=di.height??HEIGHT_DEFAULT;
     const col=heightToColor(h);
@@ -1639,13 +1658,34 @@ function makeDraggableDirect(node,canvas,idx){
     if(e.target.closest('.direct-item-del'))return;
     const items=loadDirectItems();
     const t=e.touches[0];sx=t.clientX;sy=t.clientY;sl=items[idx].x??50;st=items[idx].y??50;
-    const mvT=e=>{const t=e.touches[0];mv(t.clientX,t.clientY);};
+    const mvT=e=>{if(e.touches.length>1)return;const t=e.touches[0];mv(t.clientX,t.clientY);};
     const up=()=>{document.removeEventListener('touchmove',mvT);document.removeEventListener('touchend',up);};
     document.addEventListener('touchmove',mvT,{passive:true});document.addEventListener('touchend',up);
   },{passive:true});
 }
 
 function renderAll(){renderCanvas();}
+
+// ══════════════════════════════════════
+//  ライティング図の表示ズーム（ピンチ＋ボタン。表示のみ）
+// ══════════════════════════════════════
+function setDiagZoom(z){
+  diagZoom=Math.max(DIAG_ZOOM_MIN,Math.min(DIAG_ZOOM_MAX, Math.round(z*100)/100));
+  const el=document.getElementById('zoomPct'); if(el) el.textContent=Math.round(diagZoom*100)+'%';
+  renderCanvas(); // ノード・ダイレクト・ビームを再描画（末尾でrenderBeamsも実行される）
+}
+// 2本指ピンチでズーム
+(function(){
+  const cv=document.getElementById('canvas');
+  if(!cv) return;
+  let startDist=0, startZoom=1;
+  const dist=t=>Math.hypot(t[0].clientX-t[1].clientX, t[0].clientY-t[1].clientY);
+  cv.addEventListener('touchstart',e=>{ if(e.touches.length===2){ startDist=dist(e.touches); startZoom=diagZoom; } },{passive:true});
+  cv.addEventListener('touchmove',e=>{
+    if(e.touches.length===2 && startDist>0){ e.preventDefault(); setDiagZoom(startZoom*(dist(e.touches)/startDist)); }
+  },{passive:false});
+  cv.addEventListener('touchend',e=>{ if(e.touches.length<2) startDist=0; },{passive:true});
+})();
 
 
 
@@ -1667,7 +1707,7 @@ function makeDraggable(node,canvas,idx){
   });
   node.addEventListener('touchstart',e=>{
     const t=e.touches[0];sx=t.clientX;sy=t.clientY;sl=lights[idx].x??20;st=lights[idx].y??30;
-    const mvT=e=>{const t=e.touches[0];mv(t.clientX,t.clientY);};
+    const mvT=e=>{if(e.touches.length>1)return;const t=e.touches[0];mv(t.clientX,t.clientY);};
     const up=()=>{document.removeEventListener('touchmove',mvT);document.removeEventListener('touchend',up);};
     document.addEventListener('touchmove',mvT,{passive:true});document.addEventListener('touchend',up);
   },{passive:true});
