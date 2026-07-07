@@ -2538,10 +2538,15 @@ async function doExport(){
     const file=new File([blob],fname,{type:'image/png'});
     const isIOS=/iP(hone|od|ad)/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
 
+    // 販促用：アプリ名ハッシュタグを共有テキストに付与（X/LINE等は投稿欄にプリフィルされる）。
+    // Instagram等は共有テキストを無視するため、クリップボードにもコピーしてキャプションに貼れるようにする。
+    const shareText='#LightingRecipe';
+    try{ if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(shareText); }catch(e){}
+
     // ① Web Share API：共有シートの「画像を保存」で写真アプリに直接保存できる（iOS/Android共通で最も確実）
     if(navigator.canShare&&navigator.canShare({files:[file]})){
       try{
-        await navigator.share({files:[file],title:'Lighting Recipe'});
+        await navigator.share({files:[file],title:'Lighting Recipe',text:shareText});
         return;
       }catch(e){
         if(e.name==='AbortError') return; // ユーザーが共有をキャンセル→そのまま終了
