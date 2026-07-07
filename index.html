@@ -49,11 +49,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
 .exif-names .cell{flex:1;padding:6px 4px;font-size:11px;text-align:center;color:#e8e8e8}
 /* キャンバス */
 .lighting-wrap{position:relative}
-.zoom-ctrl{position:absolute;right:8px;bottom:8px;z-index:6;display:flex;align-items:center;gap:2px;background:rgba(0,0,0,.55);border:1px solid #333;border-radius:8px;padding:2px;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}
+.zoom-ctrl{position:absolute;left:8px;bottom:8px;z-index:6;display:flex;align-items:center;gap:2px;background:rgba(0,0,0,.55);border:1px solid #333;border-radius:8px;padding:2px;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}
 .zoom-ctrl button{width:26px;height:26px;border:none;background:transparent;color:#e8e8e8;font-size:16px;font-weight:700;cursor:pointer;border-radius:6px;-webkit-tap-highlight-color:transparent}
 .zoom-ctrl button:active{background:rgba(255,255,255,.15)}
 .zoom-ctrl span{font-size:11px;color:#c8a96e;font-weight:700;min-width:36px;text-align:center;cursor:pointer;-webkit-tap-highlight-color:transparent}
-#canvas{width:100%;aspect-ratio:1/1;border:1px solid #2e2e2e;border-radius:12px;background:#f0f0f0;position:relative;overflow:hidden;touch-action:none}
+#canvas{width:100%;aspect-ratio:1/1;border:1px solid #2e2e2e;border-radius:12px;background:#f0f0f0;position:relative;overflow:hidden;touch-action:none;transform-origin:center center;transition:transform .12s ease-out}
 .subject{position:absolute;left:50%;top:42%;transform:translate(-50%,-50%);font-size:28px;user-select:none;cursor:pointer;z-index:5;padding:6px;line-height:1}
 .camera-icon{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);font-size:22px;user-select:none;cursor:pointer;z-index:5;padding:4px}
 .camera-icon img{width:22px;height:22px;object-fit:contain;border-radius:5px;display:block}
@@ -1454,11 +1454,6 @@ function renderBeams(){
 
     const grp=document.createElementNS(ns,'g');
     grp.setAttribute('class','beam-group');
-    // ズーム反映：ノード中心を基点にビームを縮小（ノードのscaleと整合させる）
-    if(diagZoom!==1){
-      const ncx=(l.x??20)/100*W, ncy=(l.y??30)/100*H;
-      grp.setAttribute('transform',`translate(${ncx} ${ncy}) scale(${diagZoom}) translate(${-ncx} ${-ncy})`);
-    }
     if(spreadDeg>=359.9){
       const circle=document.createElementNS(ns,'circle');
       circle.setAttribute('cx',cx);circle.setAttribute('cy',cy);circle.setAttribute('r',R);
@@ -1549,7 +1544,7 @@ function renderCanvas(){
     node.dataset.idx=i;
     node.style.left=(l.x??20)+'%';
     node.style.top=(l.y??30)+'%';
-    node.style.transform='translate(-50%,-50%) scale('+diagZoom+')';
+    node.style.transform='translate(-50%,-50%)';
 
     const h=l.height??HEIGHT_DEFAULT;
     const col=heightToColor(h);
@@ -1604,7 +1599,7 @@ function renderDirectItems(canvas){
     el.className='direct-item'+(selectedDirect===idx?' selected':'');
     el.style.left=(di.x??50)+'%';
     el.style.top=(di.y??50)+'%';
-    el.style.transform='translate(-50%,-50%) scale('+diagZoom+')';
+    el.style.transform='translate(-50%,-50%)';
 
     const h=di.height??HEIGHT_DEFAULT;
     const col=heightToColor(h);
@@ -1672,7 +1667,9 @@ function renderAll(){renderCanvas();}
 function setDiagZoom(z){
   diagZoom=Math.max(DIAG_ZOOM_MIN,Math.min(DIAG_ZOOM_MAX, Math.round(z*100)/100));
   const el=document.getElementById('zoomPct'); if(el) el.textContent=Math.round(diagZoom*100)+'%';
-  renderCanvas(); // ノード・ダイレクト・ビームを再描画（末尾でrenderBeamsも実行される）
+  // 図全体（背景・被写体・カメラ・ノード・ビーム・メモ）を一括スケール。
+  // 座標(%)は不変なので保存レイアウト・出力には影響しない。ドラッグはgetBoundingClientRect基準で自動整合。
+  const cv=document.getElementById('canvas'); if(cv) cv.style.transform='scale('+diagZoom+')';
 }
 // 2本指ピンチでズーム
 (function(){
