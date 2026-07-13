@@ -213,6 +213,7 @@ body{-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%;font-
 </div>
 
 <script src='i18n.js'></script>
+<script src='lib/brand-select.js'></script>
 <script>
 // ══════════════════════════════════════
 //  i18n：ブラウザ言語自動検出
@@ -1251,6 +1252,19 @@ function showAddItemDialog(catId) {
 
   // フォーカス
   const makerEl = document.getElementById('newMaker');
+  // メーカー名の予測入力（カテゴリに応じてブランドを絞り込み。カスタム等は全件）
+  if (makerEl && window.attachBrandAutocomplete) {
+    const BRAND_CATS_FOR = {
+      strobe:['strobe'], video:['led'], video_stick:['led'],
+      softbox:['modifier'], umbrella:['modifier'], beauty_dish:['modifier'],
+      snoot:['modifier'], stand:['stand'], boom:['stand'],
+      reflector:['modifier'], flag:['modifier']
+    };
+    attachBrandAutocomplete(makerEl, {
+      cats: BRAND_CATS_FOR[catId] || null,
+      onPick: () => { const mm = document.getElementById('newModel'); if (mm) mm.focus(); }
+    });
+  }
   if (makerEl) makerEl.focus();
 
   // Enter で次へ

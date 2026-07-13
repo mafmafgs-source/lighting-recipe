@@ -93,7 +93,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
       <div class="cab-brand" id="cabBrand" contenteditable="true" spellcheck="false" data-placeholder="Lighting-recipe" aria-label="ブランド名"></div>
       <div class="cab-display">
         <span class="num">40<small>%</small></span>
-        <span class="num">25<small>℃</small></span>
         <span class="cab-set">
           <span class="lbl">SET</span>
           <span class="arw">⌃⌄</span>
@@ -135,6 +134,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
 </nav>
 
 <script src='i18n.js'></script>
+<script src='lib/brand-select.js'></script>
 <script>
 // ══════════════════════════════════════
 //  防湿庫：所有カメラ・レンズの管理（ローカル保存）
@@ -299,7 +299,15 @@ function openAdd(type){
   };
   openOverlay();
   wirePhotoInput(type);
-  const m=document.getElementById('cabMaker'); if(m) m.focus();
+  const m=document.getElementById('cabMaker');
+  // メーカー名の予測入力（カメラ/レンズで絞り込み）
+  if(m && window.attachBrandAutocomplete){
+    attachBrandAutocomplete(m, {
+      cats: isCam ? ['camera'] : ['lens'],
+      onPick: () => { const mo=document.getElementById('cabModel'); if(mo) mo.focus(); }
+    });
+  }
+  if(m) m.focus();
 }
 
 // ── 編集/削除ダイアログ ──

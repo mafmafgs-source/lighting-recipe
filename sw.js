@@ -1,5 +1,5 @@
 // Lighting Recipe Service Worker
-const CACHE_NAME = 'lr-cache-v5';
+const CACHE_NAME = 'lr-cache-v7';
 const ASSETS = [
   './',
   './index.html',
@@ -10,8 +10,10 @@ const ASSETS = [
   './manifest.json',
   './icons/icon-192.png',
   './icons/icon-512.png',
-  'https://cdn.jsdelivr.net/npm/exifr/dist/full.umd.js',
-  'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js',
+  './lib/exifr.min.js',
+  './lib/html2canvas.min.js',
+  './lib/brand-select.js',
+  './data/brands.json',
 ];
 
 // インストール：アセットを事前キャッシュ
