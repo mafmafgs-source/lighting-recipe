@@ -1,5 +1,5 @@
 // Lighting Recipe Service Worker
-const CACHE_NAME = 'lr-cache-v7';
+const CACHE_NAME = 'lr-cache-v8';
 const ASSETS = [
   './',
   './index.html',
@@ -10,10 +10,10 @@ const ASSETS = [
   './manifest.json',
   './icons/icon-192.png',
   './icons/icon-512.png',
-  './lib/exifr.min.js',
-  './lib/html2canvas.min.js',
+  './exifr.min.js',
+  './html2canvas.min.js',
   './lib/brand-select.js',
-  './data/brands.json',
+  './brands.json',
 ];
 
 // インストール：アセットを事前キャッシュ
