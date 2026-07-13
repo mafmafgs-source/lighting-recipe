@@ -1252,18 +1252,23 @@ function showAddItemDialog(catId) {
 
   // フォーカス
   const makerEl = document.getElementById('newMaker');
-  // メーカー名の予測入力（カテゴリに応じてブランドを絞り込み。カスタム等は全件）
+  // メーカー→ブランド分類マッピング（メーカー予測入力＋型番予測入力で共用。カスタム等は全件）
+  const BRAND_CATS_FOR = {
+    strobe:['strobe'], video:['led'], video_stick:['led'],
+    softbox:['modifier'], umbrella:['modifier'], beauty_dish:['modifier'],
+    snoot:['modifier'], stand:['stand'], boom:['stand'],
+    reflector:['modifier'], flag:['modifier']
+  };
+  const brandCats = BRAND_CATS_FOR[catId] || null;
   if (makerEl && window.attachBrandAutocomplete) {
-    const BRAND_CATS_FOR = {
-      strobe:['strobe'], video:['led'], video_stick:['led'],
-      softbox:['modifier'], umbrella:['modifier'], beauty_dish:['modifier'],
-      snoot:['modifier'], stand:['stand'], boom:['stand'],
-      reflector:['modifier'], flag:['modifier']
-    };
     attachBrandAutocomplete(makerEl, {
-      cats: BRAND_CATS_FOR[catId] || null,
+      cats: brandCats,
       onPick: () => { const mm = document.getElementById('newModel'); if (mm) mm.focus(); }
     });
+  }
+  const modelEl = document.getElementById('newModel');
+  if (modelEl && window.attachModelAutocomplete) {
+    attachModelAutocomplete(modelEl, { makerInput: makerEl, cats: brandCats });
   }
   if (makerEl) makerEl.focus();
 

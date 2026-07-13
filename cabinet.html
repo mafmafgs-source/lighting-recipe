@@ -300,12 +300,18 @@ function openAdd(type){
   openOverlay();
   wirePhotoInput(type);
   const m=document.getElementById('cabMaker');
+  const cabCats = isCam ? ['camera'] : ['lens'];
   // メーカー名の予測入力（カメラ/レンズで絞り込み）
   if(m && window.attachBrandAutocomplete){
     attachBrandAutocomplete(m, {
-      cats: isCam ? ['camera'] : ['lens'],
+      cats: cabCats,
       onPick: () => { const mo=document.getElementById('cabModel'); if(mo) mo.focus(); }
     });
+  }
+  // 型番の予測入力（選んだメーカーの型番を候補表示）
+  const cabModelEl=document.getElementById('cabModel');
+  if(cabModelEl && window.attachModelAutocomplete){
+    attachModelAutocomplete(cabModelEl, { makerInput: m, cats: cabCats });
   }
   if(m) m.focus();
 }

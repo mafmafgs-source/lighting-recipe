@@ -1,0 +1,96 @@
+{
+  "version": "1.1.0",
+  "updated": "2026-07-13",
+  "note": "主要ブランドの人気モデル叩き台。網羅ではなく売れ筋のみ。brand→category→[型番]。UIでは必ず自由入力(その他)を残す。カテゴリ定義は brands.json と共通。",
+  "models": {
+    "Amaran": {
+      "led": ["100d", "100x", "200d", "200x", "60d", "60x", "300c", "150c", "F21c", "F22c", "T2c", "T4c", "AL-MC"]
+    },
+    "Aputure": {
+      "led": ["600d Pro", "600c Pro", "600x Pro", "300d II", "300x", "150d II", "LS 60d", "LS 60x", "Nova P300c", "MT Pro", "MC"]
+    },
+    "Broncolor": {
+      "strobe": ["Siros 400 L", "Siros 800 L", "Siros 800 S", "Move 1200 L", "Scoro 1600 S"]
+    },
+    "Canon": {
+      "camera": ["EOS 5D", "EOS 5D Mark II", "EOS 5D Mark III", "EOS 5D Mark IV", "EOS 5DS", "EOS 5DS R", "EOS 6D", "EOS 6D Mark II", "EOS 7D", "EOS 7D Mark II", "EOS 30D", "EOS 40D", "EOS 50D", "EOS 60D", "EOS 70D", "EOS 80D", "EOS 90D", "EOS 450D", "EOS 500D", "EOS 550D", "EOS 600D", "EOS 650D", "EOS 700D", "EOS 750D", "EOS 760D", "EOS 800D", "EOS 850D", "EOS 200D", "EOS 250D", "EOS 1000D", "EOS 1100D", "EOS 1200D", "EOS 1300D", "EOS 2000D", "EOS-1D X", "EOS-1D X Mark II", "EOS-1D X Mark III", "EOS M", "EOS M3", "EOS M5", "EOS M6", "EOS M6 Mark II", "EOS M50", "EOS M50 Mark II", "EOS M100", "EOS M200", "EOS R", "EOS RP", "EOS R5", "EOS R5 Mark II", "EOS R6", "EOS R6 Mark II", "EOS R3", "EOS R7", "EOS R8", "EOS R10", "EOS R50", "EOS R100", "EOS R1"],
+      "lens": ["EF 24-70mm F2.8L II USM", "EF 24-70mm F2.8L USM", "EF 24-105mm F4L IS USM", "EF 70-200mm F2.8L IS II USM", "EF 70-200mm F2.8L IS III USM", "EF 70-200mm F4L IS USM", "EF 16-35mm F2.8L III USM", "EF 16-35mm F4L IS USM", "EF 17-40mm F4L USM", "EF 50mm F1.2L USM", "EF 50mm F1.8 STM", "EF 85mm F1.2L II USM", "EF 85mm F1.4L IS USM", "EF 35mm F1.4L II USM", "EF 100mm F2.8L Macro IS USM", "EF 135mm F2L USM", "EF-S 17-55mm F2.8 IS USM", "EF-S 18-135mm IS USM", "RF 24-70mm F2.8L IS USM", "RF 24-105mm F4L IS USM", "RF 15-35mm F2.8L IS USM", "RF 70-200mm F2.8L IS USM", "RF 28-70mm F2L USM", "RF 50mm F1.2L USM", "RF 85mm F1.2L USM", "RF 35mm F1.8 Macro IS STM", "RF 100mm F2.8L Macro IS USM"]
+    },
+    "Elinchrom": {
+      "strobe": ["ELB 500 TTL", "ELB 1200", "ELC 125", "ELC 500", "D-Lite RX 4", "Five", "Three"]
+    },
+    "Fujifilm": {
+      "camera": ["X100", "X-Pro1", "X-E1", "X100S", "X-M1", "X-E2", "X-T1", "X-T10", "X-Pro2", "X-T2", "X100F", "X-E3", "X-H1", "X-T3", "X-T30", "X-Pro3", "X100V", "X-T4", "X-S10", "X-E4", "X-T30 II", "X-H2", "X-H2S", "X-T5", "X-S20", "X100VI", "GFX 50S", "GFX 50R", "GFX 100", "GFX 100S", "GFX 50S II", "GFX 100 II", "GFX 100S II"],
+      "lens": ["XF 18-55mm F2.8-4 R LM OIS", "XF 16-55mm F2.8 R LM WR", "XF 50-140mm F2.8 R LM OIS WR", "XF 55-200mm F3.5-4.8 R LM OIS", "XF 10-24mm F4 R OIS", "XF 16mm F1.4 R WR", "XF 23mm F1.4 R", "XF 23mm F1.4 R LM WR", "XF 35mm F1.4 R", "XF 33mm F1.4 R LM WR", "XF 56mm F1.2 R", "XF 56mm F1.2 R WR", "XF 90mm F2 R LM WR", "XF 18mm F1.4 R LM WR"]
+    },
+    "Godox": {
+      "strobe": ["AD100Pro", "AD200Pro", "AD300Pro", "AD400Pro", "AD600Pro", "V1", "V860III", "TT685II", "TT600", "AD100"],
+      "led": ["SL60W", "SL150III Bi", "SL200III Bi", "VL150", "VL200", "ML60", "ML30", "LC500R", "TL60", "KNOWLED MG1200Bi"]
+    },
+    "GVM": {
+      "led": ["80W", "880RS", "P80S", "G100W"]
+    },
+    "Leica": {
+      "camera": ["M8", "M9", "M (Typ 240)", "M10", "M10-R", "M11", "Q", "Q2", "Q3", "SL", "SL2", "SL3", "CL"],
+      "lens": ["Summicron-M 50mm f/2", "Summilux-M 35mm f/1.4", "APO-Summicron-M 50mm f/2", "Summilux-M 50mm f/1.4"]
+    },
+    "Manfrotto": {
+      "stand": ["1052BAC", "1005BAC", "5001B Nano", "MT055XPRO3", "MT190XPRO3", "190go!", "Befree Advanced"]
+    },
+    "Nanlite": {
+      "led": ["Forza 60", "Forza 60 II", "Forza 150", "Forza 300", "Forza 500", "PavoTube II 6C", "PavoTube II 15C", "PavoTube II 30C", "FS-150", "FS-200", "FS-300", "MixPanel 60"]
+    },
+    "Neewer": {
+      "strobe": ["Z1", "Q3", "Vision4", "Z2"],
+      "led": ["RGB660", "CB60", "SL80", "CB100C"]
+    },
+    "Nikon": {
+      "camera": ["D50", "D70s", "D200", "D80", "D40", "D40x", "D60", "D90", "D300", "D300S", "D3", "D700", "D3000", "D5000", "D3X", "D3S", "D7000", "D5100", "D3100", "D800", "D800E", "D4", "D600", "D5200", "D7100", "Df", "D610", "D4S", "D810", "D750", "D3300", "D5300", "D5500", "D7200", "D500", "D5", "D850", "D3400", "D5600", "D7500", "D3500", "D780", "D6", "Z6", "Z7", "Z50", "Z5", "Z6 II", "Z7 II", "Zfc", "Z9", "Z30", "Z8", "Zf", "Z6 III", "Z50 II"],
+      "lens": ["AF-S 24-70mm f/2.8G ED", "AF-S 24-70mm f/2.8E ED VR", "AF-S 70-200mm f/2.8G ED VR II", "AF-S 70-200mm f/2.8E FL ED VR", "AF-S 14-24mm f/2.8G ED", "AF-S 16-35mm f/4G ED VR", "AF-S 24-120mm f/4G ED VR", "AF-S 50mm f/1.8G", "AF-S 50mm f/1.4G", "AF-S 85mm f/1.8G", "AF-S 85mm f/1.4G", "AF-S 35mm f/1.4G", "AF-S 105mm f/2.8G VR Micro", "AF-S 18-200mm f/3.5-5.6G VR II", "AF-S DX 17-55mm f/2.8G", "Z 24-70mm f/2.8 S", "Z 24-70mm f/4 S", "Z 70-200mm f/2.8 VR S", "Z 14-24mm f/2.8 S", "Z 24-120mm f/4 S", "Z 50mm f/1.8 S", "Z 85mm f/1.8 S", "Z 35mm f/1.8 S", "Z 50mm f/1.2 S", "Z 105mm f/2.8 VR S Macro"]
+    },
+    "Nissin": {
+      "strobe": ["i60A", "i40", "Di700A", "MG10", "Di860 II"]
+    },
+    "OM System": {
+      "camera": ["E-1", "E-300", "E-500", "E-3", "E-30", "E-620", "E-5", "PEN E-P1", "PEN E-P2", "PEN E-PL1", "PEN E-P3", "OM-D E-M5", "PEN E-PL5", "OM-D E-M1", "OM-D E-M10", "OM-D E-M5 Mark II", "OM-D E-M10 Mark II", "PEN-F", "OM-D E-M1 Mark II", "OM-D E-M10 Mark III", "OM-D E-M1 Mark III", "OM-D E-M10 Mark IV", "OM-D E-M1X", "OM-1", "OM-5", "OM-1 Mark II"],
+      "lens": ["M.Zuiko 12-40mm F2.8 PRO", "M.Zuiko 12-40mm F2.8 PRO II", "M.Zuiko 40-150mm F2.8 PRO", "M.Zuiko 12-100mm F4 PRO", "M.Zuiko 7-14mm F2.8 PRO", "M.Zuiko 17mm F1.8", "M.Zuiko 25mm F1.8", "M.Zuiko 45mm F1.8", "M.Zuiko 45mm F1.2 PRO", "M.Zuiko 75mm F1.8", "M.Zuiko 60mm F2.8 Macro"]
+    },
+    "Panasonic": {
+      "camera": ["LUMIX G1", "LUMIX GH1", "LUMIX GF1", "LUMIX GH2", "LUMIX G3", "LUMIX GX1", "LUMIX GH3", "LUMIX GX7", "LUMIX GH4", "LUMIX GM1", "LUMIX G7", "LUMIX GX8", "LUMIX G8", "LUMIX GH5", "LUMIX G9", "LUMIX GH5S", "LUMIX G99", "LUMIX GH5 II", "LUMIX GH6", "LUMIX G9 II", "LUMIX GH7", "LUMIX S1", "LUMIX S1R", "LUMIX S1H", "LUMIX S5", "LUMIX S5 II", "LUMIX S5 IIX", "LUMIX S9"],
+      "lens": ["LUMIX G 12-35mm F2.8 II", "LUMIX G 35-100mm F2.8 II", "LEICA DG 12-60mm F2.8-4", "LEICA DG 25mm F1.4", "LEICA DG 42.5mm F1.2", "LUMIX G 25mm F1.7", "LUMIX S 24-70mm F2.8", "LUMIX S 70-200mm F2.8", "LUMIX S 50mm F1.8", "LUMIX S PRO 16-35mm F4", "LUMIX S 20-60mm F3.5-5.6"]
+    },
+    "Pentax": {
+      "camera": ["*ist DS", "*ist DL", "K100D", "K10D", "K200D", "K20D", "K-x", "K-7", "K-r", "K-5", "K-01", "K-30", "K-5 II", "K-5 IIs", "K-50", "K-3", "K-S1", "K-S2", "K-3 II", "K-1", "K-70", "KP", "K-1 Mark II", "K-3 Mark III"],
+      "lens": ["HD DA 16-85mm WR", "smc DA 18-135mm WR", "HD D FA 24-70mm F2.8", "HD D FA 28-105mm", "smc DA 35mm F2.4", "HD DA 35mm F2.8 Macro", "smc FA 43mm F1.9 Limited", "smc FA 77mm F1.8 Limited", "HD D FA 70-200mm F2.8"]
+    },
+    "Profoto": {
+      "strobe": ["A1X", "A2", "A10", "B1X", "B10", "B10X", "B2", "D2", "Pro-11", "Pro-10"],
+      "led": ["C1 Plus", "L1600"]
+    },
+    "Samyang": {
+      "lens": ["AF 35mm F1.4 FE II", "AF 24mm F1.8 FE", "AF 85mm F1.4 FE II", "AF 14mm F2.8 FE", "AF 75mm F1.8 FE", "AF 135mm F1.8 FE", "14mm F2.8 (MF)", "85mm F1.4 (MF)", "135mm F2 (MF)"]
+    },
+    "Sigma": {
+      "lens": ["18-35mm F1.8 DC HSM Art", "50-100mm F1.8 DC HSM Art", "24-70mm F2.8 DG OS HSM Art", "24-105mm F4 DG OS HSM Art", "35mm F1.4 DG HSM Art", "50mm F1.4 DG HSM Art", "85mm F1.4 DG HSM Art", "24mm F1.4 DG HSM Art", "135mm F1.8 DG HSM Art", "150-600mm F5-6.3 DG OS HSM Sports", "18-250mm F3.5-6.3 DC Macro OS HSM", "24-70mm F2.8 DG DN Art", "28-70mm F2.8 DG DN Contemporary", "70-200mm F2.8 DG DN Sports", "14-24mm F2.8 DG DN Art", "35mm F1.4 DG DN Art", "85mm F1.4 DG DN Art", "24mm F1.4 DG DN Art", "20mm F1.4 DG DN Art", "18-50mm F2.8 DC DN", "30mm F1.4 DC DN", "56mm F1.4 DC DN", "16mm F1.4 DC DN", "150-600mm F5-6.3 DG DN Sports", "100-400mm F5-6.3 DG DN OS"]
+    },
+    "Sony": {
+      "camera": ["α100", "α700", "α900", "α350", "α550", "α580", "α55", "α65", "α77", "α99", "α77 II", "α99 II", "NEX-5", "NEX-7", "NEX-6", "α6000", "α6300", "α6500", "α6400", "α6100", "α6600", "α6700", "ZV-E10", "ZV-E10 II", "α7", "α7R", "α7S", "α7 II", "α7R II", "α7S II", "α7 III", "α7R III", "α7R IV", "α7 IV", "α7S III", "α7R V", "α7C", "α7C II", "α7CR", "α9", "α9 II", "α9 III", "α1", "ZV-E1"],
+      "lens": ["FE 24-70mm F2.8 GM", "FE 24-70mm F2.8 GM II", "FE 24-105mm F4 G OSS", "FE 16-35mm F2.8 GM", "FE 16-35mm F2.8 GM II", "FE 12-24mm F4 G", "FE 70-200mm F2.8 GM OSS", "FE 70-200mm F2.8 GM OSS II", "FE 70-200mm F4 G OSS", "FE 100-400mm F4.5-5.6 GM OSS", "FE 24mm F1.4 GM", "FE 35mm F1.4 GM", "FE 50mm F1.2 GM", "FE 50mm F1.8", "FE 85mm F1.4 GM", "FE 85mm F1.8", "FE 90mm F2.8 Macro G", "FE 20mm F1.8 G", "FE 35mm F1.8"]
+    },
+    "Tamron": {
+      "lens": ["SP 24-70mm F2.8 Di VC USD", "SP 24-70mm F2.8 Di VC USD G2", "SP 70-200mm F2.8 Di VC USD G2", "SP 15-30mm F2.8 Di VC USD", "SP 70-300mm Di VC USD", "18-270mm Di II VC PZD", "SP 90mm F2.8 Di Macro VC", "SP 35mm F1.8 Di VC USD", "SP 85mm F1.8 Di VC USD", "28-75mm F2.8 Di III RXD", "28-75mm F2.8 Di III VXD G2", "17-28mm F2.8 Di III RXD", "70-180mm F2.8 Di III VXD", "70-180mm F2.8 Di III VXD G2", "35-150mm F2-2.8 Di III VXD", "150-500mm F5-6.7 Di III VC VXD", "18-300mm F3.5-6.3 Di III-A VC VXD", "28-200mm F2.8-5.6 Di III RXD", "20-40mm F2.8 Di III VXD", "11-20mm F2.8 Di III-A RXD"]
+    },
+    "Tokina": {
+      "lens": ["AT-X 11-16mm F2.8 PRO DX", "AT-X 11-16mm F2.8 PRO DX II", "AT-X 16-28mm F2.8 PRO FX", "atx-i 11-16mm F2.8 CF", "AT-X 100mm F2.8 Macro"]
+    },
+    "Viltrox": {
+      "lens": ["AF 23mm F1.4", "AF 33mm F1.4", "AF 56mm F1.4", "AF 13mm F1.4", "AF 27mm F1.2 Pro", "AF 75mm F1.2 Pro", "AF 16mm F1.8"]
+    },
+    "Zeiss": {
+      "lens": ["Batis 25mm F2", "Batis 85mm F1.8", "Loxia 50mm F2", "Milvus 50mm F1.4", "Otus 55mm F1.4"]
+    },
+    "Zhiyun": {
+      "led": ["Molus X100", "Molus X60", "Molus G60", "FIVERAY M40", "FIVERAY V60"]
+    }
+  }
+}
