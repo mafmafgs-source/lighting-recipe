@@ -595,16 +595,16 @@
   };
   for (const k in EXTRA6) { if (I18N[k]) Object.assign(I18N[k], EXTRA6[k]); }
 
-  // ── 追加辞書11（機材合計 / カメラ・レンズ資産合計 / 防湿庫フィルタ）──
+  // ── 追加辞書11（機材合計 / カメラ・レンズ資産合計 / 防湿庫の並べ替え / 使い方）──
   const EXTRA11 = {
-    ja: { equipTotalLabel:'機材合計', cabinetAssetLabel:'カメラ・レンズ資産合計', cabinetFilterPh:'絞り込み', gearManualBtn:'使い方' },
-    en: { equipTotalLabel:'Gear total', cabinetAssetLabel:'Camera & lens value', cabinetFilterPh:'Filter', gearManualBtn:'Help' },
-    zh: { equipTotalLabel:'器材合计', cabinetAssetLabel:'相机镜头资产合计', cabinetFilterPh:'筛选', gearManualBtn:'使用说明' },
-    ko: { equipTotalLabel:'장비 합계', cabinetAssetLabel:'카메라·렌즈 자산 합계', cabinetFilterPh:'필터', gearManualBtn:'사용법' },
-    de: { equipTotalLabel:'Ausrüstung gesamt', cabinetAssetLabel:'Kamera- & Objektivwert', cabinetFilterPh:'Filter', gearManualBtn:'Hilfe' },
-    fr: { equipTotalLabel:'Total équipement', cabinetAssetLabel:'Valeur boîtiers & objectifs', cabinetFilterPh:'Filtrer', gearManualBtn:'Aide' },
-    it: { equipTotalLabel:'Totale attrezzatura', cabinetAssetLabel:'Valore corpi e obiettivi', cabinetFilterPh:'Filtra', gearManualBtn:'Guida' },
-    es: { equipTotalLabel:'Total de equipo', cabinetAssetLabel:'Valor cámaras y objetivos', cabinetFilterPh:'Filtrar', gearManualBtn:'Ayuda' },
+    ja: { equipTotalLabel:'機材合計', cabinetAssetLabel:'カメラ・レンズ資産合計', gearManualBtn:'使い方', sortAdded:'追加順', sortPrice:'金額', sortMaker:'メーカー' },
+    en: { equipTotalLabel:'Gear total', cabinetAssetLabel:'Camera & lens value', gearManualBtn:'Help', sortAdded:'Added', sortPrice:'Price', sortMaker:'Brand' },
+    zh: { equipTotalLabel:'器材合计', cabinetAssetLabel:'相机镜头资产合计', gearManualBtn:'使用说明', sortAdded:'添加顺序', sortPrice:'价格', sortMaker:'品牌' },
+    ko: { equipTotalLabel:'장비 합계', cabinetAssetLabel:'카메라·렌즈 자산 합계', gearManualBtn:'사용법', sortAdded:'추가순', sortPrice:'가격', sortMaker:'브랜드' },
+    de: { equipTotalLabel:'Ausrüstung gesamt', cabinetAssetLabel:'Kamera- & Objektivwert', gearManualBtn:'Hilfe', sortAdded:'Zuletzt', sortPrice:'Preis', sortMaker:'Marke' },
+    fr: { equipTotalLabel:'Total équipement', cabinetAssetLabel:'Valeur boîtiers & objectifs', gearManualBtn:'Aide', sortAdded:'Ajout', sortPrice:'Prix', sortMaker:'Marque' },
+    it: { equipTotalLabel:'Totale attrezzatura', cabinetAssetLabel:'Valore corpi e obiettivi', gearManualBtn:'Guida', sortAdded:'Aggiunta', sortPrice:'Prezzo', sortMaker:'Marca' },
+    es: { equipTotalLabel:'Total de equipo', cabinetAssetLabel:'Valor cámaras y objetivos', gearManualBtn:'Ayuda', sortAdded:'Añadido', sortPrice:'Precio', sortMaker:'Marca' },
   };
   for (const k in EXTRA11) { if (I18N[k]) Object.assign(I18N[k], EXTRA11[k]); }
 
