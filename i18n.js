@@ -595,6 +595,19 @@
   };
   for (const k in EXTRA6) { if (I18N[k]) Object.assign(I18N[k], EXTRA6[k]); }
 
+  // ── 追加辞書11（機材合計 / カメラ・レンズ資産合計 / 防湿庫フィルタ）──
+  const EXTRA11 = {
+    ja: { equipTotalLabel:'機材合計', cabinetAssetLabel:'カメラ・レンズ資産合計', cabinetFilterPh:'絞り込み', gearManualBtn:'使い方' },
+    en: { equipTotalLabel:'Gear total', cabinetAssetLabel:'Camera & lens value', cabinetFilterPh:'Filter', gearManualBtn:'Help' },
+    zh: { equipTotalLabel:'器材合计', cabinetAssetLabel:'相机镜头资产合计', cabinetFilterPh:'筛选', gearManualBtn:'使用说明' },
+    ko: { equipTotalLabel:'장비 합계', cabinetAssetLabel:'카메라·렌즈 자산 합계', cabinetFilterPh:'필터', gearManualBtn:'사용법' },
+    de: { equipTotalLabel:'Ausrüstung gesamt', cabinetAssetLabel:'Kamera- & Objektivwert', cabinetFilterPh:'Filter', gearManualBtn:'Hilfe' },
+    fr: { equipTotalLabel:'Total équipement', cabinetAssetLabel:'Valeur boîtiers & objectifs', cabinetFilterPh:'Filtrer', gearManualBtn:'Aide' },
+    it: { equipTotalLabel:'Totale attrezzatura', cabinetAssetLabel:'Valore corpi e obiettivi', cabinetFilterPh:'Filtra', gearManualBtn:'Guida' },
+    es: { equipTotalLabel:'Total de equipo', cabinetAssetLabel:'Valor cámaras y objetivos', cabinetFilterPh:'Filtrar', gearManualBtn:'Ayuda' },
+  };
+  for (const k in EXTRA11) { if (I18N[k]) Object.assign(I18N[k], EXTRA11[k]); }
+
   // ── 追加辞書7（ライトへの機材追加トースト：どの枠A-Jに追加したか明示）─────
   const EXTRA7 = {
     ja: { addedToLight:(name,slot)=>`${name} を ライト${slot} に追加しました`, addedToDiagram:(name)=>`${name} をライティング図に追加しました` },

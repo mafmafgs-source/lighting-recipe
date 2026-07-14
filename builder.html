@@ -22,6 +22,16 @@ body{-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%;font-
 .card-head h3{margin-bottom:0}
 .btn-reset-lights{flex-shrink:0;padding:6px 12px;border:1px solid #444;border-radius:8px;background:#222;color:#c8a96e;font-size:12px;font-weight:700;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .btn-reset-lights:active{background:#2a2218}
+.btn-help{flex-shrink:0;padding:5px 11px;border:1px solid #c8a96e;border-radius:14px;background:#2a2218;color:#c8a96e;font-size:12px;font-weight:700;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.btn-help:active{background:#3a3020}
+.gm-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:520;align-items:center;justify-content:center;padding:20px}
+.gm-card{background:#1e1e1e;border:1px solid #333;border-radius:16px;max-width:380px;width:100%;max-height:82vh;overflow-y:auto;padding:20px;box-shadow:0 8px 40px rgba(0,0,0,.6)}
+.gm-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.gm-title{font-size:15px;font-weight:700;color:#e8e8e8}
+.gm-close{background:none;border:none;color:#888;font-size:20px;cursor:pointer;line-height:1;padding:0 2px}
+.gm-body{font-size:12.5px;color:#c2c2c2;line-height:1.75}
+.gm-body b{color:#c8a96e;font-weight:700}
+.gm-body p{margin:0 0 10px}
 
 /* ── カテゴリグリッド ── */
 .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
@@ -173,8 +183,11 @@ body{-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%;font-
 
   <!-- 機材倉庫 -->
   <div class="card">
-    <h3 id="warehouseTitle">機材倉庫</h3>
-    <div id="vaultTotal" style="font-size:13px;font-weight:700;color:#c8a96e;margin:2px 0 10px;display:none"></div>
+    <div class="card-head">
+      <h3 id="warehouseTitle">機材倉庫</h3>
+      <button class="btn-help" onclick="openGearManual()" aria-label="使い方">? <span data-i18n="gearManualBtn">使い方</span></button>
+    </div>
+    <div id="vaultTotal" style="font-size:13px;font-weight:700;color:#c8a96e;margin:2px 0 10px;display:none;line-height:1.5"></div>
     <div class="grid" id="catGrid"></div>
   </div>
 
@@ -198,6 +211,23 @@ body{-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%;font-
     <button class="btn-save" onclick="saveAndExit()" id="saveBtn">保存して戻る</button>
   </div>
 
+</div>
+
+<!-- 機材倉庫の使い方 -->
+<div class="gm-overlay" id="gearManual" onclick="if(event.target===this)closeGearManual()">
+  <div class="gm-card">
+    <div class="gm-head">
+      <div class="gm-title" data-i18n="gearManualTitle">機材倉庫の使い方</div>
+      <button class="gm-close" onclick="closeGearManual()" aria-label="close">✕</button>
+    </div>
+    <div class="gm-body" id="gearManualBody">
+      <p><b>📦 機材を追加</b><br>各カテゴリの枠をタップ →「＋追加」でメーカー・型番・価格・写真を登録。メーカー名と型番は候補から選べます（自由入力も可）。</p>
+      <p><b>💡 光源スイッチ</b><br>カスタム機材は「光源として扱う」のON/OFFで、ライトか小物（モディファイア）かを切り替えられます。</p>
+      <p><b>🔦 ライトビルダー</b><br>ライトを選んで配置・出力・色を設定。「↺ 一括リセット」で全ライトを消灯します。</p>
+      <p><b>⭐ マイセット</b><br>よく使うライトの組み合わせを保存して、ワンタップで呼び出せます。</p>
+      <p><b>💰 合計表示</b><br><b>機材合計</b>＝倉庫の機材のみ／<b>資産合計</b>＝それに防湿庫のカメラ・レンズを加えた総額（いずれも価格を入力した機材のみ集計）。</p>
+    </div>
+  </div>
 </div>
 
 <!-- オーバーレイ -->
@@ -358,28 +388,38 @@ function savePendingCats() { localStorage.setItem('lr_pendingCats', JSON.stringi
 
 // 機材倉庫の資産合計（価格が設定された全機材の合算・選択通貨で表示）
 function computeVaultTotal(){
-  let sum=0, count=0;
-  const add=it=>{ if(it && typeof it==='object' && it.price){ sum+=Number(it.price)||0; count++; } };
-  Object.values(DEFAULT_DB).flat().forEach(add);
-  customCats.forEach(c=>(c.items||[]).forEach(add));
-  // 防湿庫(cabinet.html)のカメラ・レンズも資産合計に含める
+  // 機材（倉庫）のみ
+  let equipSum=0, equipCount=0;
+  const addEquip=it=>{ if(it && typeof it==='object' && it.price){ equipSum+=Number(it.price)||0; equipCount++; } };
+  Object.values(DEFAULT_DB).flat().forEach(addEquip);
+  customCats.forEach(c=>(c.items||[]).forEach(addEquip));
+  // 防湿庫(cabinet.html)のカメラ・レンズ
+  let cabSum=0, cabCount=0;
   try{
     const cab=JSON.parse(localStorage.getItem('lr_cabinet'));
-    if(cab){ [...(cab.cameras||[]), ...(cab.lenses||[])].forEach(add); }
+    if(cab){ [...(cab.cameras||[]), ...(cab.lenses||[])].forEach(it=>{ if(it && it.price){ cabSum+=Number(it.price)||0; cabCount++; } }); }
   }catch(e){}
-  return { sum, count };
+  return { equipSum, equipCount, totalSum:equipSum+cabSum, totalCount:equipCount+cabCount };
 }
 function updateVaultTotal(){
   const el=document.getElementById('vaultTotal');
   if(!el) return;
-  const { sum, count }=computeVaultTotal();
-  if(!count){ el.style.display='none'; return; }  // 価格設定済みの機材が無ければ非表示
+  const { equipSum, equipCount, totalSum, totalCount }=computeVaultTotal();
+  if(!totalCount){ el.style.display='none'; return; }  // 価格設定済みの機材が無ければ非表示
   el.style.display='';
-  const fmt=(typeof formatMoney==='function')?formatMoney(sum):String(sum);
-  const label=(typeof T==='object' && T.vaultTotalLabel)?T.vaultTotalLabel:'資産合計';
-  const cntStr=(typeof T==='object' && typeof T.vaultCountWrap==='function')?T.vaultCountWrap(count):(count+'点');
-  el.textContent=label+': '+fmt+'（'+cntStr+'）';
+  const fmt=(v)=>(typeof formatMoney==='function')?formatMoney(v):String(v);
+  const cnt=(n)=>(typeof T==='object' && typeof T.vaultCountWrap==='function')?T.vaultCountWrap(n):(n+'点');
+  const equipLabel=(typeof T==='object' && T.equipTotalLabel)?T.equipTotalLabel:'機材合計';
+  const assetLabel=(typeof T==='object' && T.vaultTotalLabel)?T.vaultTotalLabel:'資産合計';
+  let html='';
+  if(equipCount>0) html+='<div>'+equipLabel+': '+fmt(equipSum)+'（'+cnt(equipCount)+'）</div>';
+  html+='<div>'+assetLabel+': '+fmt(totalSum)+'（'+cnt(totalCount)+'）</div>';
+  el.innerHTML=html;
 }
+
+// 機材倉庫の使い方モーダル
+function openGearManual(){ const m=document.getElementById('gearManual'); if(m) m.style.display='flex'; }
+function closeGearManual(){ const m=document.getElementById('gearManual'); if(m) m.style.display='none'; }
 
 // デフォルトカテゴリの機材一覧を保存（プリセット＋追加分の全件を丸ごと保存）
 // ※以前は「追加分のみ」を保存していたが、それだとプリセット機材（AD100Pro等）の
