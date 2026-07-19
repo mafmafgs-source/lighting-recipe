@@ -339,6 +339,7 @@ const DEFAULT_DB = {
   boom:      [{maker:'', model:'Boom Arm'}],
   reflector: [
     {maker:'', model:'白レフ'},
+    {maker:'', model:'黒レフ'},
   ],
   flag:      [
     {maker:'', model:'Flag Frame S'},
@@ -731,8 +732,12 @@ function guessIcon(name) {
   return '📦';
 }
 
+// アイテム名ごとの画像上書き（同カテゴリ内で見た目を変えたいもの。例: レフ版の黒レフ）
+const ITEM_IMG_OVERRIDE = { '黒レフ':'icons/blackreflector.png' };
+
 // 機材名からカテゴリのimgPathを逆引き
 function getCatImgByItemName(name) {
+  if(ITEM_IMG_OVERRIDE[name]) return ITEM_IMG_OVERRIDE[name];
   for(const [catId, items] of Object.entries(DEFAULT_DB)){
     if(items.some(it => displayName(it) === name || (typeof it==='object' && it.model === name))){
       const cat = getCat(catId);
@@ -1423,8 +1428,8 @@ function resetAllLights(){
 function addDirectItem(name, catId, silent){
   const items = JSON.parse(localStorage.getItem('lr_direct_items')||'[]');
   const cat = getCat(catId);
-  // 標準カテゴリは imgPath、カスタムカテゴリは登録画像(imgData/base64)を図アイコンに使う
-  const imgPath = (cat && cat.imgPath) ? cat.imgPath : ((cat && cat.imgData) ? cat.imgData : null);
+  // アイテム個別上書き（黒レフ等）＞標準カテゴリの imgPath ＞ カスタムの登録画像(imgData)
+  const imgPath = ITEM_IMG_OVERRIDE[name] || ((cat && cat.imgPath) ? cat.imgPath : ((cat && cat.imgData) ? cat.imgData : null));
   items.push({ name, catId, imgPath, x:70, y:50, height:150, flipped:false });
   localStorage.setItem('lr_direct_items', JSON.stringify(items));
   if (!silent) showToast(typeof T.addedToDiagram==='function' ? T.addedToDiagram(name) : `${name} ✓`);
