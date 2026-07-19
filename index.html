@@ -176,6 +176,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
 .tab-bar a{flex:1;display:flex;align-items:flex-start;justify-content:center;padding:14px 0 calc(env(safe-area-inset-bottom,0px) + 22px);text-decoration:none;font-size:12px;font-weight:600;color:#666;-webkit-tap-highlight-color:transparent;transition:color .15s}
 .tab-bar a.active{color:#c8a96e}
 .tab-spacer{height:82px}
+/* ── PC・タブレット横（広い画面）：写真とライティング図をゆったり大きく表示 ──
+   末尾に置くことで、上の基本ルール(.photo-box height等)を確実に上書きする。
+   図はノード位置が%指定なので幅が広がれば自動でスケールする。 */
+@media (min-width:820px){
+  .wrap{max-width:720px;padding:16px}
+  .photo-box{height:360px}
+}
 </style>
 </head>
 <body>
