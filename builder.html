@@ -298,6 +298,7 @@ const DEFAULT_CATS = [
       { id:'umbrella',     icon:'⬡', imgPath:'icons/umbrella.png',     get label(){ return T.cats.umbrella; } },
       { id:'beauty_dish',  icon:'⬡', imgPath:'icons/beauty_dish.png',  get label(){ return T.cats.beauty_dish; } },
       { id:'snoot',        icon:'⬡', imgPath:'icons/snoot.png',        get label(){ return T.cats.snoot; } },
+      { id:'grid',         icon:'⬡', imgPath:'icons/grid.png',         get label(){ return T.cats.grid; } },
     ]
   },
   { id:'stand',     icon:'△',  imgPath:'icons/stand.png',    get label(){ return T.cats.stand; } },
@@ -328,6 +329,9 @@ const DEFAULT_DB = {
   ],
   snoot:     [
     {maker:'', model:'Snoot'},
+  ],
+  grid:      [
+    {maker:'', model:'Honeycomb Grid'},
   ],
   stand:     [
     {maker:'Godox', model:'1052BAC'},
@@ -1304,7 +1308,7 @@ function showAddItemDialog(catId) {
   const BRAND_CATS_FOR = {
     strobe:['strobe'], video:['led'], video_stick:['led'],
     softbox:['modifier'], umbrella:['modifier'], beauty_dish:['modifier'],
-    snoot:['modifier'], stand:['stand'], boom:['stand'],
+    snoot:['modifier'], grid:['modifier'], stand:['stand'], boom:['stand'],
     reflector:['modifier'], flag:['modifier']
   };
   const brandCats = BRAND_CATS_FOR[catId] || null;
@@ -1450,7 +1454,7 @@ function getItemRole(name) {
     if(items.some(it => displayName(it) === name || (typeof it==='object' && it.model === name))){
       if(['stand','boom'].includes(catId))            return 'base';
       if(['strobe','video','video_stick'].includes(catId)) return 'light';
-      if(['softbox','umbrella','beauty_dish','snoot','flag','reflector'].includes(catId)) return 'modifier';
+      if(['softbox','umbrella','beauty_dish','snoot','grid','flag','reflector'].includes(catId)) return 'modifier';
     }
   }
   // カスタム機材：機材ごとの光源フラグ(light)で判定（index.html と挙動・見た目を揃える）。
