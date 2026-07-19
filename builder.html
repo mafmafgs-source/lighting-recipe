@@ -290,6 +290,7 @@ const DEFAULT_CATS = [
     subs:[
       { id:'video',       icon:'💡', imgPath:'icons/video.png',       get label(){ return T.cats.video; } },
       { id:'video_stick', icon:'💡', imgPath:'icons/video_stick.png', get label(){ return T.cats.video_stick; } },
+      { id:'panel',       icon:'💡', imgPath:'icons/ledpanel.png',    get label(){ return T.cats.panel; } },
     ]
   },
   { id:'modifier',  icon:'⬡',  imgPath:'icons/softbox.png',  get label(){ return T.cats.modifier; },
@@ -317,6 +318,9 @@ const DEFAULT_DB = {
   ],
   video_stick:[
     {maker:'Godox', model:'TL60'},
+  ],
+  panel:     [
+    {maker:'Nanlite', model:'MixPanel 60'},
   ],
   softbox:   [
     {maker:'', model:'120cm Octa'},
@@ -1328,7 +1332,7 @@ function showAddItemDialog(catId) {
   const makerEl = document.getElementById('newMaker');
   // メーカー→ブランド分類マッピング（メーカー予測入力＋型番予測入力で共用。カスタム等は全件）
   const BRAND_CATS_FOR = {
-    strobe:['strobe'], video:['led'], video_stick:['led'],
+    strobe:['strobe'], video:['led'], video_stick:['led'], panel:['led'],
     softbox:['modifier'], umbrella:['modifier'], beauty_dish:['modifier'],
     snoot:['modifier'], grid:['modifier'], stand:['stand'], boom:['stand'],
     reflector:['modifier'], flag:['modifier']
@@ -1475,7 +1479,7 @@ function getItemRole(name) {
   for(const [catId, items] of Object.entries(DEFAULT_DB)){
     if(items.some(it => displayName(it) === name || (typeof it==='object' && it.model === name))){
       if(['stand','boom'].includes(catId))            return 'base';
-      if(['strobe','video','video_stick'].includes(catId)) return 'light';
+      if(['strobe','video','video_stick','panel'].includes(catId)) return 'light';
       if(['softbox','umbrella','beauty_dish','snoot','grid','flag','reflector'].includes(catId)) return 'modifier';
     }
   }

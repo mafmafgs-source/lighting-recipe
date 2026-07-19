@@ -679,7 +679,7 @@ function findItemImg(name){
 
 // カテゴリIDとimgPathのマッピング（icons/フォルダ参照）
 const CAT_IMG_MAP={
-  strobe:'icons/strobe.png', video:'icons/video.png', video_stick:'icons/video_stick.png',
+  strobe:'icons/strobe.png', video:'icons/video.png', video_stick:'icons/video_stick.png', panel:'icons/ledpanel.png',
   softbox:'icons/softbox.png', umbrella:'icons/umbrella.png',
   beauty_dish:'icons/beauty_dish.png', snoot:'icons/snoot.png', grid:'icons/grid.png',
   stand:'icons/stand.png', boom:'icons/boom_stand.png',
@@ -691,6 +691,7 @@ const IDX_DEFAULT_DB={
   strobe:['AD100Pro','AD200Pro','AD300Pro','AD400Pro','AD600Pro'],
   video:['Forza300','Forza500','300D','600D'],
   video_stick:['TL60','TL120','MT Pro','PavoTube II 15X'],
+  panel:['MixPanel 60'],
   softbox:['120cm Octa','90cm Octa','60cm Octa','Softbox 60x90'],
   umbrella:['White Umbrella 85cm','Silver Umbrella 85cm','Shoot-through Umbrella'],
   beauty_dish:['Beauty Dish 55cm','Beauty Dish 70cm'],
@@ -744,7 +745,7 @@ function getCatImgByItemName(name){
 
 function getItemRole(name){
   if(['stand','boom'].some(id=>ROLE_INDEX[id]&&ROLE_INDEX[id].some(m=>name===m||name.includes(m)))) return 'base';
-  if(['strobe','video','video_stick'].some(id=>ROLE_INDEX[id]&&ROLE_INDEX[id].some(m=>name===m||name.includes(m)))) return 'light';
+  if(['strobe','video','video_stick','panel'].some(id=>ROLE_INDEX[id]&&ROLE_INDEX[id].some(m=>name===m||name.includes(m)))) return 'light';
   // カスタムカテゴリの機材：機材ごとの光源フラグ(light)で判定。
   //  light!==false → 'light'（光パーツ・反転が有効）、light===false → 'modifier'。
   //  フラグ未設定の旧データは光源として扱う（従来挙動）。
