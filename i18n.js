@@ -608,6 +608,19 @@
   };
   for (const k in EXTRA11) { if (I18N[k]) Object.assign(I18N[k], EXTRA11[k]); }
 
+  // ── 追加辞書12（初回ヒント / 防湿庫の空状態案内）──
+  const EXTRA12 = {
+    ja: { firstHintTitle:'かんたん3ステップ', firstHintBody:'① 写真を選ぶ（EXIF自動読取）\n② ライトを配置して図を作る\n③「↑ 出力」で画像を保存・共有', firstHintBtn:'はじめる', cabinetEmptyHint:'＋ からカメラ・レンズを登録すると、資産をまとめて管理できます' },
+    en: { firstHintTitle:'Get started in 3 steps', firstHintBody:'1. Pick a photo (EXIF auto-read)\n2. Place lights to build the diagram\n3. Tap "↑ Export" to save & share', firstHintBtn:'Start', cabinetEmptyHint:'Tap ＋ to add cameras & lenses and track their value' },
+    zh: { firstHintTitle:'快速三步上手', firstHintBody:'① 选择照片（自动读取EXIF）\n② 布置灯光生成示意图\n③ 点「↑ 输出」保存并分享', firstHintBtn:'开始', cabinetEmptyHint:'点 ＋ 添加相机和镜头，统一管理资产' },
+    ko: { firstHintTitle:'3단계로 시작', firstHintBody:'① 사진 선택 (EXIF 자동 인식)\n② 조명을 배치해 도면 작성\n③ \'↑ 내보내기\'로 저장·공유', firstHintBtn:'시작', cabinetEmptyHint:'＋ 로 카메라·렌즈를 등록하면 자산을 관리할 수 있어요' },
+    de: { firstHintTitle:'In 3 Schritten starten', firstHintBody:'1. Foto wählen (EXIF automatisch)\n2. Lichter platzieren & Diagramm bauen\n3. „↑ Export" zum Speichern & Teilen', firstHintBtn:'Los geht\'s', cabinetEmptyHint:'Mit ＋ Kameras & Objektive erfassen und Wert verwalten' },
+    fr: { firstHintTitle:'Démarrer en 3 étapes', firstHintBody:'1. Choisir une photo (EXIF auto)\n2. Placer les lumières pour le schéma\n3. « ↑ Exporter » pour enregistrer & partager', firstHintBtn:'Commencer', cabinetEmptyHint:'Touchez ＋ pour ajouter boîtiers & objectifs et suivre leur valeur' },
+    it: { firstHintTitle:'Inizia in 3 passi', firstHintBody:'1. Scegli una foto (EXIF automatico)\n2. Posiziona le luci e crea lo schema\n3. "↑ Esporta" per salvare e condividere', firstHintBtn:'Inizia', cabinetEmptyHint:'Tocca ＋ per aggiungere corpi e obiettivi e gestirne il valore' },
+    es: { firstHintTitle:'Empieza en 3 pasos', firstHintBody:'1. Elige una foto (EXIF automático)\n2. Coloca las luces y crea el esquema\n3. "↑ Exportar" para guardar y compartir', firstHintBtn:'Empezar', cabinetEmptyHint:'Toca ＋ para añadir cámaras y objetivos y gestionar su valor' },
+  };
+  for (const k in EXTRA12) { if (I18N[k]) Object.assign(I18N[k], EXTRA12[k]); }
+
   // ── 追加辞書7（ライトへの機材追加トースト：どの枠A-Jに追加したか明示）─────
   const EXTRA7 = {
     ja: { addedToLight:(name,slot)=>`${name} を ライト${slot} に追加しました`, addedToDiagram:(name)=>`${name} をライティング図に追加しました` },

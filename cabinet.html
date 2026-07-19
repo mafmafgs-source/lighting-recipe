@@ -92,6 +92,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
     <span class="page-title" data-i18n="cabinetTitle">防湿庫</span>
   </div>
   <div class="vault-total" id="vaultTotal" style="display:none"></div>
+  <div id="cabEmptyHint" data-i18n="cabinetEmptyHint" style="display:none;font-size:12px;color:#7a7a7a;line-height:1.6;margin:0 2px 10px">＋ からカメラ・レンズを登録すると、資産をまとめて管理できます</div>
 
   <div class="cabinet">
     <div class="cab-topbar">
@@ -278,6 +279,10 @@ function render(){
   // レンズ：既存＋末尾に「＋追加」（枠数上限なし・3列で折り返し）
   const lensGrid=document.getElementById('lensGrid');
   lensGrid.innerHTML=sortWithIndex(cabinet.lenses,'lens').map(o=>tileHTML(o.it,'lens',o.i)).join('')+addTileHTML('lens');
+
+  // 完全に空（カメラ・レンズ0件）のときだけ一言ガイドを表示
+  const hint=document.getElementById('cabEmptyHint');
+  if(hint) hint.style.display=(cabinet.cameras.length===0 && cabinet.lenses.length===0)?'block':'none';
 
   updateSortUI();
   updateVaultTotal();

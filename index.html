@@ -2318,7 +2318,7 @@ async function doExport(){
   ctx.beginPath();ctx.moveTo(0,HEADER_H);ctx.lineTo(W,HEADER_H);ctx.stroke();
   ctx.font=`700 18px -apple-system,sans-serif`;
   ctx.fillStyle=GOLD;
-  ctx.fillText('LIGHTING RECIPE',PADDING,HEADER_H/2+7);
+  ctx.fillText('Lighting Recipe',PADDING,HEADER_H/2+7);
   ctx.font=`400 12px -apple-system,sans-serif`;
   ctx.fillStyle=SUB;
   const appUrl='lighting-recipe.app';
@@ -2834,6 +2834,26 @@ function roundRect(ctx,x,y,w,h,r){
     </div>
   </div>
 </div>
+
+<!-- 初回のみ表示するヒント -->
+<div id="firstHint" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:750;align-items:center;justify-content:center;padding:20px">
+  <div style="background:#1e1e1e;border:1px solid #333;border-radius:16px;max-width:340px;width:100%;padding:24px;box-shadow:0 8px 40px rgba(0,0,0,.6)">
+    <div style="font-size:17px;font-weight:800;color:#c8a96e;text-align:center;margin-bottom:16px" data-i18n="firstHintTitle">かんたん3ステップ</div>
+    <div style="font-size:13.5px;color:#d8d8d8;line-height:2;white-space:pre-line;margin-bottom:22px" data-i18n="firstHintBody">① 写真を選ぶ（EXIF自動読取）
+② ライトを配置して図を作る
+③「↑ 出力」で画像を保存・共有</div>
+    <button onclick="closeFirstHint()" style="width:100%;padding:13px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;background:#c8a96e;border:none;color:#0f0f0f" data-i18n="firstHintBtn">はじめる</button>
+  </div>
+</div>
+<script>
+function closeFirstHint(){ const el=document.getElementById('firstHint'); if(el) el.style.display='none'; try{ localStorage.setItem('lr_hint_seen','1'); }catch(e){} }
+function maybeShowFirstHint(){
+  try{ if(localStorage.getItem('lr_hint_seen')) return; }catch(e){}
+  const el=document.getElementById('firstHint'); if(el) el.style.display='flex';
+}
+if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', maybeShowFirstHint);
+else maybeShowFirstHint();
+</script>
 
 <!-- タブバー -->
 <div class="tab-spacer"></div>
