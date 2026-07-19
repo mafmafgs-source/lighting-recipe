@@ -723,10 +723,16 @@ function buildRoleIndex(){
 let ROLE_INDEX=buildRoleIndex();
 
 function getCatImgByItemName(name){
+  // 1) 厳密一致を最優先（name===m ／ name が m を含む）。
+  //    緩い末尾語マッチより先に確定させ、例えば "Honeycomb Grid" が snoot の
+  //    "Grid Snoot" に末尾語 "Grid" で誤マッチして snoot 画像になるのを防ぐ。
   for(const[catId,models]of Object.entries(ROLE_INDEX)){
-    if(models.some(m=>name===m||name.includes(m)||m.includes(name.split(' ').pop()))){
-      return CAT_IMG_MAP[catId]||null;
-    }
+    if(models.some(m=>name===m||name.includes(m))) return CAT_IMG_MAP[catId]||null;
+  }
+  // 2) 緩い末尾語マッチはフォールバック（カスタム機材名の補助）
+  const last=name.split(' ').pop();
+  for(const[catId,models]of Object.entries(ROLE_INDEX)){
+    if(models.some(m=>m.includes(last))) return CAT_IMG_MAP[catId]||null;
   }
   // カスタムカテゴリ
   try{
