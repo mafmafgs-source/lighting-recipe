@@ -2275,6 +2275,7 @@ async function doExport(){
   closeExportModal();
   const showLoc =document.getElementById('exportLoc').checked;
   const showDate=document.getElementById('exportDate').checked;
+  const showExif=document.getElementById('exportExif')?.checked!==false; // 既定ON（旧キャッシュでも安全）
   const showCost=document.getElementById('exportCost')?.checked||false;
   const totalCost=computeTotalGearCost();
 
@@ -2309,7 +2310,10 @@ async function doExport(){
   // 各セクション高さ
   const HEADER_H=56;
   const PHOTO_H=hasPhoto?420:0; // 縦写真も収まる固定高
-  const EXIF_H=80;
+  const _showLocVal = showLoc && loc;
+  const _showDateVal = showDate && exDate!=='–';
+  // EXIF情報ONなら通常高さ、OFFでもロケ/日付があれば小さめ枠、全部無ければ0
+  const EXIF_H = showExif ? 80 : ((_showLocVal||_showDateVal) ? 40 : 0);
   const COST_H=(showCost&&totalCost>0)?36:0;
   const DIAG_W=W-PADDING*2;
   const DIAG_H=DIAG_W;
@@ -2322,7 +2326,7 @@ async function doExport(){
 
   let totalH=HEADER_H+PADDING;
   if(hasPhoto) totalH+=PHOTO_H+16;
-  totalH+=EXIF_H+16;
+  if(EXIF_H) totalH+=EXIF_H+16;
   if(COST_H) totalH+=COST_H+16;
   totalH+=DIAG_H+16;
   if(activeLights.length>0) totalH+=CARD_ROWS*CARD_H+(CARD_ROWS-1)*CARD_ROWGAP+16;
@@ -2386,50 +2390,52 @@ async function doExport(){
     y+=PHOTO_H+16;
   }
 
-  // ── EXIF 2行レイアウト ──
-  // 行1: カメラ（左半分）・レンズ（右半分）
-  const HALF=Math.round((W-PADDING*2)/2);
+  // ── EXIF情報 / ロケーション / 日付 セクション（各トグル対応）──
+  if(EXIF_H){
+    const HALF=Math.round((W-PADDING*2)/2);
+    const eColW=Math.round((W-PADDING*2)*0.12); // 各列幅
 
-  ctx.font=`600 11px -apple-system,sans-serif`;
-  ctx.fillStyle=SUB; ctx.fillText('CAMERA',PADDING,y+12);
-  ctx.font=`400 13px -apple-system,sans-serif`;
-  ctx.fillStyle=TEXT; ctx.fillText(exCamera,PADDING,y+28);
+    // EXIF情報（カメラ/レンズ ＋ F値/SS/ISO/焦距）※EXIF ON のときだけ
+    if(showExif){
+      ctx.font=`600 11px -apple-system,sans-serif`;
+      ctx.fillStyle=SUB; ctx.fillText('CAMERA',PADDING,y+12);
+      ctx.font=`400 13px -apple-system,sans-serif`;
+      ctx.fillStyle=TEXT; ctx.fillText(exCamera,PADDING,y+28);
 
-  ctx.font=`600 11px -apple-system,sans-serif`;
-  ctx.fillStyle=SUB; ctx.fillText('LENS',PADDING+HALF,y+12);
-  ctx.font=`400 13px -apple-system,sans-serif`;
-  ctx.fillStyle=TEXT; ctx.fillText(exLens,PADDING+HALF,y+28);
+      ctx.font=`600 11px -apple-system,sans-serif`;
+      ctx.fillStyle=SUB; ctx.fillText('LENS',PADDING+HALF,y+12);
+      ctx.font=`400 13px -apple-system,sans-serif`;
+      ctx.fillStyle=TEXT; ctx.fillText(exLens,PADDING+HALF,y+28);
 
-  // 行2: F値・SS・ISO・焦距（左4列）＋ロケーション・日付（右側）
-  const exifItems=[['F値',exF],['SS',exSS],['ISO',exISO],['焦距',exFL]];
-  const eColW=Math.round((W-PADDING*2)*0.12); // 各列幅
-  exifItems.forEach(([label,val],i)=>{
-    const x=PADDING+eColW*i;
-    ctx.font=`600 10px -apple-system,sans-serif`;
-    ctx.fillStyle=SUB; ctx.fillText(label,x,y+46);
-    ctx.font=`400 12px -apple-system,sans-serif`;
-    ctx.fillStyle=TEXT; ctx.fillText(val,x,y+60);
-  });
+      [['F値',exF],['SS',exSS],['ISO',exISO],['焦距',exFL]].forEach(([label,val],i)=>{
+        const x=PADDING+eColW*i;
+        ctx.font=`600 10px -apple-system,sans-serif`;
+        ctx.fillStyle=SUB; ctx.fillText(label,x,y+46);
+        ctx.font=`400 12px -apple-system,sans-serif`;
+        ctx.fillStyle=TEXT; ctx.fillText(val,x,y+60);
+      });
+    }
 
-  // ロケーション（EXIF4列の右隣）
-  const locX=PADDING+eColW*4+16;
-  if(showLoc&&loc){
-    ctx.font=`600 10px -apple-system,sans-serif`;
-    ctx.fillStyle=SUB; ctx.fillText('LOCATION',locX,y+46);
-    ctx.font=`400 12px -apple-system,sans-serif`;
-    ctx.fillStyle=GOLD; ctx.fillText(loc,locX,y+60);
+    // ロケ・日付：EXIFありなら4列の右(2行目)、EXIFなしなら左端・1行で描く
+    const labelY = showExif ? y+46 : y+18;
+    const valY   = showExif ? y+60 : y+34;
+    let cx = showExif ? (PADDING+eColW*4+16) : PADDING;
+    if(_showLocVal){
+      ctx.font=`600 10px -apple-system,sans-serif`;
+      ctx.fillStyle=SUB; ctx.fillText('LOCATION',cx,labelY);
+      ctx.font=`400 12px -apple-system,sans-serif`;
+      ctx.fillStyle=GOLD; ctx.fillText(loc,cx,valY);
+      cx += ctx.measureText(loc).width + 24;
+    }
+    if(_showDateVal){
+      ctx.font=`600 10px -apple-system,sans-serif`;
+      ctx.fillStyle=SUB; ctx.fillText('DATE',cx,labelY);
+      ctx.font=`400 12px -apple-system,sans-serif`;
+      ctx.fillStyle=GOLD; ctx.fillText(exDate,cx,valY);
+    }
+
+    y+=EXIF_H+16;
   }
-
-  // 日付（ロケーションの右隣 or ロケなしならEXIFの右隣）
-  const dateX=showLoc&&loc ? locX+ctx.measureText(loc).width+24 : locX;
-  if(showDate&&exDate!=='–'){
-    ctx.font=`600 10px -apple-system,sans-serif`;
-    ctx.fillStyle=SUB; ctx.fillText('DATE',dateX,y+46);
-    ctx.font=`400 12px -apple-system,sans-serif`;
-    ctx.fillStyle=GOLD; ctx.fillText(exDate,dateX,y+60);
-  }
-
-  y+=EXIF_H+16;
 
   // ── 機材費用合計（任意表示） ──
   if(COST_H){
@@ -2762,6 +2768,10 @@ function roundRect(ctx,x,y,w,h,r){
       <label class="export-check-row">
         <input type="checkbox" id="exportDate" checked>
         <span data-i18n="inclDate">📅 撮影日を含める</span>
+      </label>
+      <label class="export-check-row">
+        <input type="checkbox" id="exportExif" checked>
+        <span data-i18n="inclExif">📷 EXIF情報を含める</span>
       </label>
       <label class="export-check-row" id="exportCostRow" style="display:none">
         <input type="checkbox" id="exportCost">

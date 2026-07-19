@@ -621,6 +621,19 @@
   };
   for (const k in EXTRA12) { if (I18N[k]) Object.assign(I18N[k], EXTRA12[k]); }
 
+  // ── 追加辞書13（出力: EXIF情報トグル）──
+  const EXTRA13 = {
+    ja: { inclExif:'📷 EXIF情報を含める' },
+    en: { inclExif:'📷 Include EXIF info' },
+    zh: { inclExif:'📷 包含EXIF信息' },
+    ko: { inclExif:'📷 EXIF 정보 포함' },
+    de: { inclExif:'📷 EXIF-Daten einschließen' },
+    fr: { inclExif:'📷 Inclure les EXIF' },
+    it: { inclExif:'📷 Includi info EXIF' },
+    es: { inclExif:'📷 Incluir EXIF' },
+  };
+  for (const k in EXTRA13) { if (I18N[k]) Object.assign(I18N[k], EXTRA13[k]); }
+
   // ── 追加辞書7（ライトへの機材追加トースト：どの枠A-Jに追加したか明示）─────
   const EXTRA7 = {
     ja: { addedToLight:(name,slot)=>`${name} を ライト${slot} に追加しました`, addedToDiagram:(name)=>`${name} をライティング図に追加しました` },
