@@ -799,11 +799,14 @@ function buildNodeHTML(l){
     if(hasMod){
       modifiers.forEach((name,idx)=>{
         const src=getItemImgSrc(name);
-        // 光源の右に密着（光源幅の半分＋モディファイアインデックス分）
-        const mx=tipX+lightW/2-7+idx*(modW-10);
-        const my=tipY-modH/2-lightH/2+2;
+        const isGrid=src==='icons/grid.png';
+        const mw=isGrid?45:modW, mh=isGrid?45:modH;   // グリッドは拡大
+        // 光源の右に密着（光源幅の半分＋モディファイアインデックス分）。グリッドは光源側へ寄せる
+        let mx=tipX+lightW/2-7+idx*(modW-10);
+        if(isGrid) mx-=12;
+        const my=tipY-mh/2-lightH/2+2;
         html+=src
-          ?`<img src="${src}" style="position:absolute;left:${mx}px;top:${my}px;width:${modW}px;height:${modH}px;object-fit:contain;">`
+          ?`<img src="${src}" style="position:absolute;left:${mx}px;top:${my}px;width:${mw}px;height:${mh}px;object-fit:contain;">`
           :`<span style="position:absolute;left:${mx}px;top:${my}px;font-size:16px">⬡</span>`;
       });
     }
@@ -831,11 +834,16 @@ function buildNodeHTML(l){
     if(hasMod){
       modifiers.forEach((name,idx)=>{
         const src=getItemImgSrc(name);
+        // グリッドは画像内の余白が大きい（不透明部が約65%）ので約1.24倍に拡大し、
+        // さらに左へ寄せてソフトボックス／ビューティーディッシュや光源に重なるようにする
+        const isGrid=src==='icons/grid.png';
+        const size=isGrid?67:54;
         const mb=hasBase?90:0;
-        const ml=idx===0?-30:-18;
+        let ml=idx===0?-30:-18;
+        if(isGrid) ml-=20;
         html+=`<div style="margin-bottom:${mb}px;margin-left:${ml}px;">`;
         html+=src
-          ?`<img src="${src}" style="width:54px;height:54px;object-fit:contain;">`
+          ?`<img src="${src}" style="width:${size}px;height:${size}px;object-fit:contain;">`
           :`<span style="font-size:16px">⬡</span>`;
         html+='</div>';
       });
@@ -844,8 +852,9 @@ function buildNodeHTML(l){
       html=`<div style="display:flex;align-items:center;justify-content:center;gap:2px;width:100%;height:100%;${flipStyle}">`;
       modifiers.forEach(name=>{
         const src=getItemImgSrc(name);
+        const size=src==='icons/grid.png'?47:38;   // グリッドは拡大
         html+=src
-          ?`<img src="${src}" style="width:38px;height:38px;object-fit:contain;">`
+          ?`<img src="${src}" style="width:${size}px;height:${size}px;object-fit:contain;">`
           :`<span style="font-size:18px">⬡</span>`;
       });
     }
