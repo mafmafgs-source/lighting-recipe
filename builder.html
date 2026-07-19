@@ -763,8 +763,9 @@ function iconHtml(cat, cls='icon-img') {
   return `<span class="icon">${cat.icon}</span>`;
 }
 
-// カテゴリタイル1枚を描画（親タイル＋選択中の機材リスト／サブパネル）
-function appendCatTile(grid, cat) {
+// カテゴリタイル1枚を描画（親タイル）。全幅パネルは行途中に入れると右隣が下へズレるので、
+// ここでは作るだけにして deferred に積み、全タイル描画後に「その行の末尾」へ挿入する。
+function appendCatTile(grid, cat, deferred) {
   const hasSubs = cat.subs && cat.subs.length > 0;
   const isExpanded = expandedCatId === cat.id;
   const isActive = cat.id === activeCatId;
@@ -783,11 +784,12 @@ function appendCatTile(grid, cat) {
     }
   };
   grid.appendChild(tile);
+
+  let panel = null;
   if(!hasSubs && isActive){
-    grid.appendChild(buildItemPanel(cat.id));
-  }
-  if(hasSubs && isExpanded){
-    const panel = document.createElement('div');
+    panel = buildItemPanel(cat.id);
+  } else if(hasSubs && isExpanded){
+    panel = document.createElement('div');
     panel.className = 'subcat-panel';
     const subGrid = document.createElement('div');
     subGrid.className = 'subcat-grid';
@@ -801,8 +803,23 @@ function appendCatTile(grid, cat) {
     panel.appendChild(subGrid);
     const activeSub = cat.subs.find(s => s.id === activeCatId);
     if (activeSub) { panel.appendChild(buildItemPanel(activeSub.id)); }
-    grid.appendChild(panel);
   }
+  if(panel){
+    if(deferred) deferred.push({ tile, panel });
+    else grid.appendChild(panel);
+  }
+}
+
+// 全幅パネルを、アンカータイルと同じ行の一番右のタイルの直後に挿入する。
+// これにより開いてもその行のアイコンは動かず、パネルだけが行の下に開く（迷子防止）。
+function flushRowPanels(grid, deferred) {
+  deferred.forEach(({ tile, panel }) => {
+    const top = tile.offsetTop;
+    let last = tile, node = tile.nextElementSibling;
+    while(node && Math.abs(node.offsetTop - top) < 2){ last = node; node = node.nextElementSibling; }
+    if(last.nextSibling) grid.insertBefore(panel, last.nextSibling);
+    else grid.appendChild(panel);
+  });
 }
 // 未設定カスタム枠タイル
 function appendPendingTile(grid, p) {
@@ -825,6 +842,7 @@ function appendAddTile(grid, direct) {
 function renderCats() {
   const grid = document.getElementById('catGrid');
   grid.innerHTML = '';
+  const deferred = [];   // 全幅パネルは全タイル描画後に行末へ挿入する
 
   // 資産専用カテゴリ（レンズ等）はここでは描画せず、末尾に別枠で並べる
   const nonAsset  = allCats().filter(cat => !isAssetOnlyCat(cat.id));
@@ -832,7 +850,7 @@ function renderCats() {
   const directCats= nonAsset.filter(cat =>  isDirectCat(cat.id));
 
   // ── ライト機材セクション（ライトビルダーで使う機材。末尾に「＋追加」）──
-  lightCats.forEach(cat => appendCatTile(grid, cat));
+  lightCats.forEach(cat => appendCatTile(grid, cat, deferred));
   pendingCats.filter(p => !p.direct).forEach(p => appendPendingTile(grid, p));
   appendAddTile(grid, false);
 
@@ -841,7 +859,7 @@ function renderCats() {
   dv.className = 'cat-divider';
   dv.textContent = (typeof T==='object' && T.directCatsHeading) ? T.directCatsHeading : '撮影小物（ライティング図に直接配置されます）';
   grid.appendChild(dv);
-  directCats.forEach(cat => appendCatTile(grid, cat));
+  directCats.forEach(cat => appendCatTile(grid, cat, deferred));
   pendingCats.filter(p => p.direct).forEach(p => appendPendingTile(grid, p));
   appendAddTile(grid, true);
 
@@ -855,12 +873,11 @@ function renderCats() {
     tile.innerHTML = iconHtml(cat) + cat.label;
     tile.onclick = () => toggleActiveCat(cat.id);
     grid.appendChild(tile);
-
-    // 選択中ならその直下にインラインで機材リストを表示
-    if(isActive){
-      grid.appendChild(buildItemPanel(cat.id));
-    }
+    if(isActive){ deferred.push({ tile, panel: buildItemPanel(cat.id) }); }
   });
+
+  // 全幅パネルを各アンカータイルの行末へ挿入（開いても行のアイコンは動かない）
+  flushRowPanels(grid, deferred);
 }
 
 // アコーディオン式のカテゴリ選択（同じものをタップで閉じる）
