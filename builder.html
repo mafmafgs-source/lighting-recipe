@@ -754,90 +754,87 @@ function iconHtml(cat, cls='icon-img') {
   return `<span class="icon">${cat.icon}</span>`;
 }
 
+// カテゴリタイル1枚を描画（親タイル＋選択中の機材リスト／サブパネル）
+function appendCatTile(grid, cat) {
+  const hasSubs = cat.subs && cat.subs.length > 0;
+  const isExpanded = expandedCatId === cat.id;
+  const isActive = cat.id === activeCatId;
+  const tile = document.createElement('div');
+  tile.className = 'tile' + (isActive && !hasSubs ? ' active-cat' : '') + (isExpanded ? ' active-cat' : '');
+  tile.id = 'cat-' + cat.id;
+  tile.innerHTML = iconHtml(cat) + cat.label + (hasSubs ? ' <span style="font-size:9px">▼</span>' : '');
+  tile.onclick = () => {
+    if(hasSubs){
+      expandedCatId = isExpanded ? null : cat.id;
+      activeCatId = null;
+      renderCats();
+    } else {
+      expandedCatId = null;
+      toggleActiveCat(cat.id);
+    }
+  };
+  grid.appendChild(tile);
+  if(!hasSubs && isActive){
+    grid.appendChild(buildItemPanel(cat.id));
+  }
+  if(hasSubs && isExpanded){
+    const panel = document.createElement('div');
+    panel.className = 'subcat-panel';
+    const subGrid = document.createElement('div');
+    subGrid.className = 'subcat-grid';
+    cat.subs.forEach(sub => {
+      const subTile = document.createElement('div');
+      subTile.className = 'tile-sub' + (sub.id === activeCatId ? ' active-cat' : '');
+      subTile.innerHTML = iconHtml(sub, 'icon-img') + sub.label;
+      subTile.onclick = () => toggleActiveCat(sub.id);
+      subGrid.appendChild(subTile);
+    });
+    panel.appendChild(subGrid);
+    const activeSub = cat.subs.find(s => s.id === activeCatId);
+    if (activeSub) { panel.appendChild(buildItemPanel(activeSub.id)); }
+    grid.appendChild(panel);
+  }
+}
+// 未設定カスタム枠タイル
+function appendPendingTile(grid, p) {
+  const tile = document.createElement('div');
+  tile.className = 'tile tile-new';
+  tile.id = 'pending-' + p.id;
+  tile.innerHTML = `<span class="icon">➕</span><span style="font-size:11px">${T.tapToSet}</span>`;
+  tile.onclick = () => showEditPendingDialog(p.id);
+  grid.appendChild(tile);
+}
+// カテゴリ追加ボタン（direct=true なら撮影小物セクションへ追加）
+function appendAddTile(grid, direct) {
+  const addTile = document.createElement('div');
+  addTile.className = 'tile tile-add';
+  addTile.innerHTML = `<span class="icon">＋</span>${T.addCatTile}`;
+  addTile.onclick = () => addPendingCat(direct);
+  grid.appendChild(addTile);
+}
+
 function renderCats() {
   const grid = document.getElementById('catGrid');
   grid.innerHTML = '';
 
-  // 資産専用カテゴリ（レンズ等）はここでは描画せず、カテゴリ追加ボタンの右に別枠で並べる
-  let dividerInserted = false;
-  allCats().filter(cat => !isAssetOnlyCat(cat.id)).forEach(cat => {
-    // ライティング図に直接配置される撮影小物（レフ板・フラッグ）はブームアームから区切って見出しを入れる
-    if(DIRECT_CATS.includes(cat.id) && !dividerInserted){
-      const dv = document.createElement('div');
-      dv.className = 'cat-divider';
-      dv.textContent = (typeof T==='object' && T.directCatsHeading) ? T.directCatsHeading : '撮影小物（ライティング図に直接配置されます）';
-      grid.appendChild(dv);
-      dividerInserted = true;
-    }
-    const hasSubs = cat.subs && cat.subs.length > 0;
-    const isExpanded = expandedCatId === cat.id;
-    const isActive = cat.id === activeCatId;
+  // 資産専用カテゴリ（レンズ等）はここでは描画せず、末尾に別枠で並べる
+  const nonAsset  = allCats().filter(cat => !isAssetOnlyCat(cat.id));
+  const lightCats = nonAsset.filter(cat => !isDirectCat(cat.id));
+  const directCats= nonAsset.filter(cat =>  isDirectCat(cat.id));
 
-    // 親タイル
-    const tile = document.createElement('div');
-    tile.className = 'tile' + (isActive && !hasSubs ? ' active-cat' : '') + (isExpanded ? ' active-cat' : '');
-    tile.id = 'cat-' + cat.id;
-    tile.innerHTML = iconHtml(cat) + cat.label + (hasSubs ? ' <span style="font-size:9px">▼</span>' : '');
-    tile.onclick = () => {
-      if(hasSubs){
-        // サブあり大アイコン：展開をトグル。他の大アイコンで開いていたリスト（activeCatId）は閉じる
-        expandedCatId = isExpanded ? null : cat.id;
-        activeCatId = null;
-        renderCats();
-      } else {
-        // サブなし大アイコン：展開中のサブパネルを閉じてから、このリストをトグル表示（＝1つだけ開く）
-        expandedCatId = null;
-        toggleActiveCat(cat.id);
-      }
-    };
-    grid.appendChild(tile);
+  // ── ライト機材セクション（ライトビルダーで使う機材。末尾に「＋追加」）──
+  lightCats.forEach(cat => appendCatTile(grid, cat));
+  pendingCats.filter(p => !p.direct).forEach(p => appendPendingTile(grid, p));
+  appendAddTile(grid, false);
 
-    // サブカテゴリなしタイルが選択中 → 直下にインラインで機材リストを表示
-    if(!hasSubs && isActive){
-      grid.appendChild(buildItemPanel(cat.id));
-    }
-
-    // サブカテゴリパネル（展開時、3列グリッドの直後に全幅で挿入）
-    if(hasSubs && isExpanded){
-      const panel = document.createElement('div');
-      panel.className = 'subcat-panel';
-      const subGrid = document.createElement('div');
-      subGrid.className = 'subcat-grid';
-      cat.subs.forEach(sub => {
-        const subTile = document.createElement('div');
-        subTile.className = 'tile-sub' + (sub.id === activeCatId ? ' active-cat' : '');
-        subTile.innerHTML = iconHtml(sub, 'icon-img') + sub.label;
-        subTile.onclick = () => toggleActiveCat(sub.id);
-        subGrid.appendChild(subTile);
-      });
-      panel.appendChild(subGrid);
-
-      // 選択中の中アイコンがこの親の子なら、その直下にインラインで機材リストを表示
-      const activeSub = cat.subs.find(s => s.id === activeCatId);
-      if (activeSub) {
-        panel.appendChild(buildItemPanel(activeSub.id));
-      }
-
-      grid.appendChild(panel);
-    }
-  });
-
-  // 未設定カスタム枠
-  pendingCats.forEach(p => {
-    const tile = document.createElement('div');
-    tile.className = 'tile tile-new';
-    tile.id = 'pending-' + p.id;
-    tile.innerHTML = `<span class="icon">➕</span><span style="font-size:11px">${T.tapToSet}</span>`;
-    tile.onclick = () => showEditPendingDialog(p.id);
-    grid.appendChild(tile);
-  });
-
-  // カテゴリ追加ボタン
-  const addTile = document.createElement('div');
-  addTile.className = 'tile tile-add';
-  addTile.innerHTML = `<span class="icon">＋</span>${T.addCatTile}`;
-  addTile.onclick = () => addPendingCat();
-  grid.appendChild(addTile);
+  // ── 撮影小物セクション（ライティング図に直接配置。見出しで区切り＋独自の「＋追加」）──
+  const dv = document.createElement('div');
+  dv.className = 'cat-divider';
+  dv.textContent = (typeof T==='object' && T.directCatsHeading) ? T.directCatsHeading : '撮影小物（ライティング図に直接配置されます）';
+  grid.appendChild(dv);
+  directCats.forEach(cat => appendCatTile(grid, cat));
+  pendingCats.filter(p => p.direct).forEach(p => appendPendingTile(grid, p));
+  appendAddTile(grid, true);
 
   // 資産専用カテゴリ（レンズ等）：カテゴリ追加ボタンの右に別枠で配置。
   // ライティング図には載せない「資産管理だけの枠」であることを視覚的に示す。
@@ -984,9 +981,9 @@ function buildItemPanel(catId){
 }
 
 // ── カテゴリ追加：まずグリッドにブランク枠を生成 ──
-function addPendingCat() {
+function addPendingCat(direct) {
   const id = 'pending_' + Date.now();
-  pendingCats.push({ id });
+  pendingCats.push({ id, direct: !!direct });   // direct=true は撮影小物セクション
   savePendingCats();
   renderCats();
   // すぐ編集ダイアログを開く
@@ -997,6 +994,7 @@ function addPendingCat() {
 function showEditPendingDialog(pendingId) {
   let pickedIcon = ICONS_LIST[0];
   let pickedImgData = null; // base64 or null
+  const _direct = (pendingCats.find(p => p.id === pendingId) || {}).direct === true; // どのセクションの枠か
 
   document.getElementById('dlgTitle').textContent = T.dlgCatTitle;
   document.getElementById('dlgBody').innerHTML = `
@@ -1065,7 +1063,7 @@ function showEditPendingDialog(pendingId) {
     pendingCats = pendingCats.filter(p => p.id !== pendingId);
     savePendingCats();
     const catId = 'custom_' + Date.now();
-    const newCat = { id: catId, icon: pickedIcon, label: name, items: [] };
+    const newCat = { id: catId, icon: pickedIcon, label: name, items: [], direct: _direct };
     if (pickedImgData) {
       newCat.imgData = pickedImgData; // base64をcatオブジェクトに保持
       // IndexedDBにも保存（カテゴリ画像用キー）
@@ -1380,7 +1378,9 @@ function showAddItemDialog(catId) {
 const DIRECT_CATS = ['reflector','flag'];
 
 function isDirectCat(catId){
-  return DIRECT_CATS.includes(catId);
+  if(DIRECT_CATS.includes(catId)) return true;
+  const c = customCats.find(x => x.id === catId);
+  return !!(c && c.direct);   // 撮影小物として追加したカスタムカテゴリ
 }
 
 // 資産専用カテゴリ（倉庫の資産合計には加算するが、ライト／ライティング図には一切載せない）
@@ -1419,7 +1419,8 @@ function resetAllLights(){
 function addDirectItem(name, catId, silent){
   const items = JSON.parse(localStorage.getItem('lr_direct_items')||'[]');
   const cat = getCat(catId);
-  const imgPath = cat && cat.imgPath ? cat.imgPath : null;
+  // 標準カテゴリは imgPath、カスタムカテゴリは登録画像(imgData/base64)を図アイコンに使う
+  const imgPath = (cat && cat.imgPath) ? cat.imgPath : ((cat && cat.imgData) ? cat.imgData : null);
   items.push({ name, catId, imgPath, x:70, y:50, height:150, flipped:false });
   localStorage.setItem('lr_direct_items', JSON.stringify(items));
   if (!silent) showToast(typeof T.addedToDiagram==='function' ? T.addedToDiagram(name) : `${name} ✓`);
