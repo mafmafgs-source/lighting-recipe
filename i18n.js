@@ -634,6 +634,19 @@
   };
   for (const k in EXTRA13) { if (I18N[k]) Object.assign(I18N[k], EXTRA13[k]); }
 
+  // ── 追加辞書14（法的表示: Amazonアソシエイト開示・商標帰属）──
+  const EXTRA14 = {
+    ja: { amazonDisclosure:'Amazonのアソシエイトとして、Lighting Recipe は適格販売により収入を得ています。', trademarkNotice:'記載の製品名・会社名は各社の商標または登録商標です。本アプリは各メーカーと提携・推奨関係にありません。' },
+    en: { amazonDisclosure:'As an Amazon Associate, Lighting Recipe earns from qualifying purchases.', trademarkNotice:'Product and company names mentioned are trademarks of their respective owners. This app is not affiliated with or endorsed by them.' },
+    zh: { amazonDisclosure:'作为亚马逊联盟成员，Lighting Recipe 从符合条件的购买中获得收入。', trademarkNotice:'文中提及的产品和公司名称为各自所有者的商标。本应用与各厂商无隶属或认可关系。' },
+    ko: { amazonDisclosure:'Amazon 어소시에이트로서 Lighting Recipe는 적격 구매를 통해 수익을 얻습니다.', trademarkNotice:'언급된 제품명·회사명은 각 소유자의 상표입니다. 본 앱은 각 제조사와 제휴하거나 승인받지 않았습니다.' },
+    de: { amazonDisclosure:'Als Amazon-Partner verdient Lighting Recipe an qualifizierten Käufen.', trademarkNotice:'Genannte Produkt- und Firmennamen sind Marken der jeweiligen Inhaber. Diese App steht in keiner Verbindung zu ihnen.' },
+    fr: { amazonDisclosure:'En tant que Partenaire Amazon, Lighting Recipe réalise un bénéfice sur les achats remplissant les conditions requises.', trademarkNotice:'Les noms de produits et de sociétés cités sont des marques de leurs détenteurs respectifs. Cette app n\'est ni affiliée ni approuvée par eux.' },
+    it: { amazonDisclosure:'In qualità di Affiliato Amazon, Lighting Recipe riceve un guadagno dagli acquisti idonei.', trademarkNotice:'I nomi di prodotti e aziende citati sono marchi dei rispettivi proprietari. Questa app non è affiliata né approvata da essi.' },
+    es: { amazonDisclosure:'Como Asociado de Amazon, Lighting Recipe obtiene ingresos por las compras adscritas que cumplen los requisitos aplicables.', trademarkNotice:'Los nombres de productos y empresas mencionados son marcas de sus respectivos propietarios. Esta app no está afiliada ni respaldada por ellos.' },
+  };
+  for (const k in EXTRA14) { if (I18N[k]) Object.assign(I18N[k], EXTRA14[k]); }
+
   // ── 追加辞書7（ライトへの機材追加トースト：どの枠A-Jに追加したか明示）─────
   const EXTRA7 = {
     ja: { addedToLight:(name,slot)=>`${name} を ライト${slot} に追加しました`, addedToDiagram:(name)=>`${name} をライティング図に追加しました` },

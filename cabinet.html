@@ -84,6 +84,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
 .tab-bar a{flex:1;display:flex;align-items:flex-start;justify-content:center;padding:14px 0 calc(env(safe-area-inset-bottom,0px) + 22px);text-decoration:none;font-size:12px;font-weight:600;color:#666;-webkit-tap-highlight-color:transparent;transition:color .15s}
 .tab-bar a.active{color:#c8a96e}
 .tab-spacer{height:82px}
+/* 法的表示（Amazonアソシエイト開示・商標帰属） */
+.legal-note{max-width:430px;margin:20px auto 0;padding:0 12px;font-size:10px;line-height:1.7;color:#585858}
+.legal-note p{margin:0 0 5px}
 </style>
 </head>
 <body>
@@ -143,6 +146,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
       <button class="btn-ok" id="dlgOk" data-i18n="save">保存</button>
     </div>
   </div>
+</div>
+
+<!-- 法的表示：Amazonアソシエイト開示（規約上必須）・商標帰属 -->
+<div class="legal-note">
+  <p data-i18n="amazonDisclosure">Amazonのアソシエイトとして、Lighting Recipe は適格販売により収入を得ています。</p>
+  <p data-i18n="trademarkNotice">記載の製品名・会社名は各社の商標または登録商標です。本アプリは各メーカーと提携・推奨関係にありません。</p>
 </div>
 
 <div class="tab-spacer"></div>
