@@ -786,6 +786,21 @@
   };
   for (const k in EXTRA17) { if (I18N[k]) Object.assign(I18N[k], EXTRA17[k]); }
 
+  // ── 追加辞書18（素の「価格」ラベル）──
+  //   priceSet='価格を設定'（ダイアログタイトル兼用）・priceLabel='価格（省略可）'は
+  //   どちらも（任意）サフィックスと組み合わせると不自然なため、修飾なしの単語を用意。
+  const EXTRA18 = {
+    ja: { pricePlain:'価格' },
+    en: { pricePlain:'Price' },
+    zh: { pricePlain:'价格' },
+    ko: { pricePlain:'가격' },
+    de: { pricePlain:'Preis' },
+    fr: { pricePlain:'Prix' },
+    it: { pricePlain:'Prezzo' },
+    es: { pricePlain:'Precio' },
+  };
+  for (const k in EXTRA18) { if (I18N[k]) Object.assign(I18N[k], EXTRA18[k]); }
+
   // ── 追加辞書7（ライトへの機材追加トースト：どの枠A-Jに追加したか明示）─────
   const EXTRA7 = {
     ja: { addedToLight:(name,slot)=>`${name} を ライト${slot} に追加しました`, addedToDiagram:(name)=>`${name} をライティング図に追加しました` },

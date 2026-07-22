@@ -320,7 +320,7 @@ function render(){
 // ══════════════════════════════════════
 let pendingImg=null; // 追加/編集中に選択した画像
 
-function openOverlay(){ document.getElementById('overlay').classList.add('open'); }
+function openOverlay(){ setDlgBusy(false); document.getElementById('overlay').classList.add('open'); }  // 前回の無効化が残らないよう毎回リセット
 function closeOverlay(){ document.getElementById('overlay').classList.remove('open'); document.getElementById('dlgOk').onclick=null; }
 
 function imgFieldHTML(type, currentImg){
@@ -337,18 +337,33 @@ function imgFieldHTML(type, currentImg){
     </div>`;
 }
 
+// 写真の読み込み・縮小中はOKを無効化（builder.htmlと同じ対策。
+// 完了前に保存できてしまうと pendingImg が null のまま＝写真が黙って捨てられる）
+function setDlgBusy(busy){
+  const ok=document.getElementById('dlgOk');
+  if(!ok) return;
+  ok.disabled=!!busy;
+  ok.style.opacity=busy?'0.45':'';
+}
+
 function wirePhotoInput(type){
   const inp=document.getElementById('cabPhoto');
   if(!inp) return;
   inp.onchange=function(){
     const file=this.files[0];
     if(!file) return;
+    const prev=document.getElementById('imgPrev');
+    setDlgBusy(true);
+    if(prev) prev.textContent='⏳';
     const reader=new FileReader();
     reader.onload=async ev=>{
-      pendingImg=await shrinkImageDataURL(ev.target.result, 400);
-      const prev=document.getElementById('imgPrev');
-      if(prev) prev.innerHTML=`<img src="${pendingImg}">`;
+      try{
+        pendingImg=await shrinkImageDataURL(ev.target.result, 400);
+        if(prev) prev.innerHTML=`<img src="${pendingImg}">`;
+      }catch(e){ if(prev) prev.textContent='⚠'; }
+      setDlgBusy(false);
     };
+    reader.onerror=()=>{ if(prev) prev.textContent='⚠'; setDlgBusy(false); };
     reader.readAsDataURL(file);
   };
 }
@@ -366,7 +381,7 @@ function openAdd(type){
   document.getElementById('dlgBody').innerHTML=`
     <div class="dlg-field"><label>${(T.cabinetMaker||'メーカー')+opt}</label><input id="cabMaker" type="text" placeholder="${isCam?'Sony / Canon…':'Sony / Sigma…'}"></div>
     <div class="dlg-field"><label>${T.cabinetModel||'型番'}</label><input id="cabModel" type="text" placeholder="${isCam?'α7 IV':'24-70mm F2.8'}"></div>
-    <div class="dlg-field"><label>${(T.priceSet||'価格')+opt}</label><input id="cabPrice" type="number" inputmode="numeric" placeholder="${T.pricePh||'例: 200000'}"></div>
+    <div class="dlg-field"><label>${(T.pricePlain||'価格')+opt}</label><input id="cabPrice" type="number" inputmode="numeric" placeholder="${T.pricePh||'例: 200000'}"></div>
     <div class="dlg-field"><label>${(T.cabinetSerial||'シリアルナンバー')+opt}</label><input id="cabSerial" type="text" autocomplete="off"></div>
     ${imgFieldHTML(type,null)}`;
   document.getElementById('dlgOk').textContent=T.save||'保存';
@@ -425,7 +440,7 @@ function openEdit(type, index){
     `</div>`;
   const opt=T.optionalSuffix||'（任意）';
   document.getElementById('dlgBody').innerHTML=`
-    <div class="dlg-field"><label>${(T.priceSet||'価格')+opt}</label><input id="cabPrice" type="number" inputmode="numeric" value="${item.price||''}" placeholder="${T.pricePh||'例: 200000'}"></div>
+    <div class="dlg-field"><label>${(T.pricePlain||'価格')+opt}</label><input id="cabPrice" type="number" inputmode="numeric" value="${item.price||''}" placeholder="${T.pricePh||'例: 200000'}"></div>
     <div class="dlg-field"><label>${(T.cabinetSerial||'シリアルナンバー')+opt}</label><input id="cabSerial" type="text" autocomplete="off"></div>
     ${imgFieldHTML(type,item.img||null)}
     <button type="button" class="btn-del-full" id="cabDelBtn">🗑 ${T.del||'削除'}</button>`;
