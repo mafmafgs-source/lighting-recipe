@@ -737,17 +737,24 @@ function getCatImgByItemName(name){
   for(const[catId,models]of Object.entries(ROLE_INDEX)){
     if(models.some(m=>name===m||name.includes(m))) return CAT_IMG_MAP[catId]||null;
   }
-  // 2) 緩い末尾語マッチはフォールバック（カスタム機材名の補助）
-  const last=name.split(' ').pop();
-  for(const[catId,models]of Object.entries(ROLE_INDEX)){
-    if(models.some(m=>m.includes(last))) return CAT_IMG_MAP[catId]||null;
-  }
-  // カスタムカテゴリ
+  // 2) カスタムカテゴリの登録画像。ユーザーが自分で設定したものなので、
+  //    下の緩い末尾語マッチより優先する（先に緩いマッチを通すと自作機材が
+  //    プリセットのアイコンに化ける）。
   try{
     const customs=JSON.parse(localStorage.getItem('lr_customCats')||'[]');
     const cat=customs.find(c=>(c.items||[]).some(it=>(it.maker?it.maker+' '+it.model:it.model)===name));
-    return cat ? (cat.imgData || cat.imgPath || null) : null;
-  }catch(e){return null;}
+    if(cat) return cat.imgData || cat.imgPath || null;
+  }catch(e){}
+  // 3) 緩い末尾語マッチは最後のフォールバック。
+  //    ※末尾語が2文字以下だと誤爆する（"自作ライト 1" の "1" が "AD100Pro" に一致するなど）
+  //      ため、3文字以上のときだけ試す。
+  const last=name.split(' ').pop();
+  if(last && last.length>=3){
+    for(const[catId,models]of Object.entries(ROLE_INDEX)){
+      if(models.some(m=>m.includes(last))) return CAT_IMG_MAP[catId]||null;
+    }
+  }
+  return null;
 }
 
 function getItemRole(name){
