@@ -225,11 +225,11 @@ body{-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%;font-
       <button class="gm-close" onclick="closeGearManual()" aria-label="close">✕</button>
     </div>
     <div class="gm-body" id="gearManualBody">
-      <p><b>📦 機材を追加</b><br>各カテゴリの枠をタップ →「＋追加」でメーカー・型番・価格・写真を登録。メーカー名と型番は候補から選べます（自由入力も可）。</p>
-      <p><b>💡 光源スイッチ</b><br>ライト機材の自作カテゴリでは「光源として扱う」のON/OFFで、ライトか小物（モディファイア）かを切り替えられます。※撮影小物のカテゴリは常に非光源です。</p>
-      <p><b>🔦 ライトビルダー</b><br>ライトを選んで配置・出力・色を設定。「↺ 一括リセット」で全ライトを消灯します。</p>
-      <p><b>📌 マイセット</b><br>各機材の 📌 ボタンから、よく使うライトの組み合わせを保存して、ワンタップで呼び出せます。</p>
-      <p><b>💰 合計表示</b><br><b>機材合計</b>＝倉庫の機材のみ／<b>資産合計</b>＝それに防湿庫のカメラ・レンズを加えた総額（いずれも価格を入力した機材のみ集計）。</p>
+      <p><b data-i18n="gmAddHead">📦 機材を追加</b><br><span data-i18n="gmAddBody">各カテゴリの枠をタップ →「＋追加」でメーカー・型番・価格・写真を登録。メーカー名と型番は候補から選べます（自由入力も可）。</span></p>
+      <p><b data-i18n="gmLightHead">💡 光源スイッチ</b><br><span data-i18n="gmLightBody">ライト機材の自作カテゴリでは「光源として扱う」のON/OFFで、ライトか小物（モディファイア）かを切り替えられます。※撮影小物のカテゴリは常に非光源です。</span></p>
+      <p><b data-i18n="gmBuilderHead">🔦 ライトビルダー</b><br><span data-i18n="gmBuilderBody">ライトを選んで配置・出力・色を設定。「↺ 一括リセット」で全ライトを消灯します。</span></p>
+      <p><b data-i18n="gmMysetHead">📌 マイセット</b><br><span data-i18n="gmMysetBody">各機材の 📌 ボタンから、よく使うライトの組み合わせを保存して、ワンタップで呼び出せます。</span></p>
+      <p><b data-i18n="gmTotalHead">💰 合計表示</b><br><span data-i18n="gmTotalBody">機材合計＝倉庫の機材のみ／資産合計＝それに防湿庫のカメラ・レンズを加えた総額（いずれも価格を入力した機材のみ集計）。</span></p>
     </div>
   </div>
 </div>
@@ -494,6 +494,16 @@ async function saveItemImg(key, dataUrl){
     await new Promise((res,rej)=>{tx.oncomplete=res;tx.onerror=rej;});
     db.close();
   }catch(e){console.warn('saveItemImg error:',e);}
+}
+async function deleteItemImg(key){
+  if(!key) return;
+  try{
+    const db=await openImgIDB();
+    const tx=db.transaction(IMG_IDB_STORE,'readwrite');
+    tx.objectStore(IMG_IDB_STORE).delete(key);
+    await new Promise((res,rej)=>{tx.oncomplete=res;tx.onerror=rej;});
+    db.close();
+  }catch(e){console.warn('deleteItemImg error:',e);}
 }
 
 // 機材・カテゴリ写真は表示が小さい（一覧サムネ36px〜ライティング図上でも最大~40px）ため、
@@ -1056,17 +1066,23 @@ function showEditPendingDialog(pendingId) {
     </div>
   `;
 
-  // 画像選択
+  // 画像選択（機材写真と同様、縮小完了までOKを無効化して取りこぼしを防ぐ）
   document.getElementById('catImgFile').onchange = function() {
     const file = this.files[0];
     if (!file) return;
+    const preview = document.getElementById('catImgPreview');
+    setDlgBusy(true);
+    preview.textContent = '⏳';
     const reader = new FileReader();
     reader.onload = async ev => {
-      pickedImgData = await shrinkImageDataURL(ev.target.result, 400);
-      const preview = document.getElementById('catImgPreview');
-      preview.innerHTML = `<img src="${pickedImgData}" style="width:100%;height:100%;object-fit:cover;border-radius:10px">`;
-      document.getElementById('catImgClear').style.display = 'block';
+      try {
+        pickedImgData = await shrinkImageDataURL(ev.target.result, 400);
+        preview.innerHTML = `<img src="${pickedImgData}" style="width:100%;height:100%;object-fit:cover;border-radius:10px">`;
+        document.getElementById('catImgClear').style.display = 'block';
+      } catch(e) { preview.textContent = pickedIcon; }
+      setDlgBusy(false);
     };
+    reader.onerror = () => { preview.textContent = pickedIcon; setDlgBusy(false); };
     reader.readAsDataURL(file);
   };
 
@@ -1127,7 +1143,9 @@ function deleteItem(catId, item, name, showAll, rerenderFn) {
     // 削除実行
     if (DEFAULT_DB[catId]) {
       const idx = DEFAULT_DB[catId].indexOf(item);
-      if (idx !== -1) DEFAULT_DB[catId].splice(idx, 1);
+      // ※ saveDefaultAdditions() を呼ばないと localStorage に消した機材が残り、
+      //   リロードで復活する（カスタム側の saveCustomCats() と対になる保存処理）
+      if (idx !== -1) { DEFAULT_DB[catId].splice(idx, 1); saveDefaultAdditions(); }
     } else {
       const cat = customCats.find(c => c.id === catId);
       if (cat) {
@@ -1135,6 +1153,8 @@ function deleteItem(catId, item, name, showAll, rerenderFn) {
         if (idx !== -1) { cat.items.splice(idx, 1); saveCustomCats(); }
       }
     }
+    // 機材写真(IDB)も併せて削除（残すとIDBが肥大化するだけで再利用されない）
+    if (typeof item === 'object') deleteItemImg(item.maker ? item.maker + ' ' + item.model : item.model);
     // ボタンを元に戻す
     okBtn.textContent = origOkText;
     okBtn.style.background = '';
@@ -1215,15 +1235,23 @@ function editCategory(catId) {
     </div>
   `;
 
+  // 縮小完了までOKを無効化（完了前にOKを押すと変更した写真が反映されない）
   document.getElementById('catImgFileE').onchange = function() {
     const file = this.files[0];
     if (!file) return;
+    const preview = document.getElementById('catImgPreviewE');
+    setDlgBusy(true);
+    preview.textContent = '⏳';
     const reader = new FileReader();
     reader.onload = async ev => {
-      pickedImgData = await shrinkImageDataURL(ev.target.result, 400);
-      document.getElementById('catImgPreviewE').innerHTML = `<img src="${pickedImgData}" style="width:100%;height:100%;object-fit:cover;border-radius:10px">`;
-      document.getElementById('catImgClearE').style.display = 'block';
+      try {
+        pickedImgData = await shrinkImageDataURL(ev.target.result, 400);
+        preview.innerHTML = `<img src="${pickedImgData}" style="width:100%;height:100%;object-fit:cover;border-radius:10px">`;
+        document.getElementById('catImgClearE').style.display = 'block';
+      } catch(e) { preview.textContent = cat.icon; }
+      setDlgBusy(false);
     };
+    reader.onerror = () => { preview.textContent = cat.icon; setDlgBusy(false); };
     reader.readAsDataURL(file);
   };
 
@@ -1362,15 +1390,25 @@ function showAddItemDialog(catId) {
   };
 
   // 写真選択 → プレビュー
+  // ※読み込み＋縮小は非同期。スマホの高画素写真だと1秒近くかかることがあり、
+  //   完了前にOKを押せてしまうと newItemImgData が null のまま保存され、
+  //   写真がエラーも出さずに捨てられる。処理中はOKを無効化して待たせる。
   document.getElementById('newItemPhoto').onchange = function() {
     const file = this.files[0];
     if (!file) return;
+    const preview = document.getElementById('imgPreview');
+    setDlgBusy(true);
+    preview.textContent = '⏳';
     const reader = new FileReader();
     reader.onload = async ev => {
-      newItemImgData = await shrinkImageDataURL(ev.target.result, 400);
-      document.getElementById('imgPreview').innerHTML =
-        '<img src="' + newItemImgData + '" style="width:100%;height:100%;object-fit:cover;border-radius:8px;">';
+      try {
+        newItemImgData = await shrinkImageDataURL(ev.target.result, 400);
+        preview.innerHTML =
+          '<img src="' + newItemImgData + '" style="width:100%;height:100%;object-fit:cover;border-radius:8px;">';
+      } catch(e) { preview.textContent = '⚠'; }
+      setDlgBusy(false);
     };
+    reader.onerror = () => { preview.textContent = '⚠'; setDlgBusy(false); };
     reader.readAsDataURL(file);
   };
 
@@ -1403,6 +1441,9 @@ function showAddItemDialog(catId) {
     // 画像をIDBに非同期保存
     if (newItemImgData) saveItemImg(imgKey, newItemImgData);
 
+    // 追加した機材は末尾に入るため、6件目以降は「もっと見る」に隠れて
+    // 「追加したのに出てこない」ように見える。追加後は必ず全件表示にする。
+    itemPanelShowAll[catId] = true;
     setActiveCat(catId);
     return true;
   });
@@ -1654,7 +1695,18 @@ function updateOutput(i, val) {
 //  オーバーレイ共通制御
 //  onOk: ()=>boolean  true=閉じる / false=閉じない
 // ══════════════════════════════════════════════
+// 写真の読み込み・縮小など非同期処理の最中はOKを押させない。
+// （押せてしまうと選んだ写真が保存されないまま確定してしまう）
+function setDlgBusy(busy) {
+  const ok = document.getElementById('dlgOk');
+  if (!ok) return;
+  ok.disabled = !!busy;
+  ok.style.opacity = busy ? '0.45' : '';
+  ok.style.cursor  = busy ? 'default' : '';
+}
+
 function showOverlay(onOk) {
+  setDlgBusy(false);   // 前のダイアログで無効化されたまま開かないよう毎回リセット
   document.getElementById('overlay').style.display = 'flex';
   document.getElementById('dlgOk').onclick = () => { if (onOk()) closeOverlay(); };
 }
