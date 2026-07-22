@@ -91,6 +91,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
 .slider-val{font-size:11px;color:#c8a96e;font-weight:700;min-width:36px;text-align:right}
 .items-list{margin-top:8px}
 .item-tag{display:inline-block;background:#252218;color:#c8a96e;border-radius:6px;padding:3px 8px;font-size:11px;margin:2px;border:1px solid #3a3020}
+/* 反転ボタンと機材タグの同居行。タグが1行に収まらない場合は折り畳み（+Nで展開）。
+   ここを可変長にしないことで、下の光パーツカードの位置が機材数に左右されなくなる */
+.flip-row{display:flex;align-items:flex-start;gap:8px;margin-top:6px}
+.flip-row .btn-flip{margin-top:0;flex-shrink:0}
+.items-inline{flex:1;display:flex;flex-wrap:wrap;gap:0;max-height:26px;overflow:hidden;min-width:0}
+.items-inline.expanded{max-height:none}
+.items-more{flex-shrink:0;background:#1c1c1c;color:#888;border:1px solid #333;border-radius:6px;padding:3px 7px;font-size:11px;font-weight:700;cursor:pointer;-webkit-tap-highlight-color:transparent}
 /* 光パーツパネル */
 .light-panel-card{border:1px solid #2e2e2e;border-radius:10px;padding:10px;background:#141414;margin-bottom:10px}
 .light-panel-title{font-size:13px;font-weight:700;margin-bottom:10px;color:#888}
@@ -1820,6 +1827,60 @@ document.getElementById('canvas').addEventListener('click',()=>{selected=null;se
 // ══════════════════════════════════════
 //  パネル
 // ══════════════════════════════════════
+// 表示名「メーカー 型番」から型番だけを取り出す（パネルのタグ表示用。データは変えない）。
+// 倉庫データ（追加分・カスタム）を full name → model で逆引きし、プリセットは
+// ROLE_INDEX 内の短い表記（"AD100Pro"等）との末尾一致で判定。どれにも当たらなければ
+// フルネームのまま返す（削除済み機材など）。
+function itemModelName(name){
+  try{
+    const adds=JSON.parse(localStorage.getItem('lr_defaultAdditions')||'{}');
+    for(const arr of Object.values(adds)){
+      for(const it of arr){
+        if(it&&typeof it==='object'&&(it.maker?it.maker+' '+it.model:it.model)===name) return it.model;
+      }
+    }
+    const customs=JSON.parse(localStorage.getItem('lr_customCats')||'[]');
+    for(const c of customs){
+      for(const it of (c.items||[])){
+        if(it&&typeof it==='object'&&(it.maker?it.maker+' '+it.model:it.model)===name) return it.model;
+      }
+    }
+    for(const models of Object.values(ROLE_INDEX)){
+      for(const m of models){
+        if(m!==name&&name.endsWith(' '+m)) return m;
+      }
+    }
+  }catch(e){}
+  return name;
+}
+
+// 機材タグの折り畳み：1行に収まらない分を隠し、「+N」チップで展開する。
+// renderPanel のたびに呼ばれ、毎回折り畳み状態に戻る（選択切替時に暴れないように）。
+function wireItemsCollapse(){
+  const inline=document.getElementById('itemsInline');
+  const more=document.getElementById('itemsMore');
+  if(!inline||!more) return;
+  const tags=[...inline.querySelectorAll('.item-tag')];
+  if(!tags.length) return;
+  // 隠れタグ数は描画直後だけでなく、レイアウト確定後・幅変化時にも数え直す。
+  // （スクロールバーの出現などで折り返し位置が後から変わり、数字がズレるため）
+  const recount=()=>{
+    if(inline.classList.contains('expanded')) return;
+    const firstTop=tags[0].offsetTop;
+    const hidden=tags.filter(t=>t.offsetTop>firstTop).length;
+    more.style.display=hidden>0?'':'none';
+    if(hidden>0) more.textContent='+'+hidden;
+  };
+  recount();
+  requestAnimationFrame(recount);
+  if(window.ResizeObserver) new ResizeObserver(recount).observe(inline);
+  more.onclick=(e)=>{
+    e.stopPropagation();
+    const open=inline.classList.toggle('expanded');
+    if(open) more.textContent='−'; else recount();
+  };
+}
+
 function renderPanel(){
   const panel=document.getElementById('panel');
   // 太陽が選択されている場合
@@ -1896,11 +1957,15 @@ function renderPanel(){
         <input type="range" id="outSlider" min="0" max="${strobe?8:100}" value="${outVal}" step="1">
         <span class="slider-val" id="outVal">${strobe?strobeLabel(outVal):outVal+'%'}</span>
       </div>`:''}
-      <button class="btn-flip${flipped?' flipped':''}" id="btnFlip">${T.flipBtn}</button>
-      <div class="items-list">
-        ${l.items.length?l.items.map(n=>`<span class="item-tag">${n}</span>`).join(''):`<span style="font-size:12px;color:#aaa">${T.noItems}</span>`}
+      <div class="flip-row">
+        <button class="btn-flip${flipped?' flipped':''}" id="btnFlip">${T.flipBtn}</button>
+        <div class="items-inline" id="itemsInline">
+          ${l.items.length?l.items.map(n=>`<span class="item-tag" title="${n.replace(/"/g,'&quot;')}">${itemModelName(n)}</span>`).join(''):`<span style="font-size:12px;color:#aaa;align-self:center">${T.noItems}</span>`}
+        </div>
+        <button class="items-more" id="itemsMore" style="display:none">+0</button>
       </div>
     </div>`;
+  wireItemsCollapse();
   document.getElementById('hSlider').addEventListener('input',e=>{
     lights[selected].height=Number(e.target.value);
     const col=heightToColor(lights[selected].height);
