@@ -638,6 +638,12 @@ function saveLights(){
 // ══════════════════════════════════════
 const ITEM_IMG_IDB_NAME='lr_item_imgs', ITEM_IMG_IDB_STORE='imgs';
 let itemImgMap={}; // 機材名（メーカー+型番） → 写真dataURL
+// レシピに同梱された機材写真のオーバーレイ（機材名→dataURL）。
+// レシピは機材を「名前」で参照するため、倉庫から機材を削除すると写真が引けなくなる。
+// 保存時にレシピへ写真を同梱し、復元時にここへ展開して findItemImg のフォールバックにする。
+// リロードでも維持できるよう sessionStorage に退避（現在開いているレシピ分だけ・タブ単位）。
+let recipeItemImgs={};
+try{ recipeItemImgs=JSON.parse(sessionStorage.getItem('lr_recipe_item_imgs')||'{}'); }catch(e){}
 
 function openItemImgIDB(){
   return new Promise((resolve,reject)=>{
@@ -680,8 +686,10 @@ function findItemImg(name){
       typeof it==='object'&&
       ((it.maker?it.maker+' '+it.model:it.model).trim()===name||it.model===name)
     );
-    return matched&&matched.img?matched.img:null;
-  }catch(e){return null;}
+    if(matched&&matched.img) return matched.img;
+  }catch(e){}
+  // 最後にレシピ同梱の写真（倉庫から削除済みの機材はここでしか解決できない）
+  return recipeItemImgs[name]||null;
 }
 
 // カテゴリIDとimgPathのマッピング（icons/フォルダ参照）
@@ -2117,8 +2125,17 @@ async function doSaveRecipe(forceNew){
     }catch(e){ console.warn('photo encode error:',e); }
   }
 
+  // 使用機材の写真をレシピに同梱（倉庫から機材を削除しても復元時に写真が出るように）。
+  // 写真は登録時に長辺400pxへ縮小済み＝1点あたり数十KB。機材名→dataURLの辞書で持つ。
+  // findItemImg は recipeItemImgs も見るので、復元したレシピの再保存でも同梱分は引き継がれる。
+  const itemImgs={};
+  const usedNames=new Set();
+  lights.forEach(l=>(l.items||[]).forEach(n=>usedNames.add(n)));
+  loadDirectItems().forEach(di=>{ if(di.name) usedNames.add(di.name); });
+  usedNames.forEach(n=>{ const img=findItemImg(n); if(img) itemImgs[n]=img; });
+
   const recipe={
-    id, title, updatedAt:now, photoData, thumbData,
+    id, title, updatedAt:now, photoData, thumbData, itemImgs,
     lights:JSON.parse(JSON.stringify(lights)),
     directItems:loadDirectItems(),
     session:{
@@ -2183,6 +2200,10 @@ async function loadRecipeFromURL(){
       req.onerror=e=>rej(e.target.error);
     });
     if(!recipe){ restoreSession(); renderCanvas(); renderPanel(); return; }
+
+    // ── 同梱された機材写真（倉庫から削除済みの機材でも表示できるように） ──
+    recipeItemImgs=recipe.itemImgs||{};
+    try{ sessionStorage.setItem('lr_recipe_item_imgs',JSON.stringify(recipeItemImgs)); }catch(e){}
 
     // ── ライト ──
     lights=Array.isArray(recipe.lights)&&recipe.lights.length>0
