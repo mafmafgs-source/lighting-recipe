@@ -226,7 +226,7 @@ body{-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%;font-
     </div>
     <div class="gm-body" id="gearManualBody">
       <p><b>📦 機材を追加</b><br>各カテゴリの枠をタップ →「＋追加」でメーカー・型番・価格・写真を登録。メーカー名と型番は候補から選べます（自由入力も可）。</p>
-      <p><b>💡 光源スイッチ</b><br>カスタム機材は「光源として扱う」のON/OFFで、ライトか小物（モディファイア）かを切り替えられます。</p>
+      <p><b>💡 光源スイッチ</b><br>ライト機材の自作カテゴリでは「光源として扱う」のON/OFFで、ライトか小物（モディファイア）かを切り替えられます。※撮影小物のカテゴリは常に非光源です。</p>
       <p><b>🔦 ライトビルダー</b><br>ライトを選んで配置・出力・色を設定。「↺ 一括リセット」で全ライトを消灯します。</p>
       <p><b>📌 マイセット</b><br>各機材の 📌 ボタンから、よく使うライトの組み合わせを保存して、ワンタップで呼び出せます。</p>
       <p><b>💰 合計表示</b><br><b>機材合計</b>＝倉庫の機材のみ／<b>資産合計</b>＝それに防湿庫のカメラ・レンズを加えた総額（いずれも価格を入力した機材のみ集計）。</p>
@@ -1295,6 +1295,9 @@ function showAddItemDialog(catId) {
   let newItemImgData = null;
   // カスタムカテゴリのときだけ「光源」スイッチを出す（標準カテゴリは役割がカテゴリで確定するため不要）
   const isCustom = !DEFAULT_DB[catId];
+  // ただし撮影小物（ライティング図に直接配置）は光源にできない。
+  // ライト枠(A-J)を経由せず置けるため、光源を許すと無料でも光源を無尽蔵に増やせてしまう。
+  const showLightToggle = isCustom && !isDirectCat(catId);
 
   document.getElementById('dlgTitle').textContent = T.dlgItemTitle;
   document.getElementById('dlgBody').innerHTML =
@@ -1321,7 +1324,7 @@ function showAddItemDialog(catId) {
       '</div>' +
       '<div style="font-size:10px;color:#666;margin-top:5px;line-height:1.5">' + T.photoTransparentHint + '</div>' +
     '</div>' +
-    (isCustom ?
+    (showLightToggle ?
       '<div class="dlg-field">' +
         '<div class="dlg-toggle">' +
           '<span class="tg-label">' + (T.lightSourceToggle || '💡 光源として扱う') + '</span>' +
@@ -1392,7 +1395,8 @@ function showAddItemDialog(catId) {
     } else {
       // カスタム機材：光源スイッチの状態を保存（getItemRoleがこれを見て光源/モディファイアを判定）
       const lightEl = document.getElementById('newIsLight');
-      newItem.light = lightEl ? lightEl.checked : true;
+      // 撮影小物（直接配置）は常に非光源に固定。トグルが無い＝falseにする（trueだと光源扱いになってしまう）
+      newItem.light = isDirectCat(catId) ? false : (lightEl ? lightEl.checked : true);
       const cat = customCats.find(c => c.id === catId);
       if (cat) { cat.items.push(newItem); saveCustomCats(); }
     }
