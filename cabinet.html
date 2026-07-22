@@ -85,7 +85,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
 .tab-bar a.active{color:#c8a96e}
 .tab-spacer{height:82px}
 /* 法的表示（Amazonアソシエイト開示・商標帰属） */
-.legal-note{max-width:430px;margin:20px auto 0;padding:0 12px;font-size:10px;line-height:1.7;color:#585858}
+.legal-note{max-width:430px;margin:20px auto 0;padding:0 12px;font-size:8.5px;line-height:1.7;color:#585858}
 .legal-note p{margin:0 0 5px}
 </style>
 </head>
@@ -169,7 +169,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
 //  防湿庫：所有カメラ・レンズの管理（ローカル保存）
 // ══════════════════════════════════════
 const CAB_KEY='lr_cabinet';
-const CAMERA_MAX=6;              // 上段カメラの枠数（横3×2段）
+// 枠数はサブスクで拡張（無料: カメラ3・レンズ10 / 有料: カメラ30・レンズ50）。
+// 単一の情報源は i18n.js の maxCameras/maxLenses。読み込み失敗時は無料枠で動く。
+// 既存データが上限を超えていても消さない（表示は全件・新規追加だけ止める）。
+const SUB_CAM=30, SUB_LENS=50;   // ロック表示用（サブスクで拡張される枠数）
+function camMax(){ return (typeof maxCameras==='function')?maxCameras():3; }
+function lensMax(){ return (typeof maxLenses==='function')?maxLenses():10; }
+function subActive(){ return (typeof isSubscribed==='function')&&isSubscribed(); }
 // 機材未登録／画像未設定時のデフォルト画像（icons/フォルダ）
 const DEFAULT_IMG={camera:'icons/camera.png', lens:'icons/lens.png'};
 
@@ -244,6 +250,14 @@ function addTileHTML(type){
   return `<div class="slot slot-empty" onclick="openAdd('${type}')"><span class="slot-icon">＋</span><span class="slot-name">${T.cabinetAdd||'追加'}</span></div>`;
 }
 
+// 無料枠が埋まったときのロック枠（タップでサブスク案内）。
+// サブスク中に上限へ達した場合はアップセルする先が無いので何も出さない（呼び出し側で分岐）。
+function lockTileHTML(type){
+  const max=(type==='camera')?SUB_CAM:SUB_LENS;
+  const label=(typeof T.cabinetLockName==='function')?T.cabinetLockName(max):('サブスクで'+max+'枠に拡張');
+  return `<div class="slot slot-empty" onclick="alert(T.subInfo)"><span class="slot-icon">🔒</span><span class="slot-name">${label}</span></div>`;
+}
+
 // 並べ替え状態（既定は追加順・昇順）。同じ項目タップで昇降トグル、別項目タップでその項目へ。
 const sortState={ camera:{mode:'added',dir:1}, lens:{mode:'added',dir:1} };
 function cycleSort(type, mode){
@@ -279,15 +293,19 @@ function updateSortUI(){
 
 function render(){
   cabinet=loadCabinet();
-  // カメラ：6枠固定。埋まっていない枠は「＋追加」を末尾に
+  // カメラ：無料3枠／サブスク30枠。空きがあれば「＋追加」、無料で満杯ならロック枠
   const camGrid=document.getElementById('cameraGrid');
   let camHtml=sortWithIndex(cabinet.cameras,'camera').map(o=>tileHTML(o.it,'camera',o.i)).join('');
-  if(cabinet.cameras.length<CAMERA_MAX) camHtml+=addTileHTML('camera');
+  if(cabinet.cameras.length<camMax()) camHtml+=addTileHTML('camera');
+  else if(!subActive())               camHtml+=lockTileHTML('camera');
   camGrid.innerHTML=camHtml;
 
-  // レンズ：既存＋末尾に「＋追加」（枠数上限なし・3列で折り返し）
+  // レンズ：無料10枠／サブスク50枠（3列で折り返し）
   const lensGrid=document.getElementById('lensGrid');
-  lensGrid.innerHTML=sortWithIndex(cabinet.lenses,'lens').map(o=>tileHTML(o.it,'lens',o.i)).join('')+addTileHTML('lens');
+  let lensHtml=sortWithIndex(cabinet.lenses,'lens').map(o=>tileHTML(o.it,'lens',o.i)).join('');
+  if(cabinet.lenses.length<lensMax()) lensHtml+=addTileHTML('lens');
+  else if(!subActive())               lensHtml+=lockTileHTML('lens');
+  lensGrid.innerHTML=lensHtml;
 
   // 完全に空（カメラ・レンズ0件）のときだけ一言ガイドを表示
   const hint=document.getElementById('cabEmptyHint');
@@ -336,8 +354,12 @@ function wirePhotoInput(type){
 }
 
 function openAdd(type){
-  pendingImg=null;
   const isCam=type==='camera';
+  // 上限ガード（通常はロック枠が出るので届かないが、表示が古い場合の保険）
+  const cap=isCam?camMax():lensMax();
+  const cur=isCam?cabinet.cameras.length:cabinet.lenses.length;
+  if(cur>=cap){ if(!subActive()) alert(T.subInfo); render(); return; }
+  pendingImg=null;
   document.getElementById('dlgTitle').textContent = isCam ? (T.cabinetAddCamera||'カメラを追加') : (T.cabinetAddLens||'レンズを追加');
   document.getElementById('dlgBody').innerHTML=`
     <div class="dlg-field"><label>${T.cabinetMaker||'メーカー'}</label><input id="cabMaker" type="text" placeholder="${isCam?'Sony / Canon…':'Sony / Sigma…'}"></div>

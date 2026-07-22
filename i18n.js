@@ -758,6 +758,20 @@
   };
   for (const k in EXTRA15) { if (I18N[k]) Object.assign(I18N[k], EXTRA15[k]); }
 
+  // ── 追加辞書16（防湿庫の枠上限：無料枠が埋まったときのロック表示）──
+  //   maxは「サブスクで拡張される枠数」。数字は呼び出し側（cabinet.html）から渡す。
+  const EXTRA16 = {
+    ja: { cabinetLockName:(max)=>`サブスクで${max}枠に拡張` },
+    en: { cabinetLockName:(max)=>`Subscribe for up to ${max}` },
+    zh: { cabinetLockName:(max)=>`订阅可扩展至${max}格` },
+    ko: { cabinetLockName:(max)=>`구독 시 최대 ${max}칸` },
+    de: { cabinetLockName:(max)=>`Mit Abo bis zu ${max} Plätze` },
+    fr: { cabinetLockName:(max)=>`Jusqu'à ${max} avec l'abo` },
+    it: { cabinetLockName:(max)=>`Fino a ${max} con l'abbonamento` },
+    es: { cabinetLockName:(max)=>`Hasta ${max} con la suscripción` },
+  };
+  for (const k in EXTRA16) { if (I18N[k]) Object.assign(I18N[k], EXTRA16[k]); }
+
   // ── 追加辞書7（ライトへの機材追加トースト：どの枠A-Jに追加したか明示）─────
   const EXTRA7 = {
     ja: { addedToLight:(name,slot)=>`${name} を ライト${slot} に追加しました`, addedToDiagram:(name)=>`${name} をライティング図に追加しました` },
@@ -942,7 +956,8 @@
 
   // ── サブスクリプション（無料枠 vs 有料枠）の共通判定 ─────────────
   //  決済・クラウドは未実装。lr_subscribed フラグ（開発用トグルで切替）で有料枠を解錠する。
-  //  無料: レシピ30 / ライト5(A-E) / マイセット5　　有料: 無制限 / 10(A-J) / 10
+  //  無料: レシピ30 / ライト5(A-E) / マイセット5 / カメラ3 / レンズ10
+  //  有料: 無制限   / 10(A-J)     / 10          / カメラ30 / レンズ50
   const SUB_KEY = 'lr_subscribed';
   function isSubscribed(){ try{ return localStorage.getItem(SUB_KEY) === '1'; }catch(e){ return false; } }
   function setSubscribed(on){ try{ localStorage.setItem(SUB_KEY, on ? '1' : '0'); }catch(e){} }
@@ -951,6 +966,8 @@
   global.maxRecipes = function(){ return isSubscribed() ? Infinity : 30; };
   global.maxLights  = function(){ return isSubscribed() ? 10 : 5; };
   global.maxMyset   = function(){ return isSubscribed() ? 10 : 5; };
+  global.maxCameras = function(){ return isSubscribed() ? 30 : 3; };   // 防湿庫・カメラ枠
+  global.maxLenses  = function(){ return isSubscribed() ? 50 : 10; };  // 防湿庫・レンズ枠
   global.LIGHT_LABELS = ['A','B','C','D','E','F','G','H','I','J'];
 
   // 既存コードとの互換：グローバルに公開（各HTMLの旧定義を置き換える）
