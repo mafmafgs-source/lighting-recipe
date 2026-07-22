@@ -644,6 +644,25 @@ let itemImgMap={}; // 機材名（メーカー+型番） → 写真dataURL
 // リロードでも維持できるよう sessionStorage に退避（現在開いているレシピ分だけ・タブ単位）。
 let recipeItemImgs={};
 try{ recipeItemImgs=JSON.parse(sessionStorage.getItem('lr_recipe_item_imgs')||'{}'); }catch(e){}
+// 役割（light/base/modifier）のオーバーレイ。写真と同じく、カテゴリごと削除されると
+// getItemRole が light フラグを引けず全て modifier に落ちる（ビーム・光パーツ消失）。
+// 役割は機材名→短い文字列で軽量なので localStorage に置き、builder.html からも共有する。
+// 復元のたびにマージして育てる（同名機材の役割は安定しているため蓄積して問題ない）。
+let recipeItemRoles={};
+try{ recipeItemRoles=JSON.parse(localStorage.getItem('lr_recipe_item_roles')||'{}'); }catch(e){}
+// 名前が倉庫（プリセット＋追加分＋カスタム）で現在も解決できるか。
+// getItemRole の最終フォールバック 'modifier' は「不明」も含むため、
+// 役割を保存してよいか（＝本物の判定か）の判別に使う。
+function isNameInWarehouse(name){
+  for(const models of Object.values(ROLE_INDEX)){
+    if(models.some(m=>name===m||name.includes(m))) return true;
+  }
+  try{
+    const customs=JSON.parse(localStorage.getItem('lr_customCats')||'[]');
+    if(customs.some(c=>(c.items||[]).some(it=>(it.maker?it.maker+' '+it.model:it.model)===name))) return true;
+  }catch(e){}
+  return false;
+}
 
 function openItemImgIDB(){
   return new Promise((resolve,reject)=>{
@@ -778,6 +797,8 @@ function getItemRole(name){
       if(it) return it.light===false ? 'modifier' : 'light';
     }
   }catch(e){}
+  // レシピ同梱の役割（カテゴリごと削除された機材はここでしか判定できない）
+  if(recipeItemRoles[name]) return recipeItemRoles[name];
   return 'modifier';
 }
 
@@ -1995,16 +2016,22 @@ async function migrateRecipeItemImgs(){
     const updated=[];
     for(const rec of recipes){
       const imgs=rec.itemImgs||{};
+      const roles=rec.itemRoles||{};
       const names=new Set();
       (rec.lights||[]).forEach(l=>(l.items||[]).forEach(n=>names.add(n)));
       (rec.directItems||[]).forEach(di=>{ if(di.name) names.add(di.name); });
       let changed=false;
       names.forEach(n=>{
-        if(imgs[n]) return;
-        const img=findItemImg(n);
-        if(img){ imgs[n]=img; changed=true; }
+        if(!imgs[n]){
+          const img=findItemImg(n);
+          if(img){ imgs[n]=img; changed=true; }
+        }
+        // 役割も同梱（写真と同じ条件：今なら解決できる名前だけ）
+        if(!roles[n] && (isNameInWarehouse(n)||recipeItemRoles[n])){
+          roles[n]=getItemRole(n); changed=true;
+        }
       });
-      if(changed){ rec.itemImgs=imgs; updated.push(rec); }
+      if(changed){ rec.itemImgs=imgs; rec.itemRoles=roles; updated.push(rec); }
     }
     if(updated.length){
       await new Promise((res,rej)=>{
@@ -2013,7 +2040,7 @@ async function migrateRecipeItemImgs(){
         tx.oncomplete=()=>res();
         tx.onerror=e=>rej(e.target.error);
       });
-      console.log('itemImgs migration: '+updated.length+'件のレシピに機材写真を同梱');
+      console.log('itemImgs migration: '+updated.length+'件のレシピに機材写真・役割を同梱');
     }
   }catch(e){ console.warn('itemImgs migration error:',e); }
 }
@@ -2175,8 +2202,16 @@ async function doSaveRecipe(forceNew){
   loadDirectItems().forEach(di=>{ if(di.name) usedNames.add(di.name); });
   usedNames.forEach(n=>{ const img=findItemImg(n); if(img) itemImgs[n]=img; });
 
+  // 役割（light/base/modifier）も同梱。倉庫で解決できる名前だけ保存する
+  // （解決不能な名前の getItemRole は「不明＝modifier」なので、それを本物の
+  //   判定として焼き込まない。オーバーレイに正しい役割が残っていればそれを使う）。
+  const itemRoles={};
+  usedNames.forEach(n=>{
+    if(isNameInWarehouse(n)||recipeItemRoles[n]) itemRoles[n]=getItemRole(n);
+  });
+
   const recipe={
-    id, title, updatedAt:now, photoData, thumbData, itemImgs,
+    id, title, updatedAt:now, photoData, thumbData, itemImgs, itemRoles,
     lights:JSON.parse(JSON.stringify(lights)),
     directItems:loadDirectItems(),
     session:{
@@ -2245,6 +2280,9 @@ async function loadRecipeFromURL(){
     // ── 同梱された機材写真（倉庫から削除済みの機材でも表示できるように） ──
     recipeItemImgs=recipe.itemImgs||{};
     try{ sessionStorage.setItem('lr_recipe_item_imgs',JSON.stringify(recipeItemImgs)); }catch(e){}
+    // ── 同梱された役割（カテゴリごと削除でもビーム・光パーツ・積み順を維持） ──
+    recipeItemRoles={...recipeItemRoles, ...(recipe.itemRoles||{})};
+    try{ localStorage.setItem('lr_recipe_item_roles',JSON.stringify(recipeItemRoles)); }catch(e){}
 
     // ── ライト ──
     lights=Array.isArray(recipe.lights)&&recipe.lights.length>0

@@ -735,7 +735,18 @@ function findItemImg(name) {
     typeof it === 'object' &&
     ((it.maker ? it.maker + ' ' + it.model : it.model).trim() === name || it.model === name)
   );
-  return matched && matched.img ? matched.img : null;
+  if (matched && matched.img) return matched.img;
+  // レシピ同梱の写真（index.htmlがレシピ復元時にsessionStorageへ書き込む）。
+  // 倉庫から削除済みの機材でも、同一タブ内ならライトカードのサムネを維持できる。
+  return recipeImgOverlay()[name] || null;
+}
+
+let _imgOverlayCache=null;
+function recipeImgOverlay(){
+  if(_imgOverlayCache) return _imgOverlayCache;
+  try{ _imgOverlayCache=JSON.parse(sessionStorage.getItem('lr_recipe_item_imgs')||'{}'); }
+  catch(e){ _imgOverlayCache={}; }
+  return _imgOverlayCache;
 }
 
 function guessIcon(name) {
@@ -1539,7 +1550,19 @@ function getItemRole(name) {
       if(it) return it.light===false ? 'modifier' : 'light';
     }
   }catch(e){}
+  // レシピ同梱の役割（index.htmlがレシピ復元時に書き込む）。
+  // カテゴリごと削除された機材でも、復元したライトの光源/小物の区別を維持する。
+  if(recipeRoleOverlay()[name]) return recipeRoleOverlay()[name];
   return 'modifier';
+}
+
+// index.html が localStorage に共有する役割オーバーレイ（機材名→light/base/modifier）
+let _roleOverlayCache=null;
+function recipeRoleOverlay(){
+  if(_roleOverlayCache) return _roleOverlayCache;
+  try{ _roleOverlayCache=JSON.parse(localStorage.getItem('lr_recipe_item_roles')||'{}'); }
+  catch(e){ _roleOverlayCache={}; }
+  return _roleOverlayCache;
 }
 
 function getItemImgSrc(name) {
