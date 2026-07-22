@@ -777,6 +777,17 @@ function getItemImgSrc(name){
   return findItemImg(name)||getCatImgByItemName(name)||null;
 }
 
+// 直接配置アイテム（撮影小物）の画像。
+//  ユーザーがその機材に登録した写真を最優先し、無ければ配置時に確定した
+//  カテゴリ画像(di.imgPath)にフォールバックする。
+//  ※lr_direct_items は保存レシピ1件ごとに丸ごとコピーされるため、ここに写真の
+//    dataURLを持たせるとlocalStorageが破裂する。保存はカテゴリ画像のままにして、
+//    表示のたびに機材名で引き直す（既に配置済みのアイテムも自動で直る）。
+function directItemImgSrc(di){
+  if(!di) return null;
+  return (di.name ? findItemImg(di.name) : null) || di.imgPath || null;
+}
+
 // ライトノードの内部HTMLを生成（builder.htmlと同じ縦積みシルエット）
 function buildNodeHTML(l){
   const flipped=l.flipped||false;
@@ -1659,8 +1670,9 @@ function renderDirectItems(canvas){
     const flipped=di.flipped||false;
     const flipStyle=flipped?'transform:scaleX(-1);':'';
 
-    const imgHtml=di.imgPath
-      ?`<img src="${di.imgPath}" style="${flipStyle}" onerror="this.style.display='none'">`
+    const diSrc=directItemImgSrc(di);
+    const imgHtml=diSrc
+      ?`<img src="${diSrc}" style="${flipStyle}" onerror="this.style.display='none'">`
       :'';
     el.innerHTML=
       `<button class="direct-item-del" onclick="event.stopPropagation();removeDirectItem(${idx})">×</button>`+
@@ -2502,8 +2514,9 @@ async function doExport(){
           const bc=Math.round(255+(180-255)*t);
           const col=`rgb(${rc},${gc},${bc})`;
           const bw=Math.round(1+(dh/HEIGHT_MAX)*3)+1;
-          if(di.imgPath){
-            const im=await loadImg(di.imgPath);
+          const diSrc=directItemImgSrc(di);
+          if(diSrc){
+            const im=await loadImg(diSrc);
             if(im){
               ctx.save();
               if(di.flipped){ctx.translate(diX,0);ctx.scale(-1,1);ctx.translate(-diX,0);}
