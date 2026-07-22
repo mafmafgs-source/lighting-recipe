@@ -772,6 +772,20 @@
   };
   for (const k in EXTRA16) { if (I18N[k]) Object.assign(I18N[k], EXTRA16[k]); }
 
+  // ── 追加辞書17（防湿庫：シリアルナンバー欄＋任意ラベル）──
+  //   optionalSuffix はラベル末尾に付ける「（任意）」表記。必須は型番のみ。
+  const EXTRA17 = {
+    ja: { cabinetSerial:'シリアルナンバー', optionalSuffix:'（任意）' },
+    en: { cabinetSerial:'Serial number', optionalSuffix:' (optional)' },
+    zh: { cabinetSerial:'序列号', optionalSuffix:'（选填）' },
+    ko: { cabinetSerial:'시리얼 번호', optionalSuffix:' (선택)' },
+    de: { cabinetSerial:'Seriennummer', optionalSuffix:' (optional)' },
+    fr: { cabinetSerial:'Numéro de série', optionalSuffix:' (facultatif)' },
+    it: { cabinetSerial:'Numero di serie', optionalSuffix:' (facoltativo)' },
+    es: { cabinetSerial:'Número de serie', optionalSuffix:' (opcional)' },
+  };
+  for (const k in EXTRA17) { if (I18N[k]) Object.assign(I18N[k], EXTRA17[k]); }
+
   // ── 追加辞書7（ライトへの機材追加トースト：どの枠A-Jに追加したか明示）─────
   const EXTRA7 = {
     ja: { addedToLight:(name,slot)=>`${name} を ライト${slot} に追加しました`, addedToDiagram:(name)=>`${name} をライティング図に追加しました` },
