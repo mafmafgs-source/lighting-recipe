@@ -1975,7 +1975,48 @@ loadItemImgMap().then(map=>{
   itemImgMap=map;
   renderCanvas();
   renderBeams();
+  migrateRecipeItemImgs();
 });
+
+// 旧形式レシピ（itemImgs無し＝写真同梱前の保存分）への移行措置。
+// 倉庫にまだ写真が残っているうちに各レシピへ同梱しておく（後から機材を
+// 削除しても復元で写真が出るように）。解決できない名前（既に削除済みの
+// 機材）は手の打ちようがないのでそのまま。既に同梱済みの名前もスキップ
+// するため、全機材が同梱済みになった以降は書き込みが発生しない。
+async function migrateRecipeItemImgs(){
+  try{
+    const db=await openRecipeDB();
+    const recipes=await new Promise((res,rej)=>{
+      const tx=db.transaction(RSTORE,'readonly');
+      const q=tx.objectStore(RSTORE).getAll();
+      q.onsuccess=()=>res(q.result||[]);
+      q.onerror=e=>rej(e.target.error);
+    });
+    const updated=[];
+    for(const rec of recipes){
+      const imgs=rec.itemImgs||{};
+      const names=new Set();
+      (rec.lights||[]).forEach(l=>(l.items||[]).forEach(n=>names.add(n)));
+      (rec.directItems||[]).forEach(di=>{ if(di.name) names.add(di.name); });
+      let changed=false;
+      names.forEach(n=>{
+        if(imgs[n]) return;
+        const img=findItemImg(n);
+        if(img){ imgs[n]=img; changed=true; }
+      });
+      if(changed){ rec.itemImgs=imgs; updated.push(rec); }
+    }
+    if(updated.length){
+      await new Promise((res,rej)=>{
+        const tx=db.transaction(RSTORE,'readwrite');
+        updated.forEach(r=>tx.objectStore(RSTORE).put(r));
+        tx.oncomplete=()=>res();
+        tx.onerror=e=>rej(e.target.error);
+      });
+      console.log('itemImgs migration: '+updated.length+'件のレシピに機材写真を同梱');
+    }
+  }catch(e){ console.warn('itemImgs migration error:',e); }
+}
 
 // キャンバス内メモ（contenteditable）の保存・取得
 function getCanvasMemo(){ return document.getElementById('canvasMemo')?.innerText||''; }
