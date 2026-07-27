@@ -143,6 +143,17 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
       <label style="min-width:72px;font-size:13px;color:#aaa" data-i18n="currencyLabel">通貨</label>
       <span id="lrCurMount"></span>
     </div>
+    <!-- 出力ウォーターマーク（テキスト／ロゴ画像）。localStorage保存・indexのdoExportが参照 -->
+    <div style="margin-top:16px;padding-top:14px;border-top:1px solid #2e2e2e">
+      <div style="font-size:13px;color:#aaa;font-weight:600;margin-bottom:8px">💧 <span data-i18n="wmTitle">出力ウォーターマーク</span></div>
+      <input id="wmText" type="text" data-i18n-ph="wmTextPh" placeholder="例: © Your Name / @sns_id" autocomplete="off" style="width:100%;padding:9px;border:1px solid #333;border-radius:8px;background:#141414;color:#e8e8e8;font-size:13px;outline:none">
+      <div style="display:flex;align-items:center;gap:10px;margin-top:8px">
+        <div id="wmImgPrev" style="width:44px;height:44px;border-radius:8px;background:#252525;border:1px solid #333;display:flex;align-items:center;justify-content:center;font-size:18px;color:#555;flex-shrink:0;overflow:hidden">🖼</div>
+        <label style="flex:1;padding:9px;border:1.5px dashed #444;border-radius:9px;text-align:center;cursor:pointer;font-size:12px;color:#888;display:block"><span data-i18n="wmPick">ロゴ画像を選ぶ</span><input type="file" id="wmImgFile" accept="image/*" style="display:none"></label>
+        <button id="wmImgClear" style="display:none;background:none;border:1px solid #444;color:#888;border-radius:6px;padding:5px 8px;font-size:11px;cursor:pointer;flex-shrink:0" data-i18n="clearImg">✕ 消す</button>
+      </div>
+      <div style="font-size:10px;color:#666;line-height:1.5;margin-top:6px" data-i18n="wmHint">出力画像の右下に表示されます。テキスト・ロゴのどちらか一方でも使えます。</div>
+    </div>
     <div style="margin-top:16px;padding-top:14px;border-top:1px solid #2e2e2e">
       <a href="privacy.html" style="font-size:13px;color:#c8a96e;text-decoration:none;display:inline-flex;align-items:center;gap:6px">🔒 <span data-i18n="privacyPolicy">プライバシーポリシー</span></a>
     </div>
@@ -456,6 +467,52 @@ function devToggleSub(on){
   if(typeof setSubscribed==='function') setSubscribed(on);
   location.reload(); // 枠数・保存上限を反映
 }
+
+// ══════════════════════════════════════
+//  出力ウォーターマーク設定（lr_wm_text / lr_wm_img。indexのdoExportが参照）
+// ══════════════════════════════════════
+function shrinkWmImage(dataUrl,maxW){
+  return new Promise(resolve=>{
+    const img=new Image();
+    img.onload=()=>{ try{
+      const scale=Math.min(1,maxW/img.naturalWidth,maxW/img.naturalHeight);
+      const c=document.createElement('canvas');
+      c.width=Math.max(1,Math.round(img.naturalWidth*scale));
+      c.height=Math.max(1,Math.round(img.naturalHeight*scale));
+      c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+      resolve(c.toDataURL('image/png'));  // ロゴは透過維持のためPNG固定
+    }catch(e){ resolve(dataUrl); } };
+    img.onerror=()=>resolve(dataUrl);
+    img.src=dataUrl;
+  });
+}
+(function initWatermark(){
+  const txt=document.getElementById('wmText');
+  const file=document.getElementById('wmImgFile');
+  const prev=document.getElementById('wmImgPrev');
+  const clear=document.getElementById('wmImgClear');
+  if(!txt||!file||!prev||!clear) return;
+  const showImg=(d)=>{
+    if(d){ prev.innerHTML='<img src="'+d+'" style="width:100%;height:100%;object-fit:contain">'; clear.style.display=''; }
+    else { prev.textContent='🖼'; clear.style.display='none'; }
+  };
+  try{ txt.value=localStorage.getItem('lr_wm_text')||''; }catch(e){}
+  try{ showImg(localStorage.getItem('lr_wm_img')||''); }catch(e){}
+  txt.addEventListener('input',()=>{ try{ localStorage.setItem('lr_wm_text',txt.value); }catch(e){} });
+  file.onchange=function(){
+    const f=this.files[0]; if(!f) return;
+    const r=new FileReader();
+    r.onload=ev=>{
+      // 出力上は高さ30px程度の表示＝長辺300pxで十分。縮小してlocalStorageを節約
+      shrinkWmImage(ev.target.result,300).then(d=>{
+        try{ localStorage.setItem('lr_wm_img',d); }catch(e){ alert((typeof T==='object'&&T.cabinetStorageFull)||'保存容量が不足しています'); return; }
+        showImg(d);
+      });
+    };
+    r.readAsDataURL(f);
+  };
+  clear.onclick=()=>{ try{ localStorage.removeItem('lr_wm_img'); }catch(e){} file.value=''; showImg(''); };
+})();
 
 // ══════════════════════════════════════
 //  すべてリセット（初期化）：全データを削除して初期状態へ

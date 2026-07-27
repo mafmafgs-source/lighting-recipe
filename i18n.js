@@ -801,6 +801,19 @@
   };
   for (const k in EXTRA18) { if (I18N[k]) Object.assign(I18N[k], EXTRA18[k]); }
 
+  // ── 追加辞書19（出力ウォーターマーク設定：mypageの設定パネル）──
+  const EXTRA19 = {
+    ja: { wmTitle:'出力ウォーターマーク', wmTextPh:'例: © Your Name / @sns_id', wmPick:'ロゴ画像を選ぶ', wmHint:'出力画像の右下に表示されます。テキスト・ロゴのどちらか一方でも使えます。' },
+    en: { wmTitle:'Export watermark', wmTextPh:'e.g. © Your Name / @handle', wmPick:'Choose logo image', wmHint:'Shown at the bottom right of exported images. Text or logo alone works too.' },
+    zh: { wmTitle:'导出水印', wmTextPh:'例：© Your Name / @帐号', wmPick:'选择Logo图片', wmHint:'显示在导出图片的右下角。仅文字或仅Logo也可以。' },
+    ko: { wmTitle:'내보내기 워터마크', wmTextPh:'예: © Your Name / @계정', wmPick:'로고 이미지 선택', wmHint:'내보낸 이미지의 오른쪽 아래에 표시됩니다. 텍스트나 로고 하나만으로도 사용할 수 있습니다.' },
+    de: { wmTitle:'Wasserzeichen für Export', wmTextPh:'z. B. © Dein Name / @handle', wmPick:'Logo auswählen', wmHint:'Wird unten rechts im exportierten Bild angezeigt. Auch nur Text oder nur Logo möglich.' },
+    fr: { wmTitle:'Filigrane d’export', wmTextPh:'ex. © Votre nom / @compte', wmPick:'Choisir un logo', wmHint:'Affiché en bas à droite de l’image exportée. Texte seul ou logo seul possible.' },
+    it: { wmTitle:'Filigrana di esportazione', wmTextPh:'es. © Il tuo nome / @account', wmPick:'Scegli logo', wmHint:'Mostrata in basso a destra nell’immagine esportata. Basta anche solo testo o solo logo.' },
+    es: { wmTitle:'Marca de agua de exportación', wmTextPh:'p. ej. © Tu nombre / @cuenta', wmPick:'Elegir logo', wmHint:'Se muestra abajo a la derecha de la imagen exportada. Puede usarse solo texto o solo logo.' },
+  };
+  for (const k in EXTRA19) { if (I18N[k]) Object.assign(I18N[k], EXTRA19[k]); }
+
   // ── 追加辞書7（ライトへの機材追加トースト：どの枠A-Jに追加したか明示）─────
   const EXTRA7 = {
     ja: { addedToLight:(name,slot)=>`${name} を ライト${slot} に追加しました`, addedToDiagram:(name)=>`${name} をライティング図に追加しました` },

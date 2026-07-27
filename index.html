@@ -2455,6 +2455,40 @@ function closeExportModal(){
   document.getElementById('exportModal').classList.remove('open');
 }
 
+// ── ウォーターマーク描画（設定はmypageで管理：lr_wm_text / lr_wm_img）──
+//  写真の実表示領域（レターボックス除く）の右下に、ロゴ＋テキストを影付きで載せる。
+//  どちらも未設定なら何もしない。写真が無い出力ではライティング図の右下。
+async function drawWatermark(ctx,rect){
+  if(!rect) return;
+  let text='',imgData='';
+  try{ text=(localStorage.getItem('lr_wm_text')||'').trim(); imgData=localStorage.getItem('lr_wm_img')||''; }catch(e){}
+  if(!text&&!imgData) return;
+  let logo=null;
+  if(imgData){
+    logo=await new Promise(res=>{ const im=new Image(); im.onload=()=>res(im); im.onerror=()=>res(null); im.src=imgData; });
+  }
+  const pad=14,gap=8,fontPx=15;
+  const logoH=logo?30:0;
+  const logoW=logo?Math.round(logo.naturalWidth*(logoH/logo.naturalHeight)):0;
+  ctx.save();
+  ctx.font=`600 ${fontPx}px -apple-system,sans-serif`;
+  ctx.textAlign='left';
+  const textW=text?ctx.measureText(text).width:0;
+  const totalW=logoW+((logo&&text)?gap:0)+textW;
+  const x0=rect.x+rect.w-pad-totalW;
+  const bottom=rect.y+rect.h-pad;
+  ctx.globalAlpha=0.85;
+  ctx.shadowColor='rgba(0,0,0,0.65)';ctx.shadowBlur=4;ctx.shadowOffsetY=1;
+  if(logo) ctx.drawImage(logo,x0,bottom-logoH,logoW,logoH);
+  if(text){
+    ctx.fillStyle='#ffffff';
+    // ロゴがあればロゴの縦中心に、なければ下端に揃える
+    const textY=logo?(bottom-logoH/2+fontPx/2-2):bottom-3;
+    ctx.fillText(text,x0+logoW+(logo?gap:0),textY);
+  }
+  ctx.restore();
+}
+
 async function doExport(){
   closeExportModal();
   const showLoc =document.getElementById('exportLoc').checked;
@@ -2539,6 +2573,9 @@ async function doExport(){
 
   let y=HEADER_H+PADDING;
 
+  // ウォーターマークの描画先（写真があれば写真の実表示領域、なければライティング図）
+  let wmRect=null;
+
   // ── 写真 ──
   if(hasPhoto){
     await new Promise(res=>{
@@ -2551,6 +2588,7 @@ async function doExport(){
         const iw=photoImg.naturalWidth*scale,ih=photoImg.naturalHeight*scale;
         const ix=PADDING+(DIAG_W-iw)/2,iy=y+(PHOTO_H-ih)/2;
         ctx.drawImage(photoImg,ix,iy,iw,ih);
+        wmRect={x:ix,y:iy,w:iw,h:ih};
         ctx.restore();
         res();
       }catch(e){
@@ -2564,6 +2602,7 @@ async function doExport(){
           const iw=img.naturalWidth*scale,ih=img.naturalHeight*scale;
           const ix=PADDING+(DIAG_W-iw)/2,iy=y+(PHOTO_H-ih)/2;
           ctx.drawImage(img,ix,iy,iw,ih);
+          wmRect={x:ix,y:iy,w:iw,h:ih};
           ctx.restore();
           res();
         };
@@ -2655,6 +2694,7 @@ async function doExport(){
       roundRect(ctx,PADDING,y,DIAG_W,DIAG_H,CARD_R);
       ctx.save();ctx.clip();
       ctx.drawImage(c,PADDING,y,DIAG_W,DIAG_H);
+      if(!wmRect) wmRect={x:PADDING,y:y,w:DIAG_W,h:DIAG_H};  // 写真なし→図の右下に
 
       // ── 直接配置アイテムをCanvas APIで描画（CSSフリップ対応） ──
       const diagRect=diagCanvas.getBoundingClientRect();
@@ -2845,6 +2885,9 @@ async function doExport(){
       }
     });
   }
+
+  // ── ウォーターマーク（マイページで設定。テキスト／ロゴのどちらか・両方） ──
+  await drawWatermark(ctx,wmRect);
 
   // ── 写真アプリへの保存（Android / iPhone 両対応） ──
   canvas.toBlob(async blob=>{
