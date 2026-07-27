@@ -998,8 +998,10 @@
 
   // ── サブスクリプション（無料枠 vs 有料枠）の共通判定 ─────────────
   //  決済・クラウドは未実装。lr_subscribed フラグ（開発用トグルで切替）で有料枠を解錠する。
-  //  無料: レシピ30 / ライト5(A-E) / マイセット5 / カメラ3 / レンズ10
+  //  無料: レシピ30 / ライト5(A-E) / マイセット5 / カメラ3 / レンズ5
   //  有料: 無制限   / 10(A-J)     / 10          / カメラ30 / レンズ50
+  //  ※レンズ枠は自由入力でカメラも入れられてしまうため、無料はカメラ枠と同水準に抑える
+  //   （2026-07-28 ユーザー決定。10→5に変更）
   const SUB_KEY = 'lr_subscribed';
   function isSubscribed(){ try{ return localStorage.getItem(SUB_KEY) === '1'; }catch(e){ return false; } }
   function setSubscribed(on){ try{ localStorage.setItem(SUB_KEY, on ? '1' : '0'); }catch(e){} }
@@ -1009,7 +1011,7 @@
   global.maxLights  = function(){ return isSubscribed() ? 10 : 5; };
   global.maxMyset   = function(){ return isSubscribed() ? 10 : 5; };
   global.maxCameras = function(){ return isSubscribed() ? 30 : 3; };   // 防湿庫・カメラ枠
-  global.maxLenses  = function(){ return isSubscribed() ? 50 : 10; };  // 防湿庫・レンズ枠
+  global.maxLenses  = function(){ return isSubscribed() ? 50 : 5; };   // 防湿庫・レンズ枠
   global.LIGHT_LABELS = ['A','B','C','D','E','F','G','H','I','J'];
 
   // 既存コードとの互換：グローバルに公開（各HTMLの旧定義を置き換える）

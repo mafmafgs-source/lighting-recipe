@@ -169,12 +169,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
 //  防湿庫：所有カメラ・レンズの管理（ローカル保存）
 // ══════════════════════════════════════
 const CAB_KEY='lr_cabinet';
-// 枠数はサブスクで拡張（無料: カメラ3・レンズ10 / 有料: カメラ30・レンズ50）。
+// 枠数はサブスクで拡張（無料: カメラ3・レンズ5 / 有料: カメラ30・レンズ50）。
 // 単一の情報源は i18n.js の maxCameras/maxLenses。読み込み失敗時は無料枠で動く。
 // 既存データが上限を超えていても消さない（表示は全件・新規追加だけ止める）。
 const SUB_CAM=30, SUB_LENS=50;   // ロック表示用（サブスクで拡張される枠数）
 function camMax(){ return (typeof maxCameras==='function')?maxCameras():3; }
-function lensMax(){ return (typeof maxLenses==='function')?maxLenses():10; }
+function lensMax(){ return (typeof maxLenses==='function')?maxLenses():5; }
 function subActive(){ return (typeof isSubscribed==='function')&&isSubscribed(); }
 // 機材未登録／画像未設定時のデフォルト画像（icons/フォルダ）
 const DEFAULT_IMG={camera:'icons/camera.png', lens:'icons/lens.png'};
@@ -300,7 +300,7 @@ function render(){
   else if(!subActive())               camHtml+=lockTileHTML('camera');
   camGrid.innerHTML=camHtml;
 
-  // レンズ：無料10枠／サブスク50枠（3列で折り返し）
+  // レンズ：無料5枠／サブスク50枠（3列で折り返し）
   const lensGrid=document.getElementById('lensGrid');
   let lensHtml=sortWithIndex(cabinet.lenses,'lens').map(o=>tileHTML(o.it,'lens',o.i)).join('');
   if(cabinet.lenses.length<lensMax()) lensHtml+=addTileHTML('lens');
