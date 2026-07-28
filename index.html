@@ -1284,9 +1284,10 @@ function renderBg(){
     const left=cx-bgW/2, right=cx+bgW/2;
 
     const hex=bgColorVal.replace('#','');
-    const r=parseInt(hex.slice(0,2),16)||255;
-    const gg=parseInt(hex.slice(2,4),16)||255;
-    const b=parseInt(hex.slice(4,6),16)||255;
+    // ※`parseInt(...)||255` はチャンネル値0（例:#ff0000の緑・青）が255に化けて
+    //   影色がグレーに壊れるバグの元。NaNのときだけ255に落とす
+    const hexCh=(i)=>{const v=parseInt(hex.slice(i,i+2),16);return Number.isNaN(v)?255:v;};
+    const r=hexCh(0),gg=hexCh(2),b=hexCh(4);
     const lighter=`rgb(${Math.min(255,r+35)},${Math.min(255,gg+35)},${Math.min(255,b+35)})`;
     const darker =`rgb(${Math.max(0,r-35)}, ${Math.max(0,gg-35)}, ${Math.max(0,b-35)})`;
 
@@ -1323,9 +1324,9 @@ function renderBg(){
     // 30%縮小：元幅W*0.76 → W*0.53、奥行H*0.28→H*0.20
     const bgColorVal=document.getElementById('bgColor')?.value||'#ffffff';
     const hex=bgColorVal.replace('#','');
-    const tr=parseInt(hex.slice(0,2),16)||255;
-    const tg=parseInt(hex.slice(2,4),16)||255;
-    const tb=parseInt(hex.slice(4,6),16)||255;
+    // ※`parseInt(...)||255` はチャンネル値0が255に化けて影色がグレーに壊れる（paper側と同じ罠）
+    const tCh=(i)=>{const v=parseInt(hex.slice(i,i+2),16);return Number.isNaN(v)?255:v;};
+    const tr=tCh(0),tg=tCh(2),tb=tCh(4);
     const tdarker=`rgb(${Math.max(0,tr-28)},${Math.max(0,tg-28)},${Math.max(0,tb-28)})`;
     const tside  =`rgb(${Math.max(0,tr-55)},${Math.max(0,tg-55)},${Math.max(0,tb-55)})`;
 
