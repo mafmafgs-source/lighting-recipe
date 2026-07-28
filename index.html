@@ -1232,6 +1232,12 @@ function setBgPattern(p){
   bgPattern=p;
   refreshBgUI(); saveSession(); renderBg();
 }
+// 背景紙の色を触ったら柄を「無地」に自動切り替え
+// （柄選択中でも色ボタンは常に見えている。色を選ぶ＝無地にしたい意図と解釈する）
+function onPaperColorInput(){
+  if(bgPattern!=='solid') bgPattern='solid';
+  refreshBgUI(); saveSession(); renderBg(); updateBgPreviews();
+}
 function clearBgLayers(){
   bgLayers={paper:false,table:false,mountain:false};
   refreshBgUI(); saveSession(); renderBg();
@@ -1242,9 +1248,10 @@ function refreshBgUI(){
   updateBgSelBtns();
   const patRow=document.getElementById('bgPatternRow');
   if(patRow) patRow.style.display=bgLayers.paper?'flex':'none';
-  // カラーは背景紙とテーブルで独立（紙は無地のときだけ色選択可）
+  // カラーは背景紙とテーブルで独立。紙の色ボタンは紙ON中は常に表示
+  // （柄選択中でも見せておき、色を触ったら無地へ自動で切り替える＝onPaperColorInput）
   const pcRow=document.getElementById('bgPaperColorRow');
-  if(pcRow) pcRow.style.display=(bgLayers.paper&&bgPattern==='solid')?'flex':'none';
+  if(pcRow) pcRow.style.display=bgLayers.paper?'flex':'none';
   const tcRow=document.getElementById('bgTableColorRow');
   if(tcRow) tcRow.style.display=bgLayers.table?'flex':'none';
   const sub=document.getElementById('bgToggleSub');
@@ -3199,7 +3206,7 @@ function roundRect(ctx,x,y,w,h,r){
       <span style="font-size:12px;color:#888;flex:1">🎨 <span data-i18n="bgPaperColorLabel">背景紙の色</span></span>
       <input type="color" id="bgPaperColor" value="#ffffff"
         style="width:36px;height:36px;border:1px solid #444;border-radius:8px;cursor:pointer;padding:2px;background:none"
-        oninput="saveSession();renderBg();updateBgPreviews()">
+        oninput="onPaperColorInput()">
     </div>
     <div id="bgTableColorRow" style="display:none;align-items:center;gap:10px;padding:10px 0 12px;border-top:1px solid #2a2a2a;margin-bottom:8px">
       <span style="font-size:12px;color:#888;flex:1">🎨 <span data-i18n="bgTableColorLabel">テーブルの色</span></span>
