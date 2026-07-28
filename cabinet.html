@@ -39,6 +39,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
 .shelf-label{font-size:11px;font-weight:700;color:#8a8a8a;letter-spacing:.06em;display:flex;align-items:center;gap:6px}
 .shelf-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 2px 8px;flex-wrap:wrap}
 .cab-sort{display:flex;gap:4px}
+/* 枠の使用数/上限（マイページの 0/30 カウンターと同じ流儀。満杯時は金色で強調） */
+.slot-count{font-size:10.5px;font-weight:700;color:#6d6a5e;margin-left:6px;letter-spacing:.02em}
+.slot-count.full{color:#c8a96e}
 .cs-chip{display:inline-flex;align-items:center;gap:2px;padding:3px 8px;font-size:10.5px;font-weight:700;color:#8a8a8a;background:#181818;border:1px solid #333;border-radius:12px;cursor:pointer;-webkit-tap-highlight-color:transparent;line-height:1.4}
 .cs-chip.active{color:#c8a96e;border-color:#c8a96e;background:#2a2218}
 .cs-arw{font-size:9px;min-width:6px}
@@ -111,7 +114,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
     <div class="cab-inner">
       <div class="shelf">
         <div class="shelf-head">
-          <div class="shelf-label"><img src="icons/camera.png" style="width:16px;height:16px;object-fit:contain" alt=""><span data-i18n="cabinetCamera">カメラ</span></div>
+          <div class="shelf-label"><img src="icons/camera.png" style="width:16px;height:16px;object-fit:contain" alt=""><span data-i18n="cabinetCamera">カメラ</span><span class="slot-count" id="camCount"></span></div>
           <div class="cab-sort" data-type="camera">
             <button class="cs-chip" data-mode="added" onclick="cycleSort('camera','added')"><span data-i18n="sortAdded">追加順</span><span class="cs-arw"></span></button>
             <button class="cs-chip" data-mode="price" onclick="cycleSort('camera','price')"><span data-i18n="sortPrice">金額</span><span class="cs-arw"></span></button>
@@ -122,7 +125,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
       </div>
       <div class="shelf">
         <div class="shelf-head">
-          <div class="shelf-label"><img src="icons/lens.png" style="width:16px;height:16px;object-fit:contain" alt=""><span data-i18n="cabinetLens">レンズ</span></div>
+          <div class="shelf-label"><img src="icons/lens.png" style="width:16px;height:16px;object-fit:contain" alt=""><span data-i18n="cabinetLens">レンズ</span><span class="slot-count" id="lensCount"></span></div>
           <div class="cab-sort" data-type="lens">
             <button class="cs-chip" data-mode="added" onclick="cycleSort('lens','added')"><span data-i18n="sortAdded">追加順</span><span class="cs-arw"></span></button>
             <button class="cs-chip" data-mode="price" onclick="cycleSort('lens','price')"><span data-i18n="sortPrice">金額</span><span class="cs-arw"></span></button>
@@ -306,6 +309,17 @@ function render(){
   if(cabinet.lenses.length<lensMax()) lensHtml+=addTileHTML('lens');
   else if(!subActive())               lensHtml+=lockTileHTML('lens');
   lensGrid.innerHTML=lensHtml;
+
+  // 枠カウンター（使用数/上限）。無課金の上限を事前に見せて「いきなり課金要求」に見えないようにする。
+  // 上限超過データ（旧仕様からの持ち越し）でも実数をそのまま表示する。
+  const setCount=(id,cur,max)=>{
+    const el=document.getElementById(id);
+    if(!el) return;
+    el.textContent=cur+'/'+max;
+    el.classList.toggle('full',cur>=max);
+  };
+  setCount('camCount',cabinet.cameras.length,camMax());
+  setCount('lensCount',cabinet.lenses.length,lensMax());
 
   // 完全に空（カメラ・レンズ0件）のときだけ一言ガイドを表示
   const hint=document.getElementById('cabEmptyHint');
