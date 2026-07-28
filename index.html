@@ -557,7 +557,8 @@ function saveSession(){
       memo:getCanvasMemo(),
       bgLayers:{...bgLayers},
       bgPattern:bgPattern,
-      bgColor:document.getElementById('bgColor')?.value||'#ffffff',
+      bgPaperColor:document.getElementById('bgPaperColor')?.value||'#ffffff',
+      bgTableColor:document.getElementById('bgTableColor')?.value||'#ffffff',
       sunOn:sunOn,
       sunPos:sunPos,
       sunBeam:sunBeam,
@@ -618,7 +619,12 @@ function restoreSession(){
       document.getElementById('locInput').value=s.loc;
     }
     if(s.memo)   setCanvasMemo(s.memo);
-    if(s.bgColor)document.getElementById('bgColor').value=s.bgColor;
+    // 色：新形式（紙・テーブル独立）。旧形式の単一bgColorは両方に反映
+    const _pc=document.getElementById('bgPaperColor'), _tc=document.getElementById('bgTableColor');
+    if(s.bgPaperColor&&_pc) _pc.value=s.bgPaperColor;
+    else if(s.bgColor&&_pc) _pc.value=s.bgColor;
+    if(s.bgTableColor&&_tc) _tc.value=s.bgTableColor;
+    else if(s.bgColor&&_tc) _tc.value=s.bgColor;
     // 背景：新形式(bgLayers)優先、旧形式(bgType文字列)は変換して読む
     if(s.bgLayers) bgLayers={paper:!!s.bgLayers.paper,table:!!s.bgLayers.table,mountain:!!s.bgLayers.mountain};
     else if(s.bgType!=null) bgLayers=bgLayersFromLegacy(s.bgType);
@@ -990,9 +996,12 @@ function resetAll(){
   setCanvasMemo('');
 
   // 背景
-  setBgType('none');
-  const bgColorEl=document.getElementById('bgColor');
-  if(bgColorEl) bgColorEl.value='#ffffff';
+  clearBgLayers();
+  bgPattern='solid';
+  const bpEl=document.getElementById('bgPaperColor');
+  if(bpEl) bpEl.value='#ffffff';
+  const btEl=document.getElementById('bgTableColor');
+  if(btEl) btEl.value='#ffffff';
 
   // 太陽
   sunOn=false; sunPos={x:20,y:15}; selectedSun=false; sunHue=DEFAULT_HUE;
@@ -1233,9 +1242,11 @@ function refreshBgUI(){
   updateBgSelBtns();
   const patRow=document.getElementById('bgPatternRow');
   if(patRow) patRow.style.display=bgLayers.paper?'flex':'none';
-  // カラーは「無地の背景紙」と「テーブル天板」に適用される
-  const colorRow=document.getElementById('bgColorRow');
-  if(colorRow) colorRow.style.display=(bgLayers.table||(bgLayers.paper&&bgPattern==='solid'))?'flex':'none';
+  // カラーは背景紙とテーブルで独立（紙は無地のときだけ色選択可）
+  const pcRow=document.getElementById('bgPaperColorRow');
+  if(pcRow) pcRow.style.display=(bgLayers.paper&&bgPattern==='solid')?'flex':'none';
+  const tcRow=document.getElementById('bgTableColorRow');
+  if(tcRow) tcRow.style.display=bgLayers.table?'flex':'none';
   const sub=document.getElementById('bgToggleSub');
   if(sub) sub.textContent=anyBgOn()?activeBgLabel():'';
   const btn=document.getElementById('bgToggleBtn');
@@ -1255,7 +1266,8 @@ function updateBgSelBtns(){
 }
 
 function updateBgPreviews(){
-  const color=document.getElementById('bgColor')?.value||'#ffffff';
+  const color=document.getElementById('bgPaperColor')?.value||'#ffffff';
+  const tcolor=document.getElementById('bgTableColor')?.value||'#ffffff';
   // 背景紙プレビュー
   const pp=document.getElementById('bsPreview_paper');
   if(pp) pp.innerHTML=`<svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
@@ -1268,7 +1280,7 @@ function updateBgPreviews(){
   const pt=document.getElementById('bsPreview_table');
   if(pt) pt.innerHTML=`<svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
     <rect width="60" height="60" fill="#e0e0e0"/>
-    <polygon points="8,44 52,44 56,56 4,56" fill="${color}" stroke="rgba(0,0,0,0.15)" stroke-width="1"/>
+    <polygon points="8,44 52,44 56,56 4,56" fill="${tcolor}" stroke="rgba(0,0,0,0.15)" stroke-width="1"/>
     <polygon points="8,44 52,44 52,47 8,47" fill="rgba(0,0,0,0.07)"/>
     <line x1="22" y1="44" x2="20" y2="56" stroke="rgba(0,0,0,0.05)" stroke-width="1"/>
     <line x1="38" y1="44" x2="40" y2="56" stroke="rgba(0,0,0,0.05)" stroke-width="1"/>
@@ -1369,7 +1381,7 @@ function renderBg(){
 
   if(bgLayers.paper){
     // ── 背景紙：上部から流れるロール紙（無地=カラー／柄=SVGパターン） ──
-    const bgColorVal=document.getElementById('bgColor')?.value||'#ffffff';
+    const bgColorVal=document.getElementById('bgPaperColor')?.value||'#ffffff';
     const cx=W*0.5, bgW=W*0.58, bgTop=H*0.03;
     const subjectY=H*0.42, curveDepth=H*0.10, curveY=subjectY+H*0.08;
     const left=cx-bgW/2, right=cx+bgW/2;
@@ -1438,7 +1450,7 @@ function renderBg(){
   if(bgLayers.table){
     // ── テーブル：斜め上から見下ろした四角テーブル（パース付き）──
     // 30%縮小：元幅W*0.76 → W*0.53、奥行H*0.28→H*0.20
-    const bgColorVal=document.getElementById('bgColor')?.value||'#ffffff';
+    const bgColorVal=document.getElementById('bgTableColor')?.value||'#ffffff';
     const hex=bgColorVal.replace('#','');
     // ※`parseInt(...)||255` はチャンネル値0が255に化けて影色がグレーに壊れる（paper側と同じ罠）
     const tCh=(i)=>{const v=parseInt(hex.slice(i,i+2),16);return Number.isNaN(v)?255:v;};
@@ -2401,7 +2413,8 @@ async function doSaveRecipe(forceNew){
       loc:document.getElementById('locInput')?.value||'',
       memo:getCanvasMemo(),
       bgLayers:{...bgLayers}, bgPattern,
-      bgColor:document.getElementById('bgColor')?.value||'#ffffff',
+      bgPaperColor:document.getElementById('bgPaperColor')?.value||'#ffffff',
+      bgTableColor:document.getElementById('bgTableColor')?.value||'#ffffff',
       sunOn, sunPos:{...sunPos}, sunBeam, sunAngle, sunHue,
       subjectId,
       exDate:document.getElementById('exDate')?.textContent||'',
@@ -2490,8 +2503,10 @@ async function loadRecipeFromURL(){
     else if(s.bgOn!=null)   bgLayers=bgLayersFromLegacy(s.bgOn?(s.bgType||'paper'):'none');
     else                    bgLayers={paper:false,table:false,mountain:false};
     bgPattern=s.bgPattern||'solid';
-    const bgColorEl=document.getElementById('bgColor');
-    if(bgColorEl&&s.bgColor) bgColorEl.value=s.bgColor;
+    // 色：新形式（紙・テーブル独立）。旧レシピの単一bgColorは両方に反映
+    const _rpc=document.getElementById('bgPaperColor'), _rtc=document.getElementById('bgTableColor');
+    if(_rpc) _rpc.value=s.bgPaperColor||s.bgColor||'#ffffff';
+    if(_rtc) _rtc.value=s.bgTableColor||s.bgColor||'#ffffff';
     refreshBgUI();
 
     // 太陽
@@ -3179,10 +3194,16 @@ function roundRect(ctx,x,y,w,h,r){
       <button class="bgpat-chip" data-bgpat="marble"   onclick="setBgPattern('marble')"   data-i18n="bgPatMarble">大理石</button>
       <button class="bgpat-chip" data-bgpat="brick"    onclick="setBgPattern('brick')"    data-i18n="bgPatBrick">レンガ</button>
     </div>
-    <!-- カラーピッカー（無地の背景紙・テーブル選択時のみ） -->
-    <div id="bgColorRow" style="display:none;align-items:center;gap:10px;padding:10px 0 12px;border-top:1px solid #2a2a2a;margin-bottom:8px">
-      <span style="font-size:12px;color:#888;flex:1" data-i18n="colorSelect">🎨 色を選択</span>
-      <input type="color" id="bgColor" value="#ffffff"
+    <!-- カラーピッカー（背景紙とテーブルで独立。両方ONなら2行並ぶ） -->
+    <div id="bgPaperColorRow" style="display:none;align-items:center;gap:10px;padding:10px 0 12px;border-top:1px solid #2a2a2a;margin-bottom:2px">
+      <span style="font-size:12px;color:#888;flex:1">🎨 <span data-i18n="bgPaperColorLabel">背景紙の色</span></span>
+      <input type="color" id="bgPaperColor" value="#ffffff"
+        style="width:36px;height:36px;border:1px solid #444;border-radius:8px;cursor:pointer;padding:2px;background:none"
+        oninput="saveSession();renderBg();updateBgPreviews()">
+    </div>
+    <div id="bgTableColorRow" style="display:none;align-items:center;gap:10px;padding:10px 0 12px;border-top:1px solid #2a2a2a;margin-bottom:8px">
+      <span style="font-size:12px;color:#888;flex:1">🎨 <span data-i18n="bgTableColorLabel">テーブルの色</span></span>
+      <input type="color" id="bgTableColor" value="#ffffff"
         style="width:36px;height:36px;border:1px solid #444;border-radius:8px;cursor:pointer;padding:2px;background:none"
         oninput="saveSession();renderBg();updateBgPreviews()">
     </div>

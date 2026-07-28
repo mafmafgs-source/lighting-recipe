@@ -827,6 +827,19 @@
   };
   for (const k in EXTRA20) { if (I18N[k]) Object.assign(I18N[k], EXTRA20[k]); }
 
+  // ── 追加辞書21（背景紙・テーブルの独立カラーラベル）──
+  const EXTRA21 = {
+    ja: { bgPaperColorLabel:'背景紙の色', bgTableColorLabel:'テーブルの色' },
+    en: { bgPaperColorLabel:'Paper color', bgTableColorLabel:'Table color' },
+    zh: { bgPaperColorLabel:'背景纸颜色', bgTableColorLabel:'桌子颜色' },
+    ko: { bgPaperColorLabel:'배경지 색', bgTableColorLabel:'테이블 색' },
+    de: { bgPaperColorLabel:'Farbe des Hintergrunds', bgTableColorLabel:'Tischfarbe' },
+    fr: { bgPaperColorLabel:'Couleur du fond', bgTableColorLabel:'Couleur de la table' },
+    it: { bgPaperColorLabel:'Colore del fondale', bgTableColorLabel:'Colore del tavolo' },
+    es: { bgPaperColorLabel:'Color del fondo', bgTableColorLabel:'Color de la mesa' },
+  };
+  for (const k in EXTRA21) { if (I18N[k]) Object.assign(I18N[k], EXTRA21[k]); }
+
   // ── 追加辞書7（ライトへの機材追加トースト：どの枠A-Jに追加したか明示）─────
   const EXTRA7 = {
     ja: { addedToLight:(name,slot)=>`${name} を ライト${slot} に追加しました`, addedToDiagram:(name)=>`${name} をライティング図に追加しました` },
