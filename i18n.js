@@ -814,6 +814,19 @@
   };
   for (const k in EXTRA19) { if (I18N[k]) Object.assign(I18N[k], EXTRA19[k]); }
 
+  // ── 追加辞書20（背景紙の柄）──
+  const EXTRA20 = {
+    ja: { bgPatternTitle:'背景紙の柄', bgPatSolid:'無地', bgPatConcrete:'コンクリート', bgPatWood:'横木目', bgPatTile:'タイル', bgPatMarble:'大理石', bgPatBrick:'レンガ' },
+    en: { bgPatternTitle:'Paper pattern', bgPatSolid:'Solid', bgPatConcrete:'Concrete', bgPatWood:'Wood', bgPatTile:'Tile', bgPatMarble:'Marble', bgPatBrick:'Brick' },
+    zh: { bgPatternTitle:'背景纸纹理', bgPatSolid:'纯色', bgPatConcrete:'混凝土', bgPatWood:'木纹', bgPatTile:'瓷砖', bgPatMarble:'大理石', bgPatBrick:'砖墙' },
+    ko: { bgPatternTitle:'배경지 무늬', bgPatSolid:'단색', bgPatConcrete:'콘크리트', bgPatWood:'나무결', bgPatTile:'타일', bgPatMarble:'대리석', bgPatBrick:'벽돌' },
+    de: { bgPatternTitle:'Muster des Hintergrunds', bgPatSolid:'Uni', bgPatConcrete:'Beton', bgPatWood:'Holz', bgPatTile:'Fliesen', bgPatMarble:'Marmor', bgPatBrick:'Ziegel' },
+    fr: { bgPatternTitle:'Motif du fond', bgPatSolid:'Uni', bgPatConcrete:'Béton', bgPatWood:'Bois', bgPatTile:'Carrelage', bgPatMarble:'Marbre', bgPatBrick:'Brique' },
+    it: { bgPatternTitle:'Motivo del fondale', bgPatSolid:'Tinta unita', bgPatConcrete:'Cemento', bgPatWood:'Legno', bgPatTile:'Piastrelle', bgPatMarble:'Marmo', bgPatBrick:'Mattoni' },
+    es: { bgPatternTitle:'Patrón del fondo', bgPatSolid:'Liso', bgPatConcrete:'Hormigón', bgPatWood:'Madera', bgPatTile:'Azulejos', bgPatMarble:'Mármol', bgPatBrick:'Ladrillo' },
+  };
+  for (const k in EXTRA20) { if (I18N[k]) Object.assign(I18N[k], EXTRA20[k]); }
+
   // ── 追加辞書7（ライトへの機材追加トースト：どの枠A-Jに追加したか明示）─────
   const EXTRA7 = {
     ja: { addedToLight:(name,slot)=>`${name} を ライト${slot} に追加しました`, addedToDiagram:(name)=>`${name} をライティング図に追加しました` },

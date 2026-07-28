@@ -130,6 +130,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
 .bg-sheet-preview svg{width:100%;height:100%;display:block}
 .bg-sheet-label{font-size:10px;font-weight:600;color:#aaa;text-align:center;padding:5px 2px}
 .bg-sheet-opt.active .bg-sheet-label{color:#c8a96e}
+/* 背景紙の柄チップ */
+.bgpat-chip{padding:6px 10px;border:1px solid #333;border-radius:14px;background:#141414;color:#999;font-size:11px;font-weight:600;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.bgpat-chip.active{border-color:#c8a96e;color:#c8a96e;background:#2a2218}
 /* 背景選択ボタン */
 .bg-sel-btn{padding:4px 7px;border:none;border-radius:7px;font-size:11px;font-weight:600;color:#666;background:transparent;cursor:pointer;white-space:nowrap;-webkit-tap-highlight-color:transparent;transition:background .12s,color .12s}
 .bg-sel-btn.active{background:#c8a96e;color:#0f0f0f}
@@ -401,7 +404,19 @@ function heightToColor(h){
 // ══════════════════════════════════════
 const LS_KEY='lightingRecipeLights';
 let lights=[],selected=null,selectedDirect=null;
-let bgType='none'; // 'none'|'paper'|'table'|'mountain'
+// 背景レイヤー：複数同時ON可（2026-07-28 ラジオ式から変更）。描画順は 山脈(最奥)→背景紙→テーブル(手前)。
+let bgLayers={paper:false,table:false,mountain:false};
+let bgPattern='solid'; // 背景紙の柄: solid|concrete|wood|tile|marble|brick
+// 旧データ（bgType文字列）→ bgLayers への変換（セッション・保存レシピの後方互換）
+function bgLayersFromLegacy(t){ return {paper:t==='paper',table:t==='table',mountain:t==='mountain'}; }
+function anyBgOn(){ return !!(bgLayers.paper||bgLayers.table||bgLayers.mountain); }
+function activeBgLabel(){
+  const L=[];
+  if(bgLayers.mountain)L.push(T.bgMountain);
+  if(bgLayers.paper)L.push(T.bgPaper);
+  if(bgLayers.table)L.push(T.bgTable);
+  return L.join('・');
+}
 let sunOn=false;
 let sunPos={x:20,y:15};
 let sunBeam=60;   // 配光%
@@ -540,7 +555,8 @@ function saveSession(){
     const s={
       loc:document.getElementById('locInput').value,
       memo:getCanvasMemo(),
-      bgType:bgType,
+      bgLayers:{...bgLayers},
+      bgPattern:bgPattern,
       bgColor:document.getElementById('bgColor')?.value||'#ffffff',
       sunOn:sunOn,
       sunPos:sunPos,
@@ -603,14 +619,11 @@ function restoreSession(){
     }
     if(s.memo)   setCanvasMemo(s.memo);
     if(s.bgColor)document.getElementById('bgColor').value=s.bgColor;
-    if(s.bgType!=null) bgType=s.bgType;
-    updateBgSelBtns();
-    // ヘッダーボタン反映
-    const labels={none:'',paper:T.bgPaper,table:T.bgTable,mountain:T.bgMountain};
-    const sub=document.getElementById('bgToggleSub');
-    if(sub) sub.textContent=(bgType==='none')?'':labels[bgType]||'';
-    const btn=document.getElementById('bgToggleBtn');
-    if(btn) btn.classList.toggle('sun-on',bgType!=='none');
+    // 背景：新形式(bgLayers)優先、旧形式(bgType文字列)は変換して読む
+    if(s.bgLayers) bgLayers={paper:!!s.bgLayers.paper,table:!!s.bgLayers.table,mountain:!!s.bgLayers.mountain};
+    else if(s.bgType!=null) bgLayers=bgLayersFromLegacy(s.bgType);
+    if(s.bgPattern) bgPattern=s.bgPattern;
+    refreshBgUI();
     if(s.sunOn){
       sunOn=true;
       document.getElementById('sunToggleBtn').classList.add('sun-on');
@@ -1193,9 +1206,7 @@ function makeDraggableSun(node,canvas){
 // ══════════════════════════════════════
 function openBgSheet(){
   updateBgPreviews();
-  updateBgSelBtns();
-  document.getElementById('bgColorRow').style.display=
-    (bgType==='paper'||bgType==='table')?'flex':'none';
+  refreshBgUI();
   document.getElementById('bgSheet').style.display='flex';
 }
 
@@ -1203,26 +1214,43 @@ function closeBgSheet(){
   document.getElementById('bgSheet').style.display='none';
 }
 
-function setBgType(type){
-  bgType=type;
+// レイヤーON/OFF（複数同時ON可）・柄選択・全消し
+function toggleBgLayer(layer){
+  bgLayers[layer]=!bgLayers[layer];
+  refreshBgUI(); saveSession(); renderBg();
+}
+function setBgPattern(p){
+  bgPattern=p;
+  refreshBgUI(); saveSession(); renderBg();
+}
+function clearBgLayers(){
+  bgLayers={paper:false,table:false,mountain:false};
+  refreshBgUI(); saveSession(); renderBg();
+}
+
+// 背景UIの一括更新（シートの選択状態・柄行/カラー行の表示・ヘッダーのサブラベル）
+function refreshBgUI(){
   updateBgSelBtns();
-  // カラー行の表示
-  document.getElementById('bgColorRow').style.display=
-    (type==='paper'||type==='table')?'flex':'none';
-  // ヘッダーボタンのサブテキスト更新
-  const labels={none:'',paper:T.bgPaper,table:T.bgTable,mountain:T.bgMountain};
+  const patRow=document.getElementById('bgPatternRow');
+  if(patRow) patRow.style.display=bgLayers.paper?'flex':'none';
+  // カラーは「無地の背景紙」と「テーブル天板」に適用される
+  const colorRow=document.getElementById('bgColorRow');
+  if(colorRow) colorRow.style.display=(bgLayers.table||(bgLayers.paper&&bgPattern==='solid'))?'flex':'none';
   const sub=document.getElementById('bgToggleSub');
-  if(sub) sub.textContent=type==='none'?'':labels[type]||'';
+  if(sub) sub.textContent=anyBgOn()?activeBgLabel():'';
   const btn=document.getElementById('bgToggleBtn');
-  if(btn) btn.classList.toggle('sun-on',type!=='none');
-  saveSession();
-  renderBg();
+  if(btn) btn.classList.toggle('sun-on',anyBgOn());
 }
 
 function updateBgSelBtns(){
-  ['none','paper','table','mountain'].forEach(t=>{
+  ['paper','table','mountain'].forEach(t=>{
     const el=document.getElementById('bsOpt_'+t);
-    if(el) el.classList.toggle('active',bgType===t);
+    if(el) el.classList.toggle('active',!!bgLayers[t]);
+  });
+  const none=document.getElementById('bsOpt_none');
+  if(none) none.classList.toggle('active',!anyBgOn());
+  document.querySelectorAll('[data-bgpat]').forEach(el=>{
+    el.classList.toggle('active',el.getAttribute('data-bgpat')===bgPattern);
   });
 }
 
@@ -1260,6 +1288,62 @@ const BG_TYPES=[
   {id:'paper',label:'背景紙'},{id:'table',label:'テーブル'},{id:'mountain',label:'山脈'},
 ];
 
+// 背景紙の柄パターン（SVG手続き生成＝画像アセット不要・オフライン動作・拡大劣化なし）。
+// 柄の色は固定パレット（カラーピッカーは無地とテーブル天板にのみ適用）。
+function makePaperPattern(ns,id,type){
+  const pat=document.createElementNS(ns,'pattern');
+  pat.setAttribute('id',id);
+  pat.setAttribute('patternUnits','userSpaceOnUse');
+  const el=(name,attrs)=>{ const e=document.createElementNS(ns,name); for(const k in attrs) e.setAttribute(k,attrs[k]); pat.appendChild(e); return e; };
+  if(type==='concrete'){
+    pat.setAttribute('width','52');pat.setAttribute('height','52');
+    el('rect',{x:0,y:0,width:52,height:52,fill:'#c4c4c0'});
+    // まだら（明暗の斑点をランダム風に固定配置）
+    [[6,9,3],[20,4,2],[37,12,4],[46,30,2.5],[12,26,3.5],[30,33,2],[8,44,2.5],[41,46,3],[25,20,1.6],[48,8,1.8]].forEach(([x,y,r],i)=>{
+      el('circle',{cx:x,cy:y,r:r,fill:i%2?'rgba(0,0,0,0.05)':'rgba(255,255,255,0.10)'});
+    });
+    el('path',{d:'M4,18 Q14,14 22,19 T40,16',stroke:'rgba(0,0,0,0.045)','stroke-width':'5',fill:'none'});
+    el('path',{d:'M10,40 Q22,36 34,41 T52,38',stroke:'rgba(255,255,255,0.06)','stroke-width':'6',fill:'none'});
+  }else if(type==='wood'){
+    // 横木目：横方向の板＋節・木目線
+    pat.setAttribute('width','120');pat.setAttribute('height','30');
+    el('rect',{x:0,y:0,width:120,height:30,fill:'#b98a5f'});
+    el('rect',{x:0,y:0,width:120,height:1.4,fill:'rgba(80,48,20,0.5)'});          // 板の境界
+    el('path',{d:'M0,8 Q30,6.5 60,8.5 T120,8',stroke:'rgba(90,55,25,0.28)','stroke-width':'1',fill:'none'});
+    el('path',{d:'M0,15 Q40,17 80,14.5 T120,16',stroke:'rgba(90,55,25,0.22)','stroke-width':'1.2',fill:'none'});
+    el('path',{d:'M0,23 Q25,21.5 55,23.5 T120,22.5',stroke:'rgba(90,55,25,0.25)','stroke-width':'0.9',fill:'none'});
+    el('ellipse',{cx:88,cy:15,rx:5,ry:3,fill:'none',stroke:'rgba(80,48,20,0.30)','stroke-width':'1.1'});  // 節
+    el('ellipse',{cx:88,cy:15,rx:2.2,ry:1.3,fill:'rgba(80,48,20,0.28)'});
+    el('rect',{x:0,y:0,width:120,height:30,fill:'rgba(255,255,255,0.04)'});
+  }else if(type==='tile'){
+    pat.setAttribute('width','40');pat.setAttribute('height','40');
+    el('rect',{x:0,y:0,width:40,height:40,fill:'#e9e9e4'});
+    el('rect',{x:1,y:1,width:38,height:38,rx:1.5,fill:'#f2f2ee'});
+    el('rect',{x:0,y:0,width:40,height:1.6,fill:'rgba(0,0,0,0.13)'});   // 目地（上・左）
+    el('rect',{x:0,y:0,width:1.6,height:40,fill:'rgba(0,0,0,0.13)'});
+    el('rect',{x:2,y:2,width:36,height:5,fill:'rgba(255,255,255,0.45)'}); // 光沢
+  }else if(type==='marble'){
+    pat.setAttribute('width','96');pat.setAttribute('height','96');
+    el('rect',{x:0,y:0,width:96,height:96,fill:'#edebe7'});
+    el('path',{d:'M-4,20 Q18,10 34,26 T70,34 T100,28',stroke:'rgba(120,120,132,0.30)','stroke-width':'1.6',fill:'none'});
+    el('path',{d:'M-4,24 Q20,15 36,29 T74,38',stroke:'rgba(120,120,132,0.14)','stroke-width':'3.5',fill:'none'});
+    el('path',{d:'M10,96 Q28,70 52,78 T96,60',stroke:'rgba(150,140,128,0.25)','stroke-width':'1.3',fill:'none'});
+    el('path',{d:'M60,-4 Q66,20 84,30 T96,52',stroke:'rgba(120,120,132,0.20)','stroke-width':'1',fill:'none'});
+    el('path',{d:'M-4,60 Q14,52 26,62 T60,70',stroke:'rgba(170,162,150,0.20)','stroke-width':'2.2',fill:'none'});
+  }else{ // brick
+    pat.setAttribute('width','64');pat.setAttribute('height','32');
+    el('rect',{x:0,y:0,width:64,height:32,fill:'#cfc4b8'});               // 目地
+    el('rect',{x:1,y:1,width:30,height:13,rx:1,fill:'#a6553f'});         // 上段
+    el('rect',{x:33,y:1,width:30,height:13,rx:1,fill:'#9e5039'});
+    el('rect',{x:-15,y:17,width:30,height:13,rx:1,fill:'#9e5039'});      // 下段（半分ずらし）
+    el('rect',{x:17,y:17,width:30,height:13,rx:1,fill:'#a6553f'});
+    el('rect',{x:49,y:17,width:30,height:13,rx:1,fill:'#a2523c'});
+    el('rect',{x:1,y:1,width:30,height:3,fill:'rgba(255,255,255,0.08)'});
+    el('rect',{x:17,y:17,width:30,height:3,fill:'rgba(255,255,255,0.08)'});
+  }
+  return pat;
+}
+
 function renderBg(){
   const canvas=document.getElementById('canvas');
   const W=canvas.getBoundingClientRect().width||canvas.offsetWidth||300;
@@ -1268,37 +1352,52 @@ function renderBg(){
   svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
   const g=document.getElementById('bgGroup');
   g.innerHTML='';
-  // ズーム反映：背景紙・テーブルは“物”なので白ステージ中央を基点に縮小。
-  // 山脈は全面背景（空＋山＋地面でキャンバス全体を埋める）なので縮小すると余白が出るため、原寸のまま維持。
-  const scaleBg = diagZoom!==1 && (bgType==='paper' || bgType==='table');
-  g.setAttribute('transform', scaleBg ? `translate(${W/2} ${H/2}) scale(${diagZoom}) translate(${-W/2} ${-H/2})` : '');
-  if(bgType==='none') return;
+  g.setAttribute('transform','');
+  if(!anyBgOn()) return;
 
   const ns='http://www.w3.org/2000/svg';
 
-  if(bgType==='paper'){
-    // ── 背景紙：上部から流れるロール紙 ──
+  // レイヤーを2グループに分ける：
+  //  gm=山脈（全面背景。ズームで縮小すると余白が出るため常に原寸）
+  //  go=背景紙・テーブル（“物”なので白ステージ中央を基点にズーム連動で縮小）
+  // gmを先に追加＝山脈が最奥。goの中は 紙→テーブル の順に描く。
+  const gm=document.createElementNS(ns,'g');
+  const go=document.createElementNS(ns,'g');
+  if(diagZoom!==1) go.setAttribute('transform',`translate(${W/2} ${H/2}) scale(${diagZoom}) translate(${-W/2} ${-H/2})`);
+  g.appendChild(gm);
+  g.appendChild(go);
+
+  if(bgLayers.paper){
+    // ── 背景紙：上部から流れるロール紙（無地=カラー／柄=SVGパターン） ──
     const bgColorVal=document.getElementById('bgColor')?.value||'#ffffff';
     const cx=W*0.5, bgW=W*0.58, bgTop=H*0.03;
     const subjectY=H*0.42, curveDepth=H*0.10, curveY=subjectY+H*0.08;
     const left=cx-bgW/2, right=cx+bgW/2;
 
-    const hex=bgColorVal.replace('#','');
-    // ※`parseInt(...)||255` はチャンネル値0（例:#ff0000の緑・青）が255に化けて
-    //   影色がグレーに壊れるバグの元。NaNのときだけ255に落とす
-    const hexCh=(i)=>{const v=parseInt(hex.slice(i,i+2),16);return Number.isNaN(v)?255:v;};
-    const r=hexCh(0),gg=hexCh(2),b=hexCh(4);
-    const lighter=`rgb(${Math.min(255,r+35)},${Math.min(255,gg+35)},${Math.min(255,b+35)})`;
-    const darker =`rgb(${Math.max(0,r-35)}, ${Math.max(0,gg-35)}, ${Math.max(0,b-35)})`;
-
     const defs=document.createElementNS(ns,'defs');
-    const gid='bgGrad_'+Date.now();
-    const grad=document.createElementNS(ns,'radialGradient');
-    grad.setAttribute('id',gid);grad.setAttribute('cx','50%');grad.setAttribute('cy','35%');
-    grad.setAttribute('r','65%');grad.setAttribute('gradientUnits','objectBoundingBox');
-    const s0=document.createElementNS(ns,'stop');s0.setAttribute('offset','0%');s0.setAttribute('stop-color',lighter);
-    const s1=document.createElementNS(ns,'stop');s1.setAttribute('offset','100%');s1.setAttribute('stop-color',darker);
-    grad.appendChild(s0);grad.appendChild(s1);defs.appendChild(grad);g.appendChild(defs);
+    let fillRef;
+    if(bgPattern==='solid'){
+      const hex=bgColorVal.replace('#','');
+      // ※`parseInt(...)||255` はチャンネル値0（例:#ff0000の緑・青）が255に化けて
+      //   影色がグレーに壊れるバグの元。NaNのときだけ255に落とす
+      const hexCh=(i)=>{const v=parseInt(hex.slice(i,i+2),16);return Number.isNaN(v)?255:v;};
+      const r=hexCh(0),gg=hexCh(2),b=hexCh(4);
+      const lighter=`rgb(${Math.min(255,r+35)},${Math.min(255,gg+35)},${Math.min(255,b+35)})`;
+      const darker =`rgb(${Math.max(0,r-35)}, ${Math.max(0,gg-35)}, ${Math.max(0,b-35)})`;
+      const gid='bgGrad_'+Date.now();
+      const grad=document.createElementNS(ns,'radialGradient');
+      grad.setAttribute('id',gid);grad.setAttribute('cx','50%');grad.setAttribute('cy','35%');
+      grad.setAttribute('r','65%');grad.setAttribute('gradientUnits','objectBoundingBox');
+      const s0=document.createElementNS(ns,'stop');s0.setAttribute('offset','0%');s0.setAttribute('stop-color',lighter);
+      const s1=document.createElementNS(ns,'stop');s1.setAttribute('offset','100%');s1.setAttribute('stop-color',darker);
+      grad.appendChild(s0);grad.appendChild(s1);defs.appendChild(grad);
+      fillRef=`url(#${gid})`;
+    }else{
+      const pid='bgPat_'+Date.now();
+      defs.appendChild(makePaperPattern(ns,pid,bgPattern));
+      fillRef=`url(#${pid})`;
+    }
+    go.appendChild(defs);
 
     const pathD=[
       `M${left},${bgTop}`,`L${right},${bgTop}`,`L${right},${curveY}`,
@@ -1308,18 +1407,35 @@ function renderBg(){
       `L${left},${bgTop}`,'Z'
     ].join(' ');
     const path=document.createElementNS(ns,'path');
-    path.setAttribute('d',pathD);path.setAttribute('fill',`url(#${gid})`);
+    path.setAttribute('d',pathD);path.setAttribute('fill',fillRef);
     path.setAttribute('stroke','rgba(0,0,0,0.10)');path.setAttribute('stroke-width','1');
-    g.appendChild(path);
+    go.appendChild(path);
+
+    // 柄のときは立体感用の陰影オーバーレイ（無地はグラデ自体が陰影を兼ねる）
+    if(bgPattern!=='solid'){
+      const sid='bgShade_'+Date.now();
+      const sh=document.createElementNS(ns,'radialGradient');
+      sh.setAttribute('id',sid);sh.setAttribute('cx','50%');sh.setAttribute('cy','35%');
+      sh.setAttribute('r','75%');sh.setAttribute('gradientUnits','objectBoundingBox');
+      const h0=document.createElementNS(ns,'stop');h0.setAttribute('offset','0%');h0.setAttribute('stop-color','rgba(255,255,255,0.16)');
+      const h1=document.createElementNS(ns,'stop');h1.setAttribute('offset','70%');h1.setAttribute('stop-color','rgba(0,0,0,0)');
+      const h2=document.createElementNS(ns,'stop');h2.setAttribute('offset','100%');h2.setAttribute('stop-color','rgba(0,0,0,0.14)');
+      sh.appendChild(h0);sh.appendChild(h1);sh.appendChild(h2);
+      const sdefs=document.createElementNS(ns,'defs');sdefs.appendChild(sh);go.appendChild(sdefs);
+      const shade=document.createElementNS(ns,'path');
+      shade.setAttribute('d',pathD);shade.setAttribute('fill',`url(#${sid})`);
+      go.appendChild(shade);
+    }
 
     // ロール上部のバー
     const bar=document.createElementNS(ns,'rect');
     bar.setAttribute('x',left);bar.setAttribute('y',bgTop-4);
     bar.setAttribute('width',bgW);bar.setAttribute('height',7);bar.setAttribute('rx',3.5);
     bar.setAttribute('fill','rgba(0,0,0,0.13)');
-    g.appendChild(bar);
+    go.appendChild(bar);
+  }
 
-  } else if(bgType==='table'){
+  if(bgLayers.table){
     // ── テーブル：斜め上から見下ろした四角テーブル（パース付き）──
     // 30%縮小：元幅W*0.76 → W*0.53、奥行H*0.28→H*0.20
     const bgColorVal=document.getElementById('bgColor')?.value||'#ffffff';
@@ -1349,14 +1465,14 @@ function renderBg(){
     grad.setAttribute('x2','0');grad.setAttribute('y2','1');
     const s0=document.createElementNS(ns,'stop');s0.setAttribute('offset','0%');s0.setAttribute('stop-color',bgColorVal);
     const s1=document.createElementNS(ns,'stop');s1.setAttribute('offset','100%');s1.setAttribute('stop-color',tdarker);
-    grad.appendChild(s0);grad.appendChild(s1);defs.appendChild(grad);g.appendChild(defs);
+    grad.appendChild(s0);grad.appendChild(s1);defs.appendChild(grad);go.appendChild(defs);
 
     // 天板
     const top=document.createElementNS(ns,'polygon');
     top.setAttribute('points',`${nearL},${nearY} ${nearR},${nearY} ${farR},${farY} ${farL},${farY}`);
     top.setAttribute('fill',`url(#${gid})`);
     top.setAttribute('stroke','rgba(0,0,0,0.12)');top.setAttribute('stroke-width','1');
-    g.appendChild(top);
+    go.appendChild(top);
 
     // 前面（厚み）
     const thick=H*0.025;
@@ -1364,7 +1480,7 @@ function renderBg(){
     front.setAttribute('points',`${nearL},${nearY} ${nearR},${nearY} ${nearR},${nearY+thick} ${nearL},${nearY+thick}`);
     front.setAttribute('fill',tside);
     front.setAttribute('stroke','rgba(0,0,0,0.12)');front.setAttribute('stroke-width','0.5');
-    g.appendChild(front);
+    go.appendChild(front);
 
     // 木目線（奥→手前方向 3本）
     [0.3,0.5,0.7].forEach(t=>{
@@ -1373,10 +1489,11 @@ function renderBg(){
       const ln=document.createElementNS(ns,'line');
       ln.setAttribute('x1',lx1);ln.setAttribute('y1',ly1);ln.setAttribute('x2',lx2);ln.setAttribute('y2',ly2);
       ln.setAttribute('stroke','rgba(0,0,0,0.06)');ln.setAttribute('stroke-width','1');
-      g.appendChild(ln);
+      go.appendChild(ln);
     });
+  }
 
-  } else if(bgType==='mountain'){
+  if(bgLayers.mountain){
     // ── 山脈：地平線=人物下線(H*0.58)に合わせ、全体を淡く ──
     const horizonY=H*0.48; // 人物(top:42%, font-size:28px)の底面に合わせる
 
@@ -1400,13 +1517,13 @@ function renderBg(){
     const gn1=document.createElementNS(ns,'stop');gn1.setAttribute('offset','100%');gn1.setAttribute('stop-color','#b4c8a4');
     gndGrad.appendChild(gn0);gndGrad.appendChild(gn1);defs.appendChild(gndGrad);
 
-    g.appendChild(defs);
+    gm.appendChild(defs);
 
     // 空
     const sky=document.createElementNS(ns,'rect');
     sky.setAttribute('x',0);sky.setAttribute('y',0);sky.setAttribute('width',W);sky.setAttribute('height',horizonY);
     sky.setAttribute('fill',`url(#${skyId})`);
-    g.appendChild(sky);
+    gm.appendChild(sky);
 
     // 遠景山（ごく薄い青灰）
     const farPts=[
@@ -1417,7 +1534,7 @@ function renderBg(){
     const farMtn=document.createElementNS(ns,'polygon');
     farMtn.setAttribute('points',farPts);
     farMtn.setAttribute('fill','#c4d4e4');farMtn.setAttribute('opacity','0.65');
-    g.appendChild(farMtn);
+    gm.appendChild(farMtn);
 
     // 前景山（淡い青緑）
     const nearPts=[
@@ -1428,7 +1545,7 @@ function renderBg(){
     const nearMtn=document.createElementNS(ns,'polygon');
     nearMtn.setAttribute('points',nearPts);
     nearMtn.setAttribute('fill','#a8c0a8');nearMtn.setAttribute('opacity','0.75');
-    g.appendChild(nearMtn);
+    gm.appendChild(nearMtn);
 
     // 雪（薄め）
     [{x:W*0.46,y:horizonY*0.36,r:W*0.038},{x:W*0.78,y:horizonY*0.44,r:W*0.03},{x:W*0.12,y:horizonY*0.48,r:W*0.025}].forEach(({x,y,r})=>{
@@ -1436,14 +1553,14 @@ function renderBg(){
       snow.setAttribute('cx',x);snow.setAttribute('cy',y+r*0.3);
       snow.setAttribute('rx',r);snow.setAttribute('ry',r*0.45);
       snow.setAttribute('fill','white');snow.setAttribute('opacity','0.55');
-      g.appendChild(snow);
+      gm.appendChild(snow);
     });
 
     // 地面
     const gnd=document.createElementNS(ns,'rect');
     gnd.setAttribute('x',0);gnd.setAttribute('y',horizonY);gnd.setAttribute('width',W);gnd.setAttribute('height',H-horizonY);
     gnd.setAttribute('fill',`url(#${gndId})`);
-    g.appendChild(gnd);
+    gm.appendChild(gnd);
   }
 }
 
@@ -2283,7 +2400,8 @@ async function doSaveRecipe(forceNew){
     session:{
       loc:document.getElementById('locInput')?.value||'',
       memo:getCanvasMemo(),
-      bgType, bgColor:document.getElementById('bgColor')?.value||'#ffffff',
+      bgLayers:{...bgLayers}, bgPattern,
+      bgColor:document.getElementById('bgColor')?.value||'#ffffff',
       sunOn, sunPos:{...sunPos}, sunBeam, sunAngle, sunHue,
       subjectId,
       exDate:document.getElementById('exDate')?.textContent||'',
@@ -2366,19 +2484,15 @@ async function loadRecipeFromURL(){
     }
     if(s.memo)      setCanvasMemo(s.memo);
 
-    // 背景（'none'が falsy で || を抜ける問題を修正）
-    if(s.bgType!=null)      bgType=s.bgType;
-    else if(s.bgOn!=null)   bgType=s.bgOn?(s.bgType||'paper'):'none';
-    else                    bgType='none';
+    // 背景：新形式(bgLayers+bgPattern)優先。旧レシピ(bgType文字列/さらに古いbgOn)は変換して読む
+    if(s.bgLayers)          bgLayers={paper:!!s.bgLayers.paper,table:!!s.bgLayers.table,mountain:!!s.bgLayers.mountain};
+    else if(s.bgType!=null) bgLayers=bgLayersFromLegacy(s.bgType);
+    else if(s.bgOn!=null)   bgLayers=bgLayersFromLegacy(s.bgOn?(s.bgType||'paper'):'none');
+    else                    bgLayers={paper:false,table:false,mountain:false};
+    bgPattern=s.bgPattern||'solid';
     const bgColorEl=document.getElementById('bgColor');
     if(bgColorEl&&s.bgColor) bgColorEl.value=s.bgColor;
-    updateBgSelBtns();
-    // ヘッダーボタン反映
-    const _labels={none:'',paper:'背景紙',table:'テーブル',mountain:'山脈'};
-    const _sub=document.getElementById('bgToggleSub');
-    if(_sub) _sub.textContent=bgType==='none'?'':(_labels[bgType]||'');
-    const _bgBtn=document.getElementById('bgToggleBtn');
-    if(_bgBtn) _bgBtn.classList.toggle('sun-on',bgType!=='none');
+    refreshBgUI();
 
     // 太陽
     sunOn=!!s.sunOn;
@@ -3036,26 +3150,36 @@ function roundRect(ctx,x,y,w,h,r){
 <div id="bgSheet" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:510;align-items:flex-end;justify-content:center">
   <div style="background:#1a1a1a;border-radius:20px 20px 0 0;padding:16px 16px 0;width:100%;max-width:430px;border-top:1px solid #333;padding-bottom:calc(env(safe-area-inset-bottom,0px) + 80px)">
     <div style="font-size:12px;font-weight:700;color:#888;letter-spacing:.06em;text-align:center;margin-bottom:14px" data-i18n="bgSelectTitle">背景を選択</div>
-    <!-- 4択グリッド -->
+    <!-- レイヤーON/OFF（複数同時ONできる。「なし」は全消しショートカット） -->
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px">
-      <div class="bg-sheet-opt" id="bsOpt_none"     onclick="setBgType('none')">
+      <div class="bg-sheet-opt" id="bsOpt_none"     onclick="clearBgLayers()">
         <div class="bg-sheet-preview" style="background:#e8e8e8;display:flex;align-items:center;justify-content:center;font-size:20px;color:#aaa">✕</div>
         <div class="bg-sheet-label" data-i18n="bgNone">なし</div>
       </div>
-      <div class="bg-sheet-opt" id="bsOpt_paper"    onclick="setBgType('paper')">
+      <div class="bg-sheet-opt" id="bsOpt_paper"    onclick="toggleBgLayer('paper')">
         <div class="bg-sheet-preview" id="bsPreview_paper"></div>
         <div class="bg-sheet-label" data-i18n="bgPaper">背景紙</div>
       </div>
-      <div class="bg-sheet-opt" id="bsOpt_table"    onclick="setBgType('table')">
+      <div class="bg-sheet-opt" id="bsOpt_table"    onclick="toggleBgLayer('table')">
         <div class="bg-sheet-preview" id="bsPreview_table"></div>
         <div class="bg-sheet-label" data-i18n="bgTable">テーブル</div>
       </div>
-      <div class="bg-sheet-opt" id="bsOpt_mountain" onclick="setBgType('mountain')">
+      <div class="bg-sheet-opt" id="bsOpt_mountain" onclick="toggleBgLayer('mountain')">
         <div class="bg-sheet-preview" id="bsPreview_mountain"></div>
         <div class="bg-sheet-label" data-i18n="bgMountain">山脈</div>
       </div>
     </div>
-    <!-- カラーピッカー（背景紙・テーブル選択時のみ） -->
+    <!-- 背景紙の柄（背景紙ON時のみ表示） -->
+    <div id="bgPatternRow" style="display:none;flex-wrap:wrap;align-items:center;gap:6px;padding:10px 0 12px;border-top:1px solid #2a2a2a;margin-bottom:2px">
+      <span style="font-size:12px;color:#888;width:100%;margin-bottom:2px">🧱 <span data-i18n="bgPatternTitle">背景紙の柄</span></span>
+      <button class="bgpat-chip" data-bgpat="solid"    onclick="setBgPattern('solid')"    data-i18n="bgPatSolid">無地</button>
+      <button class="bgpat-chip" data-bgpat="concrete" onclick="setBgPattern('concrete')" data-i18n="bgPatConcrete">コンクリート</button>
+      <button class="bgpat-chip" data-bgpat="wood"     onclick="setBgPattern('wood')"     data-i18n="bgPatWood">横木目</button>
+      <button class="bgpat-chip" data-bgpat="tile"     onclick="setBgPattern('tile')"     data-i18n="bgPatTile">タイル</button>
+      <button class="bgpat-chip" data-bgpat="marble"   onclick="setBgPattern('marble')"   data-i18n="bgPatMarble">大理石</button>
+      <button class="bgpat-chip" data-bgpat="brick"    onclick="setBgPattern('brick')"    data-i18n="bgPatBrick">レンガ</button>
+    </div>
+    <!-- カラーピッカー（無地の背景紙・テーブル選択時のみ） -->
     <div id="bgColorRow" style="display:none;align-items:center;gap:10px;padding:10px 0 12px;border-top:1px solid #2a2a2a;margin-bottom:8px">
       <span style="font-size:12px;color:#888;flex:1" data-i18n="colorSelect">🎨 色を選択</span>
       <input type="color" id="bgColor" value="#ffffff"
