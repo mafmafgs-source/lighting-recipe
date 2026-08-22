@@ -840,6 +840,19 @@
   };
   for (const k in EXTRA21) { if (I18N[k]) Object.assign(I18N[k], EXTRA21[k]); }
 
+  // ── 追加辞書22（出力モーダル：写真・機材カードの含有トグル＝「図だけ」出力対応）──
+  const EXTRA22 = {
+    ja: { inclPhoto:'🖼️ 写真を含める', inclGear:'💡 機材カードを含める' },
+    en: { inclPhoto:'🖼️ Include photo', inclGear:'💡 Include gear cards' },
+    zh: { inclPhoto:'🖼️ 包含照片', inclGear:'💡 包含器材卡片' },
+    ko: { inclPhoto:'🖼️ 사진 포함', inclGear:'💡 장비 카드 포함' },
+    de: { inclPhoto:'🖼️ Foto einschließen', inclGear:'💡 Equipment-Karten einschließen' },
+    fr: { inclPhoto:'🖼️ Inclure la photo', inclGear:'💡 Inclure les fiches matériel' },
+    it: { inclPhoto:'🖼️ Includi foto', inclGear:'💡 Includi schede attrezzatura' },
+    es: { inclPhoto:'🖼️ Incluir foto', inclGear:'💡 Incluir fichas de equipo' },
+  };
+  for (const k in EXTRA22) { if (I18N[k]) Object.assign(I18N[k], EXTRA22[k]); }
+
   // ── 追加辞書7（ライトへの機材追加トースト：どの枠A-Jに追加したか明示）─────
   const EXTRA7 = {
     ja: { addedToLight:(name,slot)=>`${name} を ライト${slot} に追加しました`, addedToDiagram:(name)=>`${name} をライティング図に追加しました` },

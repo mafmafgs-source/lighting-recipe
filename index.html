@@ -2675,6 +2675,9 @@ async function doExport(){
   const showDate=document.getElementById('exportDate').checked;
   const showExif=document.getElementById('exportExif')?.checked!==false; // 既定ON（旧キャッシュでも安全）
   const showCost=document.getElementById('exportCost')?.checked||false;
+  // 「図だけ」出力用トグル（2026-08-22追加）。既定ON・要素が無くても安全に既定側へ倒す
+  const showPhoto=document.getElementById('exportPhoto')?.checked!==false;
+  const showGear=document.getElementById('exportGear')?.checked!==false;
   const totalCost=computeTotalGearCost();
 
   // ── オフスクリーンキャンバスで描画 ──
@@ -2693,7 +2696,7 @@ async function doExport(){
 
   // データ取得
   const photoImg=document.getElementById('photoImg');
-  const hasPhoto=photoImg&&photoImg.classList.contains('loaded');
+  const hasPhoto=showPhoto&&photoImg&&photoImg.classList.contains('loaded');
   const exCamera=document.getElementById('exCamera')?.textContent||'–';
   const exLens  =document.getElementById('exLens')?.textContent||'–';
   const exDate  =document.getElementById('exDate')?.textContent||'–';
@@ -2703,7 +2706,7 @@ async function doExport(){
   const exFL    =document.getElementById('exFL')?.textContent||'–';
   const loc     =document.getElementById('locInput')?.value||'';
 
-  const activeLights=lights.filter(l=>l.items&&l.items.length>0);
+  const activeLights=showGear?lights.filter(l=>l.items&&l.items.length>0):[];  // OFFなら機材カード一式を出さない
 
   // 各セクション高さ
   const HEADER_H=56;
@@ -3180,6 +3183,14 @@ function roundRect(ctx,x,y,w,h,r){
       <label class="export-check-row">
         <input type="checkbox" id="exportExif" checked>
         <span data-i18n="inclExif">📷 EXIF情報を含める</span>
+      </label>
+      <label class="export-check-row">
+        <input type="checkbox" id="exportPhoto" checked>
+        <span data-i18n="inclPhoto">🖼️ 写真を含める</span>
+      </label>
+      <label class="export-check-row">
+        <input type="checkbox" id="exportGear" checked>
+        <span data-i18n="inclGear">💡 機材カードを含める</span>
       </label>
       <label class="export-check-row" id="exportCostRow" style="display:none">
         <input type="checkbox" id="exportCost">
