@@ -447,14 +447,25 @@ function saveDefaultAdditions(){
       });
     });
     localStorage.setItem('lr_defaultAdditions',JSON.stringify(additions));
+    // 新形式マーカー（別キー）：全件保存済み＝読込時は保存内容で丸ごと置換する。
+    // ※ JSON の中にマーカーを入れると index.html 側の読み手（配列前提）が壊れるので別キーにしている
+    localStorage.setItem('lr_defaultAdditions_full','1');
   }catch(e){}
   if(typeof updateVaultTotal==='function') updateVaultTotal();
 }
 function loadDefaultAdditions(){
   try{
     const additions=JSON.parse(localStorage.getItem('lr_defaultAdditions')||'{}');
+    const isFull=localStorage.getItem('lr_defaultAdditions_full')==='1';
     Object.keys(additions).forEach(catId=>{
       if(!DEFAULT_DB[catId] || !Array.isArray(additions[catId])) return;
+      if(isFull){
+        // 新形式（全件保存）：保存内容で丸ごと置換する。こうしないとハードコードのプリセット
+        // （AD100Pro等）を削除してもリロードで復活してしまう（2026-08-23修正）
+        DEFAULT_DB[catId]=additions[catId];
+        return;
+      }
+      // 旧形式（追加分のみ保存）：従来どおりマージ
       additions[catId].forEach(storedItem=>{
         if(typeof storedItem!=='object') return;
         // メーカー+型番が一致するプリセットがあれば、その内容（価格・写真編集含む）で上書き。
@@ -1279,6 +1290,7 @@ function editCategory(catId) {
     if (pickedImgData !== (cat.imgData || null)) {
       cat.imgData = pickedImgData || undefined;
       if (pickedImgData) saveItemImg('catimg_' + catId, pickedImgData);
+      else deleteItemImg('catimg_' + catId); // クリア時は IDB も消す（残すとリロードで画像が復活する）
     }
     saveCustomCats();
     setActiveCat(catId);
@@ -1291,18 +1303,19 @@ function deleteCategory(catId) {
   if (!cat) return;
   const catLabel = cat.label || catId;
 
-  document.getElementById('dlgTitle').textContent = `「${catLabel}」を削除しますか？`;
+  document.getElementById('dlgTitle').textContent = T.deleteConfirm(catLabel);
   document.getElementById('dlgBody').innerHTML =
     '<p style="font-size:13px;color:#aaa;margin-bottom:8px">' + T.catDeleteWarn + '</p>';
 
   const okBtn = document.getElementById('dlgOk');
   const origOkText = okBtn.textContent;
-  okBtn.textContent = '🗑️ 削除';
+  okBtn.textContent = '🗑️ ' + T.del;
   okBtn.style.background = '#c0392b';
 
   showOverlay(() => {
     customCats = customCats.filter(c => c.id !== catId);
     saveCustomCats();
+    deleteItemImg('catimg_' + catId); // カテゴリ画像の IDB 孤児を残さない
     // 選択を解除
     activeCatId = null;
     renderCats();
@@ -1509,7 +1522,9 @@ function addDirectItem(name, catId, silent){
   const items = JSON.parse(localStorage.getItem('lr_direct_items')||'[]');
   const cat = getCat(catId);
   // アイテム個別上書き（黒レフ等）＞標準カテゴリの imgPath ＞ カスタムの登録画像(imgData)
-  const imgPath = ITEM_IMG_OVERRIDE[name] || ((cat && cat.imgPath) ? cat.imgPath : ((cat && cat.imgData) ? cat.imgData : null));
+  // ※ カスタムカテゴリの登録画像(imgData=base64)は lr_direct_items に入れない（レシピごとに複製され localStorage が破裂する）。
+  //   index.html 側は directItemImgSrc() → findItemImg()/getCatImgByItemName() で表示時に引き直す
+  const imgPath = ITEM_IMG_OVERRIDE[name] || ((cat && cat.imgPath) ? cat.imgPath : null);
   items.push({ name, catId, imgPath, x:70, y:50, height:150, flipped:false });
   localStorage.setItem('lr_direct_items', JSON.stringify(items));
   if (!silent) showToast(typeof T.addedToDiagram==='function' ? T.addedToDiagram(name) : `${name} ✓`);
@@ -1735,6 +1750,11 @@ function showOverlay(onOk) {
 }
 function closeOverlay() {
   document.getElementById('overlay').style.display = 'none';
+  // ダイアログのボタンを既定状態に戻す（マイセット編集や削除確認が OK 非表示／「閉じる」／赤ボタンに変えたまま
+  // 閉じると、次に開くダイアログに引き継がれてしまうため）
+  const ok = document.getElementById('dlgOk'), cancel = document.getElementById('dlgCancel');
+  if (ok) { ok.style.display = ''; ok.style.background = ''; ok.textContent = (typeof T !== 'undefined' && T.ok) || 'OK'; }
+  if (cancel) { cancel.textContent = (typeof T !== 'undefined' && T.cancel) || cancel.textContent; cancel.onclick = closeOverlay; }
 }
 
 // ══════════════════════════════════════════════
@@ -1801,5 +1821,11 @@ loadAllItemImgs().then(imgs=>{
   <a href="mypage.html" data-i18n="navMypage">マイページ</a>
 </nav>
 
+<script>
+// PWA: Service Worker 登録（Web版のみ。Capacitor アプリ内では不要なので登録しない）
+if ('serviceWorker' in navigator && !window.Capacitor) {
+  window.addEventListener('load', () => { navigator.serviceWorker.register('./sw.js', { scope: './' }).catch(() => {}); });
+}
+</script>
 </body>
 </html>

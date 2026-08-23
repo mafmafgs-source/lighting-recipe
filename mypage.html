@@ -239,8 +239,8 @@ async function deleteRecipe(id){
   return new Promise((resolve,reject)=>{
     const tx=db.transaction(STORE,'readwrite');
     tx.objectStore(STORE).delete(id);
-    tx.oncomplete=resolve;
-    tx.onerror=e=>reject(e.target.error);
+    tx.oncomplete=()=>{ db.close(); resolve(); };   // 接続を閉じる（開いたままだと「すべてリセット」の deleteDatabase が blocked になる）
+    tx.onerror=e=>{ db.close(); reject(e.target.error); };
   });
 }
 
@@ -390,7 +390,25 @@ function newRecipe(){
   localStorage.removeItem('lr_direct_items');
   localStorage.removeItem('lr_current_recipe_id');
   localStorage.removeItem('lr_recipe_title');
-  window.location.href='index.html';
+  localStorage.removeItem('lr_exif');              // 前の写真の撮影データを持ち越さない
+  localStorage.removeItem('lr_export_autosave_id');
+  // 前の写真（IDB lr_db/current_photo）も消してから遷移（index.html の resetAll と同じ扱い）
+  const go=()=>{ window.location.href='index.html'; };
+  try{
+    const req=indexedDB.open('lr_db',1);
+    req.onupgradeneeded=e=>{ try{ e.target.result.createObjectStore('photos'); }catch(_){} };
+    req.onsuccess=e=>{
+      const db=e.target.result;
+      try{
+        const tx=db.transaction('photos','readwrite');
+        tx.objectStore('photos').delete('current_photo');
+        tx.oncomplete=()=>{ db.close(); go(); };
+        tx.onerror=()=>{ db.close(); go(); };
+      }catch(_){ db.close(); go(); }
+    };
+    req.onerror=go; req.onblocked=go;
+    setTimeout(go,800); // 保険（IDBが応答しない場合でも遷移する）
+  }catch(e){ go(); }
 }
 
 function loadRecipe(id){
@@ -422,7 +440,8 @@ function closeConfirm(){
 }
 document.getElementById('btnConfirmDel').addEventListener('click',async()=>{
   if(deleteTargetId){
-    await deleteRecipe(deleteTargetId);
+    try{ await deleteRecipe(deleteTargetId); }
+    catch(e){ console.warn('delete error:',e); closeConfirm(); alert(String(e&&e.message||e)); return; }
     // 現在編集中のレシピが削除された場合
     if(localStorage.getItem('lr_current_recipe_id')===deleteTargetId){
       localStorage.removeItem('lr_current_recipe_id');
@@ -495,15 +514,31 @@ async function resetEverything(){
   const msg2=(typeof T==='object'&&T.resetAllConfirm2)?T.resetAllConfirm2:'本当に初期化しますか？この操作は取り消せません。';
   if(!confirm(msg2)) return;
   // localStorage を全消去（ライト配置・機材・防湿庫・マイセット・設定・言語通貨など全て）
+  // ※ 課金状態(lr_subscribed)はユーザーデータではないので温存（ネイティブ版で次回同期まで無料枠表示になるのを防ぐ）
+  let sub=null; try{ sub=localStorage.getItem('lr_subscribed'); }catch(e){}
   try{ localStorage.clear(); }catch(e){}
-  // IndexedDB（レシピ本体・写真・機材画像）を削除
-  ['lr_recipes_db','lr_db','lr_item_imgs'].forEach(name=>{ try{ indexedDB.deleteDatabase(name); }catch(e){} });
-  // 少し待ってからレシピ画面へ（初期状態で再スタート）
-  setTimeout(()=>{ window.location.href='index.html'; }, 300);
+  try{ if(sub) localStorage.setItem('lr_subscribed',sub); }catch(e){}
+  try{ sessionStorage.clear(); }catch(e){}   // レシピ同梱写真の一時キャッシュ(lr_recipe_item_imgs)も消す
+  // IndexedDB（レシピ本体・写真・機材画像）を削除。完了（またはタイムアウト）を待ってから遷移する
+  const delDB=name=>new Promise(res=>{
+    try{
+      const req=indexedDB.deleteDatabase(name);
+      req.onsuccess=req.onerror=req.onblocked=()=>res();
+    }catch(e){ res(); }
+  });
+  const timeout=new Promise(res=>setTimeout(res,2500));
+  await Promise.race([Promise.all(['lr_recipes_db','lr_db','lr_item_imgs'].map(delDB)),timeout]);
+  window.location.href='index.html';
 }
 
 // 初期化
 renderList();
+</script>
+<script>
+// PWA: Service Worker 登録（Web版のみ。Capacitor アプリ内では不要なので登録しない）
+if ('serviceWorker' in navigator && !window.Capacitor) {
+  window.addEventListener('load', () => { navigator.serviceWorker.register('./sw.js', { scope: './' }).catch(() => {}); });
+}
 </script>
 </body>
 </html>

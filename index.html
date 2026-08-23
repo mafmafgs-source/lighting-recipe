@@ -379,6 +379,8 @@ document.getElementById('fileInput').addEventListener('change',function(e){
     }catch(err){console.warn('EXIF error:',err);}
   };
   reader.readAsDataURL(file);
+  // 同じ写真をもう一度選んでも change が発火するように value をクリア（Android/Chrome）
+  try{ e.target.value=''; }catch(_){}
 });
 
 // ══════════════════════════════════════
@@ -864,7 +866,9 @@ function getItemImgSrc(name){
 //    表示のたびに機材名で引き直す（既に配置済みのアイテムも自動で直る）。
 function directItemImgSrc(di){
   if(!di) return null;
-  return (di.name ? findItemImg(di.name) : null) || di.imgPath || null;
+  // 機材自身の写真 → 保存された imgPath（標準カテゴリのアイコン／旧データの埋め込み画像） → カテゴリ画像の逆引き
+  // （builder は 2026-08-23 からカスタムカテゴリの base64 を imgPath に埋め込まなくなったので、ここで引き直す）
+  return (di.name ? findItemImg(di.name) : null) || di.imgPath || (di.name ? getCatImgByItemName(di.name) : null) || null;
 }
 
 // ライトノードの内部HTMLを生成（builder.htmlと同じ縦積みシルエット）
@@ -1035,8 +1039,9 @@ function resetAll(){
   subjectId='default';
   renderSubjectIcon();
 
-  // ライト（位置・高さ・配光・色をリセット、機材設定はBuilderに任せるので保持）
-  lights=lights.map(l=>({...l, x:20, y:30, height:HEIGHT_DEFAULT, beam:40, angle:270, output:null, color:DEFAULT_HUE}));
+  // ライト（位置・高さ・配光・色・反転をリセット、機材設定はBuilderに任せるので保持）
+  // 位置は defLight(i) の段配置に戻す（全灯を同一座標に重ねると B〜J が見えなくなる）
+  lights=lights.map((l,i)=>{ const d=defLight(i); return {...l, x:d.x, y:d.y, height:HEIGHT_DEFAULT, beam:40, angle:270, output:null, color:DEFAULT_HUE, flipped:false}; });
   saveLights();
 
   // 直接配置アイテム（レフ板・Flag等）も新規写真時にクリア
@@ -1046,6 +1051,12 @@ function resetAll(){
   currentRecipeId='';
   localStorage.removeItem('lr_current_recipe_id');
   localStorage.removeItem('lr_recipe_title');
+  if(typeof setExportAutoSavedId==='function') setExportAutoSavedId(null);
+
+  // セッションをリセット後の状態で保存し直す。
+  // （途中の clearBgLayers() が saveSession() を呼び、その時点ではまだ旧値だった太陽・被写体・紙柄・色が
+  //   lr_session に書き戻されているため、ここで上書きしないとリロードで復活する）
+  saveSession();
 
   // 再描画
   selected=null;
@@ -1158,6 +1169,7 @@ document.getElementById('cameraIconInput').addEventListener('change',function(e)
 // ══════════════════════════════════════
 function toggleSun(){
   sunOn=!sunOn;
+  if(!sunOn) selectedSun=false; // OFF時は選択解除（見えない太陽を操作し続けない）
   document.getElementById('sunToggleBtn').classList.toggle('sun-on',sunOn);
   saveSession();
   renderCanvas();
@@ -1849,7 +1861,10 @@ function removeDirectItem(idx){
   const items=loadDirectItems();
   items.splice(idx,1);
   saveDirectItems(items);
+  // 選択状態を解除してパネルも更新（残したままだと削除後に別アイテムを誤操作／最後の1件で TypeError）
+  selectedDirect=null;
   renderCanvas();
+  renderPanel();
 }
 
 function renderDirectItems(canvas){
@@ -2197,7 +2212,7 @@ function updateBeamPanel(){
     bs.disabled=true;as.disabled=true;cs.disabled=true;
     bs.style.opacity='.4';as.style.opacity='.4';cs.style.opacity='.4';
     if(hint)hint.style.display='block';
-    if(hint)hint.textContent=selected===null?T.beamHint:'光源（ストロボ・ビデオライト）がないため光パーツは使用できません';
+    if(hint)hint.textContent=selected===null?T.beamHint:T.noLightSourceHint;
     return;
   }
   bs.disabled=false;as.disabled=false;cs.disabled=false;
@@ -2375,7 +2390,7 @@ async function doSaveRecipe(forceNew){
   // forceNew が明示 true でなく、currentRecipeId があれば上書き
   const isNew = (forceNew===true) || !currentRecipeId;
   const id = isNew ? ('r_'+Date.now()) : currentRecipeId;
-  const title=document.getElementById('recipeTitleInput').value.trim()||'無題のレシピ';
+  const title=document.getElementById('recipeTitleInput').value.trim()||T.untitled;
   const now=new Date().toISOString();
 
   // ── 新規保存時のみ保存上限チェック（無料30件 / 有料は無制限） ──
@@ -2451,6 +2466,11 @@ async function doSaveRecipe(forceNew){
       exDate:document.getElementById('exDate')?.textContent||'',
       exCamera:document.getElementById('exCamera')?.textContent||'',
       exLens:document.getElementById('exLens')?.textContent||'',
+      // 撮影データ（F/SS/ISO/焦点距離）も同梱（読み込み後の出力EXIF欄が「–」にならないように）
+      exF:document.getElementById('exF')?.textContent||'',
+      exSS:document.getElementById('exSS')?.textContent||'',
+      exISO:document.getElementById('exISO')?.textContent||'',
+      exFL:document.getElementById('exFL')?.textContent||'',
     }
   };
 
@@ -2466,11 +2486,13 @@ async function doSaveRecipe(forceNew){
     currentRecipeId=id;
     localStorage.setItem('lr_current_recipe_id',id);
     localStorage.setItem('lr_recipe_title',title);
+    // このセッションで自分が保存したレシピ＝以後の出力自動保存は上書き（コピー増殖防止）
+    if(typeof setExportAutoSavedId==='function') setExportAutoSavedId(id);
     closeSaveDialog();
-    showSaveToast('保存しました ✓');
+    showSaveToast(T.savedToast);
   }catch(e){
     console.error('save error:',e);
-    showSaveToast('保存失敗: '+( e?.message||String(e) ));
+    showSaveToast(T.saveFailedPrefix+( e?.message||String(e) ));
   }
 }
 
@@ -2552,27 +2574,48 @@ async function loadRecipeFromURL(){
     if(s.subjectId) subjectId=s.subjectId;
     renderSubjectIcon();
 
-    // EXIF表示
-    if(s.exCamera) document.getElementById('exCamera').textContent=s.exCamera;
-    if(s.exLens)   document.getElementById('exLens').textContent=s.exLens;
-    if(s.exDate)   document.getElementById('exDate').textContent=s.exDate;
+    // EXIF表示（レシピに無い項目は「–」に戻す＝前セッションの値を残さない）
+    const exMap={exCamera:'camera',exLens:'lens',exDate:'date',exF:'f',exSS:'ss',exISO:'iso',exFL:'fl'};
+    const exObj={};
+    Object.keys(exMap).forEach(id=>{
+      const v=(s[id]&&s[id]!=='–')?s[id]:'–';
+      const e=document.getElementById(id); if(e) e.textContent=v;
+      exObj[exMap[id]]=v;
+    });
+    // lr_exif もレシピの値で置き換える（リロード／bfcache復帰の restoreExif が旧EXIFを戻さないように）
+    saveExif(exObj);
     renderGearPriceDisplay();
 
-    // 写真
+    // 写真：セッション(IDB current_photo)もレシピの写真で置き換える。
+    // ここを保存しないと、リロードや Builder 往復の restoreSession() が前セッションの写真を復元し、
+    // そのまま上書き保存／出力自動保存すると別の写真がレシピに焼き込まれる。
+    const img=document.getElementById('photoImg');
     if(recipe.photoData){
-      const img=document.getElementById('photoImg');
       img.onload=()=>{
         img.classList.add('loaded');
         document.getElementById('photoHint').style.display='none';
         document.getElementById('btnReset').classList.add('visible');
       };
       img.src=recipe.photoData;
+      savePhotoToSession(recipe.photoData);
+    }else{
+      img.src='';
+      img.classList.remove('loaded');
+      document.getElementById('photoHint').style.display='';
+      document.getElementById('btnReset').classList.remove('visible');
+      openIDB().then(db=>{
+        const tx=db.transaction(IDB_STORE,'readwrite');
+        tx.objectStore(IDB_STORE).delete('current_photo');
+        tx.oncomplete=()=>db.close();
+      }).catch(()=>{});
     }
 
     // 現在レシピIDを確定
     currentRecipeId=recipeId;
     localStorage.setItem('lr_current_recipe_id',recipeId);
     localStorage.setItem('lr_recipe_title',recipe.title||'');
+    // マイページから開いたレシピは「既存」扱い＝次の出力は新規コピー（ユーザー決定）。追跡idをクリア
+    if(typeof setExportAutoSavedId==='function') setExportAutoSavedId(null);
 
     // URLをクリーン
     history.replaceState(null,'',window.location.pathname);
@@ -2655,16 +2698,22 @@ async function drawWatermark(ctx,rect){
 //   （ユーザー決定：出力で既存レシピを勝手に上書きしない）。以後の編集対象はコピー側になる
 // ・この出力自動保存で作られたレシピへの連続出力 → 同じレシピを上書き（連打で増殖しない）
 // ・無料枠上限で新規保存できない場合 → doSaveRecipe内で上限案内が出るが、出力自体は続行する
-let _exportAutoSavedId=null;  // このセッション中に出力自動保存が作ったレシピid
+// 追跡idは localStorage にも持つ（メモリだけだと Builder 往復やリロードのたびに忘れて、
+// 「出力→微修正→出力」でコピーが増殖する）。
+const EXPORT_AUTOSAVE_KEY='lr_export_autosave_id';
+let _exportAutoSavedId=(function(){ try{ return localStorage.getItem(EXPORT_AUTOSAVE_KEY)||null; }catch(e){ return null; } })();
+function setExportAutoSavedId(id){
+  _exportAutoSavedId=id||null;
+  try{ if(id) localStorage.setItem(EXPORT_AUTOSAVE_KEY,id); else localStorage.removeItem(EXPORT_AUTOSAVE_KEY); }catch(e){}
+}
 async function autoSaveRecipeOnExport(){
   try{
     const input=document.getElementById('recipeTitleInput');
     if(input && !input.value.trim()) input.value=localStorage.getItem('lr_recipe_title')||'';
+    // このセッションで自分が保存したレシピ（出力自動保存 or 手動保存）なら上書き、それ以外は新規コピー
     const isOwnAutoSave = !!currentRecipeId && currentRecipeId===_exportAutoSavedId;
-    const before=currentRecipeId;
-    await doSaveRecipe(!isOwnAutoSave);   // 読込済み/新規→新規保存、自動保存レシピ→上書き
-    // 保存が成立した場合のみ追跡idを更新（上限で保存されなかった場合はidが変わらない）
-    if(currentRecipeId && currentRecipeId!==before) _exportAutoSavedId=currentRecipeId;
+    await doSaveRecipe(!isOwnAutoSave);   // 読込済み/新規→新規保存、自分で保存したレシピ→上書き
+    // 追跡idの更新は doSaveRecipe の成功時に行う（上限で保存されなかった場合は変わらない）
   }catch(e){ console.warn('auto-save on export failed:',e); }
 }
 
@@ -2808,7 +2857,7 @@ async function doExport(){
       ctx.font=`400 13px -apple-system,sans-serif`;
       ctx.fillStyle=TEXT; ctx.fillText(exLens,PADDING+HALF,y+28);
 
-      [['F値',exF],['SS',exSS],['ISO',exISO],['焦距',exFL]].forEach(([label,val],i)=>{
+      [[T.exF,exF],[T.exSS,exSS],[T.exISO,exISO],[T.exFL,exFL]].forEach(([label,val],i)=>{
         const x=PADDING+eColW*i;
         ctx.font=`600 10px -apple-system,sans-serif`;
         ctx.fillStyle=SUB; ctx.fillText(label,x,y+46);
@@ -2845,7 +2894,7 @@ async function doExport(){
     ctx.strokeStyle=BORDER;ctx.lineWidth=1;ctx.stroke();
     ctx.font=`600 12px -apple-system,sans-serif`;
     ctx.fillStyle=SUB;
-    ctx.fillText('💰 使用機材費用合計',PADDING+14,y+COST_H/2+4);
+    ctx.fillText(T.exportCostTotal,PADDING+14,y+COST_H/2+4);
     ctx.font=`700 16px -apple-system,sans-serif`;
     ctx.fillStyle=GOLD;
     const costText=formatMoney(totalCost);
@@ -2861,14 +2910,23 @@ async function doExport(){
     const memoEl=document.getElementById('canvasMemo');
     const memoDisplay=memoEl?memoEl.style.display:'';
     if(memoEl) memoEl.style.display='none';
+    // 表示ズーム（ピンチ縮小）は出力に漏らさない：html2canvas は CSS transform を反映するため、
+    // キャプチャ中だけ等倍に戻し、終わったら元のズームに復帰する（ノードだけ縮小して直接配置・太陽・メモと
+    // スケールが食い違う不具合の修正）
+    const _zoomBackup=diagZoom;
+    const _restoreZoom=()=>{ if(_zoomBackup!==1){ diagZoom=_zoomBackup; renderCanvas(); applyStaticZoom(); } };
+    if(_zoomBackup!==1){ diagZoom=1; renderCanvas(); applyStaticZoom(); }
+    // 太陽は画面(.sun-node + SVGビーム)をそのまま html2canvas に描かせる＝色相・位置が画面と一致
+    //（以前はこの上から手描きで重ねていたため二重描画＆固定黄色になっていた）
     html2canvas(diagCanvas,{
       backgroundColor:'#f8f8f8',
       scale:DIAG_W/diagCanvas.offsetWidth,
       useCORS:true,allowTaint:true,logging:false,
       ignoreElements:el=>el.classList&&el.classList.contains('direct-item'),
     }).then(c=>{
-      // メモ表示を元に戻す
+      // メモ表示・ズームを元に戻す
       if(memoEl) memoEl.style.display=memoDisplay;
+      _restoreZoom();
       roundRect(ctx,PADDING,y,DIAG_W,DIAG_H,CARD_R);
       ctx.save();ctx.clip();
       ctx.drawImage(c,PADDING,y,DIAG_W,DIAG_H);
@@ -2922,53 +2980,7 @@ async function doExport(){
           ctx.textAlign='left';
         }
 
-        // ── 太陽をCanvas APIで描画（光パーツビーム＋本体） ──
-        if(sunOn){
-          const sx2=PADDING+sunPos.x/100*DIAG_W;
-          const sy2=y+sunPos.y/100*DIAG_H;
-          const SR=25*scaleX; // 50px → 出力スケール換算（半径25）
-          const beamR=Math.min(DIAG_W,DIAG_H)*0.28;
-          const sunSpread=sunBeam/100*360;
-          // ビーム
-          const bg=ctx.createRadialGradient(sx2,sy2,0,sx2,sy2,beamR);
-          bg.addColorStop(0,'rgba(255,232,138,0.9)');
-          bg.addColorStop(0.5,'rgba(255,204,0,0.45)');
-          bg.addColorStop(1,'rgba(255,136,0,0.05)');
-          if(sunSpread>=359.9){
-            ctx.beginPath();ctx.arc(sx2,sy2,beamR,0,Math.PI*2);
-            ctx.fillStyle=bg;ctx.fill();
-          }else{
-            const half=sunSpread/2;
-            const ra1=(sunAngle-half)*Math.PI/180,ra2=(sunAngle+half)*Math.PI/180;
-            const lg=sunSpread>180?1:0;
-            const bx1=sx2+beamR*Math.cos(ra1),by1=sy2+beamR*Math.sin(ra1);
-            const bx2=sx2+beamR*Math.cos(ra2),by2=sy2+beamR*Math.sin(ra2);
-            ctx.beginPath();
-            ctx.moveTo(sx2,sy2);ctx.lineTo(bx1,by1);
-            ctx.arc(sx2,sy2,beamR,ra1,ra2);
-            ctx.closePath();
-            ctx.fillStyle=bg;ctx.fill();
-          }
-          // 本体グラデーション
-          const sunGrad=ctx.createRadialGradient(sx2,sy2,0,sx2,sy2,SR);
-          sunGrad.addColorStop(0,'rgba(255,140,0,1)');
-          sunGrad.addColorStop(0.5,'rgba(255,204,68,0.9)');
-          sunGrad.addColorStop(1,'rgba(255,255,255,0.05)');
-          ctx.beginPath();ctx.arc(sx2,sy2,SR,0,Math.PI*2);
-          ctx.fillStyle=sunGrad;ctx.fill();
-          // 輪郭
-          ctx.strokeStyle='rgba(255,170,0,0.6)';ctx.lineWidth=scaleX;
-          ctx.beginPath();ctx.arc(sx2,sy2,SR,0,Math.PI*2);ctx.stroke();
-          // 光線8本
-          ctx.strokeStyle='rgba(255,204,68,0.75)';ctx.lineWidth=2*scaleX;ctx.lineCap='round';
-          [[0,-1],[0,1],[-1,0],[1,0],[-0.707,-0.707],[0.707,-0.707],[-0.707,0.707],[0.707,0.707]].forEach(([dx,dy])=>{
-            ctx.beginPath();
-            ctx.moveTo(sx2+dx*SR*1.2,sy2+dy*SR*1.2);
-            ctx.lineTo(sx2+dx*SR*1.8,sy2+dy*SR*1.8);
-            ctx.stroke();
-          });
-          ctx.lineCap='butt';
-        }
+        // （太陽は html2canvas のキャプチャに含まれる。手描きの二重描画は廃止）
         // ── メモをライティング図右下に描画 ──
         const memo=getCanvasMemo();
         if(memo){
@@ -2987,18 +2999,22 @@ async function doExport(){
             wrappedLines.push(line);
           });
           const memoH=wrappedLines.length*memoLineH+memoPad*2;
-          const mx=PADDING+DIAG_W-memoMaxW-16;
+          // 箱の幅は内容幅に合わせる（画面側 .canvas-memo と同じ見た目。常に最大幅だと短文でも図の右下が黒箱で隠れる）
+          const memoContentW=wrappedLines.reduce((w,l)=>Math.max(w,ctx.measureText(l).width),0);
+          const memoBoxW=Math.max(80,Math.min(memoMaxW,Math.ceil(memoContentW)+memoPad*2));
+          const mx=PADDING+DIAG_W-memoBoxW-16;
           const my=y+DIAG_H-memoH-16;
           ctx.fillStyle='rgba(0,0,0,0.55)';
-          roundRect(ctx,mx,my,memoMaxW,memoH,8);ctx.fill();
+          roundRect(ctx,mx,my,memoBoxW,memoH,8);ctx.fill();
           ctx.fillStyle='#ffffff';
           wrappedLines.forEach((line,li)=>{ctx.fillText(line,mx+memoPad,my+memoPad+memoFontSize+li*memoLineH);});
         }
         ctx.restore();
         res();
-      })();
+      })().catch(e=>{ console.warn('diagram overlay draw error:',e); try{ctx.restore();}catch(_){} res(); });
     }).catch(()=>{
       if(memoEl) memoEl.style.display=memoDisplay;
+      _restoreZoom();
       res();
     });
   });
@@ -3094,14 +3110,14 @@ async function doExport(){
     if(isIOS){
       // iOSは<a download>が効かないため、新しいタブで画像を開いて長押し保存を案内
       window.open(url,'_blank');
-      showSaveToast('画像を長押しして「写真に保存」を選んでください');
+      showSaveToast(T.iosLongPressHint);
     }else{
       // Androidはdownloadリンクでダウンロードフォルダに保存される
       const link=document.createElement('a');
       link.download=fname;
       link.href=url;
       link.click();
-      showSaveToast('保存しました（ダウンロードフォルダ）');
+      showSaveToast(T.savedDownloads);
     }
   },'image/png');
 }
@@ -3328,5 +3344,11 @@ else maybeShowFirstHint();
   <a href="mypage.html" data-i18n="navMypage">マイページ</a>
 </nav>
 
+<script>
+// PWA: Service Worker 登録（Web版のみ。Capacitor アプリ内では不要なので登録しない）
+if ('serviceWorker' in navigator && !window.Capacitor) {
+  window.addEventListener('load', () => { navigator.serviceWorker.register('./sw.js', { scope: './' }).catch(() => {}); });
+}
+</script>
 </body>
 </html>

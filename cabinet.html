@@ -530,5 +530,11 @@ document.getElementById('overlay').addEventListener('click',e=>{ if(e.target.id=
 initBrand();
 render();
 </script>
+<script>
+// PWA: Service Worker 登録（Web版のみ。Capacitor アプリ内では不要なので登録しない）
+if ('serviceWorker' in navigator && !window.Capacitor) {
+  window.addEventListener('load', () => { navigator.serviceWorker.register('./sw.js', { scope: './' }).catch(() => {}); });
+}
+</script>
 </body>
 </html>

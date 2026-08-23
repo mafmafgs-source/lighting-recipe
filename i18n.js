@@ -853,6 +853,19 @@
   };
   for (const k in EXTRA22) { if (I18N[k]) Object.assign(I18N[k], EXTRA22[k]); }
 
+  // ── 追加辞書23（2026-08-23 バグ修正：日本語固定だった出力ラベル・トースト・案内の多言語化）─────
+  const EXTRA23 = {
+    ja: { savedToast:'保存しました ✓', saveFailedPrefix:'保存失敗: ', iosLongPressHint:'画像を長押しして「写真に保存」を選んでください', savedDownloads:'保存しました（ダウンロードフォルダ）', exportCostTotal:'💰 使用機材費用合計', noLightSourceHint:'光源（ストロボ・ビデオライト）がないため光パーツは使用できません' },
+    en: { savedToast:'Saved ✓', saveFailedPrefix:'Save failed: ', iosLongPressHint:'Long-press the image and choose "Save to Photos"', savedDownloads:'Saved (Downloads folder)', exportCostTotal:'💰 Total gear cost', noLightSourceHint:'No light source (strobe/video light) — light parts are unavailable' },
+    zh: { savedToast:'已保存 ✓', saveFailedPrefix:'保存失败: ', iosLongPressHint:'长按图片并选择「存储到照片」', savedDownloads:'已保存（下载文件夹）', exportCostTotal:'💰 使用器材费用合计', noLightSourceHint:'没有光源（闪光灯/视频灯），无法使用控光附件' },
+    ko: { savedToast:'저장했습니다 ✓', saveFailedPrefix:'저장 실패: ', iosLongPressHint:'이미지를 길게 눌러 "사진에 저장"을 선택하세요', savedDownloads:'저장했습니다 (다운로드 폴더)', exportCostTotal:'💰 사용 장비 비용 합계', noLightSourceHint:'광원(스트로브/비디오 라이트)이 없어 광 파츠를 사용할 수 없습니다' },
+    de: { savedToast:'Gespeichert ✓', saveFailedPrefix:'Speichern fehlgeschlagen: ', iosLongPressHint:'Bild lange drücken und „In Fotos sichern“ wählen', savedDownloads:'Gespeichert (Downloads-Ordner)', exportCostTotal:'💰 Gesamtkosten Equipment', noLightSourceHint:'Keine Lichtquelle (Blitz/Videoleuchte) – Lichtformer nicht verfügbar' },
+    fr: { savedToast:'Enregistré ✓', saveFailedPrefix:'Échec de l\'enregistrement : ', iosLongPressHint:'Appuyez longuement sur l\'image et choisissez « Enregistrer dans Photos »', savedDownloads:'Enregistré (dossier Téléchargements)', exportCostTotal:'💰 Coût total du matériel', noLightSourceHint:'Aucune source lumineuse (flash/lumière vidéo) – modeleurs indisponibles' },
+    it: { savedToast:'Salvato ✓', saveFailedPrefix:'Salvataggio non riuscito: ', iosLongPressHint:'Tieni premuta l\'immagine e scegli "Salva in Foto"', savedDownloads:'Salvato (cartella Download)', exportCostTotal:'💰 Costo totale attrezzatura', noLightSourceHint:'Nessuna sorgente luminosa (flash/luce video): modificatori non disponibili' },
+    es: { savedToast:'Guardado ✓', saveFailedPrefix:'Error al guardar: ', iosLongPressHint:'Mantén pulsada la imagen y elige "Guardar en Fotos"', savedDownloads:'Guardado (carpeta Descargas)', exportCostTotal:'💰 Coste total del equipo', noLightSourceHint:'Sin fuente de luz (flash/luz de vídeo): los modificadores no están disponibles' },
+  };
+  for (const k in EXTRA23) { if (I18N[k]) Object.assign(I18N[k], EXTRA23[k]); }
+
   // ── 追加辞書7（ライトへの機材追加トースト：どの枠A-Jに追加したか明示）─────
   const EXTRA7 = {
     ja: { addedToLight:(name,slot)=>`${name} を ライト${slot} に追加しました`, addedToDiagram:(name)=>`${name} をライティング図に追加しました` },
@@ -915,7 +928,7 @@
 
   // 言語判定：保存された選択 > ブラウザ言語 > en
   function detectLang() {
-    const saved = localStorage.getItem(LANG_KEY);
+    let saved = null; try { saved = localStorage.getItem(LANG_KEY); } catch (e) {} // Cookie全ブロック等で SecurityError → 既定言語へ
     if (saved && I18N[saved]) return saved;
     const n = (navigator.language || 'en').toLowerCase();
     if (n.startsWith('ja')) return 'ja';
@@ -943,7 +956,7 @@
   const LANG_TO_CUR = { ja:'JPY', zh:'CNY', ko:'KRW', de:'EUR', fr:'EUR', it:'EUR', es:'EUR', en:'USD' };
   const LANG_TO_LOCALE = { ja:'ja-JP', zh:'zh-CN', ko:'ko-KR', de:'de-DE', fr:'fr-FR', it:'it-IT', es:'es-ES', en:'en-US' };
   function detectCurrency() {
-    const saved = localStorage.getItem(CUR_KEY);
+    let saved = null; try { saved = localStorage.getItem(CUR_KEY); } catch (e) {}
     if (saved && CURRENCIES.some((c) => c.code === saved)) return saved;
     return LANG_TO_CUR[LANG] || 'USD';
   }
