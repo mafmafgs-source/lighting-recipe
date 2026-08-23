@@ -41,12 +41,13 @@ footer{margin-top:40px;padding-top:16px;border-top:1px solid #2e2e2e;font-size:1
 
   <!-- ══════════════ 日本語 ══════════════ -->
   <section class="lang-section visible" id="sec-ja">
-    <div class="sub">プライバシーポリシー　最終更新日：2026年7月4日</div>
+    <div class="sub">プライバシーポリシー　最終更新日：2026年8月23日</div>
 
     <p>本プライバシーポリシーは、モバイルアプリおよびウェブアプリ「Lighting Recipe」（以下「本アプリ」）における利用者の情報の取り扱いについて定めるものです。本アプリをご利用いただくことで、本ポリシーの内容に同意いただいたものとみなします。</p>
 
     <h2>1. 基本方針</h2>
     <p>本アプリは、撮影のライティング（照明）情報を記録・整理するためのツールです。本アプリは、利用者が入力・作成したデータを<b>利用者の端末内にのみ保存</b>し、開発者や第三者のサーバーへ送信・収集することはありません。アカウント登録やログインは不要です。</p>
+    <p>例外として、iOSアプリのプレミアム会員が<b>任意で</b>利用できる「クラウドバックアップ」機能を有効にした場合に限り、第4-3項に定める範囲で認証情報とバックアップデータがクラウドに保存されます。この機能を利用しない限り、データが端末外へ送信されることはありません。</p>
 
     <h2>2. 端末内に保存される情報</h2>
     <p>本アプリは、以下の情報を利用者の端末内のストレージ（ブラウザの localStorage および IndexedDB、またはアプリのローカルストレージ）にのみ保存します。これらはインターネットを通じて送信されません。</p>
@@ -68,6 +69,18 @@ footer{margin-top:40px;padding-top:16px;border-top:1px solid #2e2e2e;font-size:1
     <p>機材情報の画面から、対応する商品の Amazon 検索・商品ページへ遷移するリンクを提供しています。このリンクには Amazon アソシエイト・プログラムのアフィリエイトタグが含まれます。利用者がリンクをタップして Amazon のサイトへ移動した場合、そのサイトでの情報の取り扱いは Amazon のプライバシーポリシーに従います。本アプリ自体が利用者の購買情報を取得することはありません。</p>
     <h3>4-2. プログラムライブラリとホスティング</h3>
     <p>本アプリの動作に必要なプログラムライブラリ（写真のEXIF読み取り、画像の書き出し等）は、すべてアプリ内に同梱しており、外部のCDNから読み込むことはありません。なお、ウェブ版をブラウザで利用する場合は、ページを配信するホスティング事業者のサーバーに、一般的なウェブアクセスと同様のアクセスログ（IPアドレス等）が記録されることがあります。これは本アプリが独自に収集・保存するものではありません。</p>
+    <h3>4-3. クラウドバックアップ（Google Firebase）</h3>
+    <p>iOSアプリのプレミアム会員は、任意で「クラウドバックアップ」機能を利用できます。この機能は、利用者が設定画面で「Appleでサインイン」を行った場合にのみ有効になります。</p>
+    <ul>
+      <li><b>取得する情報：</b>Apple アカウントによるサインイン時に Apple から提供されるメールアドレス（「メールを非公開」を選択した場合は Apple のリレーアドレス）と、認証用の匿名ユーザーID。氏名やパスワードは取得しません。</li>
+      <li><b>保存されるデータ：</b>利用者が「今すぐバックアップ」を実行した時点の、第2項に記載したアプリ内データ一式（写真を含む）。暗号化された通信（HTTPS）で、Google LLC が提供する Firebase（Cloud Firestore）に保存されます。</li>
+      <li><b>利用目的：</b>利用者自身によるバックアップと復元（端末の変更・再インストール時のデータ引き継ぎ）のためにのみ使用します。広告・分析・第三者への提供には一切使用せず、開発者がバックアップの内容を閲覧することもありません。</li>
+      <li><b>保管期間：</b>利用者がアカウントを削除するまで保管します。バックアップは常に最新の1世代のみを保持し、新しいバックアップで上書きされます。</li>
+      <li><b>削除：</b>設定画面の「アカウントとクラウドデータを削除」操作により、クラウド上のバックアップデータと認証アカウントを即時に完全削除できます。「サインアウト」はこの端末との接続を解除するだけで、クラウド上のデータは保持されます。</li>
+    </ul>
+    <p>Firebase における情報の取り扱いは <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Google のプライバシーポリシー</a>に従います。</p>
+    <h3>4-4. アプリ内課金（サブスクリプション）</h3>
+    <p>iOSアプリの有料プラン「Lighting Recipe プレミアム」の決済は App Store を通じて行われ、クレジットカード等の決済情報は Apple が取り扱い、本アプリおよび開発者は取得しません。購読状態の確認のためにアプリ内課金管理サービス RevenueCat, Inc. を利用しており、匿名のアプリユーザーIDと購入情報（商品ID・購入日・有効期限等）が RevenueCat のサーバーで処理されます。これらは氏名・メールアドレス等の個人を特定できる情報を含まず、購読状態の判定以外の目的には使用しません。詳細は <a href="https://www.revenuecat.com/privacy" target="_blank" rel="noopener">RevenueCat のプライバシーポリシー</a>をご参照ください。</p>
 
     <h2>5. 広告・トラッキング</h2>
     <p>本アプリは、広告を表示しません。また、利用者の行動を追跡する解析ツールやトラッキング技術（サードパーティ Cookie 等）を使用しません。</p>
@@ -79,17 +92,16 @@ footer{margin-top:40px;padding-top:16px;border-top:1px solid #2e2e2e;font-size:1
       <li>マイページから、保存した個々のレシピを削除できます。</li>
       <li>アプリをアンインストールする、またはブラウザのサイトデータを消去することで、本アプリに関連するすべてのデータが端末から削除されます。</li>
     </ul>
-    <p>本アプリはアカウントを作成しないため、削除すべきサーバー上の個人データは存在しません。</p>
+    <p>クラウドバックアップ（第4-3項）を利用している場合は、設定画面の「アカウントとクラウドデータを削除」により、クラウド上のバックアップデータとアカウントをご自身で即時に完全削除できます。メールでの削除依頼（第10項）にも対応します。クラウドバックアップを利用していない場合、サーバー上に削除すべき個人データは存在しません。</p>
 
     <h2>7. 子どものプライバシー</h2>
-    <p>本アプリは、個人を特定する情報を収集しません。本アプリは特定の年齢層を主対象とするものではなく、収集・送信するデータがないため、子どもから個人情報を収集することはありません。</p>
+    <p>本アプリは、クラウドバックアップ利用時のメールアドレス（第4-3項）を除き、個人を特定する情報を収集しません。本アプリは特定の年齢層を主対象とするものではなく、13歳未満の子どもから意図的に個人情報を収集することはありません。</p>
 
     <h2>8. 将来的な機能について</h2>
     <div class="future">
       <p><b>以下は現時点では未実装の機能に関する予定であり、実装され有効化されるまで適用されません。</b>これらの機能を追加する際には、本ポリシーを改定し、必要に応じてアプリ内で利用者にお知らせします。</p>
-      <p><b>クラウド保存・同期（アカウント機能）：</b> 将来、任意でレシピをクラウドに保存・同期できる機能を追加する場合があります。この機能を利用する場合に限り、認証情報や同期対象データがクラウドサービス（例：Google Firebase 等）に保存されることがあります。この機能は任意であり、利用しない限りデータは端末内にとどまります。アカウントを作成した場合は、アプリ内またはウェブ上からアカウントおよび関連データの削除を要求できるようにします。</p>
       <p><b>商品価格の自動取得：</b> 将来、機材の参考価格を外部API（例：Amazon Product Advertising API 等）から取得して表示する機能を追加する場合があります。この場合も、利用者の個人情報を当該APIへ送信することはありません。</p>
-      <p><b>有料プラン（サブスクリプション）：</b> 将来、有料機能を提供する場合、決済は各プラットフォーム（App Store / Google Play）の仕組みを通じて行われ、決済情報は各プラットフォームが取り扱います。</p>
+      <p><b>Android版での有料プラン・クラウドバックアップ：</b> 将来、Android版でも有料プランやクラウドバックアップ（Google アカウントによるサインイン）を提供する場合があります。その際の取り扱いは第4-3項・第4-4項に準じ、決済情報は Google Play が取り扱います。</p>
     </div>
 
     <h2>9. 本ポリシーの変更</h2>
@@ -105,12 +117,13 @@ footer{margin-top:40px;padding-top:16px;border-top:1px solid #2e2e2e;font-size:1
 
   <!-- ══════════════ English ══════════════ -->
   <section class="lang-section" id="sec-en">
-    <div class="sub">Privacy Policy　Last updated: July 4, 2026</div>
+    <div class="sub">Privacy Policy　Last updated: August 23, 2026</div>
 
     <p>This Privacy Policy explains how information is handled in the mobile and web application "Lighting Recipe" (the "App"). By using the App, you are considered to have agreed to this Policy.</p>
 
     <h2>1. Our Approach</h2>
     <p>The App is a tool for recording and organizing photography lighting setups. The App stores the data you enter or create <b>only on your own device</b>, and does not transmit or collect it to any server operated by the developer or any third party. No account registration or login is required.</p>
+    <p>As the sole exception, if you are a Premium subscriber on the iOS app and <b>choose</b> to enable the optional "Cloud Backup" feature, authentication information and your backup data are stored in the cloud to the extent described in Section 4-3. Unless you use this feature, no data ever leaves your device.</p>
 
     <h2>2. Information Stored on Your Device</h2>
     <p>The App stores the following information only in your device's local storage (the browser's localStorage and IndexedDB, or the app's local storage). This information is not transmitted over the internet.</p>
@@ -132,6 +145,18 @@ footer{margin-top:40px;padding-top:16px;border-top:1px solid #2e2e2e;font-size:1
     <p>From the gear screens, the App provides links to Amazon search or product pages for corresponding items. These links contain an Amazon Associates affiliate tag. If you tap a link and navigate to Amazon's site, the handling of your information on that site is governed by Amazon's privacy policy. The App itself does not obtain information about your purchases.</p>
     <h3>4-2. Program Libraries and Hosting</h3>
     <p>All program libraries required for the App's operation (such as reading photo EXIF data and exporting images) are bundled within the App and are not loaded from external CDNs. Note that when you use the web version in a browser, the hosting provider that serves the pages may record standard web access logs (such as IP addresses), as is the case with any website. This is not collected or stored by the App itself.</p>
+    <h3>4-3. Cloud Backup (Google Firebase)</h3>
+    <p>Premium subscribers on the iOS app may optionally use the "Cloud Backup" feature. It is enabled only when you choose "Sign in with Apple" on the Settings screen.</p>
+    <ul>
+      <li><b>Information collected:</b> the email address provided by Apple when you sign in with your Apple Account (if you choose "Hide My Email", this is Apple's relay address) and an anonymous user ID used for authentication. We do not collect your name or password.</li>
+      <li><b>Data stored:</b> the App data described in Section 2 (including photos) as of the moment you tap "Back up now". It is transmitted over an encrypted connection (HTTPS) and stored in Firebase (Cloud Firestore), a service provided by Google LLC.</li>
+      <li><b>Purpose:</b> solely to let you back up and restore your own data (for example when changing devices or reinstalling). It is never used for advertising or analytics, never shared with third parties, and the developer does not view the contents of your backups.</li>
+      <li><b>Retention:</b> until you delete your account. Only the most recent backup is kept; each new backup overwrites the previous one.</li>
+      <li><b>Deletion:</b> the "Delete account & cloud data" action on the Settings screen immediately and permanently deletes your cloud backup and authentication account. "Sign out" only disconnects this device; your cloud data is retained.</li>
+    </ul>
+    <p>Google's handling of information in Firebase is governed by the <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Google Privacy Policy</a>.</p>
+    <h3>4-4. In-App Purchases (Subscription)</h3>
+    <p>Payment for the iOS paid plan "Lighting Recipe Premium" is processed through the App Store; payment details such as credit card numbers are handled by Apple and are never received by the App or the developer. To verify subscription status, the App uses RevenueCat, Inc., an in-app purchase management service, which processes an anonymous app user ID and purchase information (product ID, purchase date, expiration date, etc.) on its servers. This does not include personally identifiable information such as your name or email address and is used only to determine subscription status. See the <a href="https://www.revenuecat.com/privacy" target="_blank" rel="noopener">RevenueCat Privacy Policy</a> for details.</p>
 
     <h2>5. Advertising and Tracking</h2>
     <p>The App does not display advertisements. It does not use analytics tools or tracking technologies (such as third-party cookies) to track your behavior.</p>
@@ -143,17 +168,16 @@ footer{margin-top:40px;padding-top:16px;border-top:1px solid #2e2e2e;font-size:1
       <li>You can delete individual saved recipes from the My Page screen.</li>
       <li>Uninstalling the App, or clearing your browser's site data, removes all data related to the App from your device.</li>
     </ul>
-    <p>Because the App does not create accounts, there is no personal data on any server that would need to be deleted.</p>
+    <p>If you use Cloud Backup (Section 4-3), you can immediately and permanently delete your cloud backup and account yourself via "Delete account & cloud data" on the Settings screen. We also honor deletion requests by email (Section 10). If you do not use Cloud Backup, there is no personal data on any server that would need to be deleted.</p>
 
     <h2>7. Children's Privacy</h2>
-    <p>The App does not collect personally identifiable information. The App is not directed at any particular age group, and because it does not collect or transmit data, it does not collect personal information from children.</p>
+    <p>Other than the email address used for Cloud Backup (Section 4-3), the App does not collect personally identifiable information. The App is not directed at any particular age group and does not knowingly collect personal information from children under 13.</p>
 
     <h2>8. Future Features</h2>
     <div class="future">
       <p><b>The following describes features that are not currently implemented and do not apply until they are implemented and enabled.</b> When such features are added, this Policy will be revised and users will be notified within the App as appropriate.</p>
-      <p><b>Cloud storage and sync (account features):</b> In the future, the App may add an optional feature allowing recipes to be saved and synced to the cloud. Only when you use this feature, authentication information and the data being synced may be stored in a cloud service (e.g., Google Firebase). This feature is optional; unless you use it, your data remains on your device. If you create an account, you will be able to request deletion of your account and associated data from within the App or on the web.</p>
       <p><b>Automatic price retrieval:</b> In the future, the App may add a feature to retrieve and display reference prices for gear from an external API (e.g., the Amazon Product Advertising API). Even in that case, your personal information will not be sent to such an API.</p>
-      <p><b>Paid plans (subscriptions):</b> If paid features are offered in the future, payments will be processed through each platform's system (App Store / Google Play), and payment information will be handled by those platforms.</p>
+      <p><b>Paid plan and Cloud Backup on Android:</b> In the future, the paid plan and Cloud Backup (with Google Account sign-in) may also be offered on the Android version. They would be handled as described in Sections 4-3 and 4-4, with payment information handled by Google Play.</p>
     </div>
 
     <h2>9. Changes to This Policy</h2>
