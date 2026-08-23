@@ -371,7 +371,7 @@
       emojiIconLabel:'絵文字アイコン（画像なしの場合に使用）', catEditTitle:'カテゴリを編集',
       catDeleteWarn:'このカテゴリと中の機材がすべて削除されます。', itemPhotoLabel:'機材写真（省略可）',
       pickPhoto:'📷 写真を選択', pickImage:'📷 画像を選択（省略可）', pickImageChange:'📷 画像を変更',
-      photoTransparentHint:'※背景を透明化した写真がおすすめです',
+      photoTransparentHint:'※背景を透明化した正方形の写真（PNG）がおすすめです。サイズは自動で調整されます',
     },
     en: {
       edit:'Edit', del:'Delete', catEdit:'✏️ Edit', catDel:'🗑 Delete',
@@ -380,7 +380,7 @@
       emojiIconLabel:'Emoji icon (used when no image)', catEditTitle:'Edit category',
       catDeleteWarn:'This category and all its gear will be deleted.', itemPhotoLabel:'Gear photo (optional)',
       pickPhoto:'📷 Choose photo', pickImage:'📷 Choose image (optional)', pickImageChange:'📷 Change image',
-      photoTransparentHint:'Tip: photos with a transparent background work best',
+      photoTransparentHint:'Tip: a square photo with a transparent background (PNG) works best. Size is adjusted automatically.',
     },
     zh: {
       edit:'编辑', del:'删除', catEdit:'✏️ 编辑', catDel:'🗑 删除',
@@ -389,7 +389,7 @@
       emojiIconLabel:'表情图标（无图片时使用）', catEditTitle:'编辑类别',
       catDeleteWarn:'该类别及其中的所有器材都将被删除。', itemPhotoLabel:'器材照片（可省略）',
       pickPhoto:'📷 选择照片', pickImage:'📷 选择图片（可省略）', pickImageChange:'📷 更换图片',
-      photoTransparentHint:'※建议使用背景透明的照片',
+      photoTransparentHint:'※建议使用背景透明的正方形照片（PNG）。尺寸会自动调整',
     },
     ko: {
       edit:'편집', del:'삭제', catEdit:'✏️ 편집', catDel:'🗑 삭제',
@@ -398,7 +398,7 @@
       emojiIconLabel:'이모지 아이콘 (이미지 없을 때 사용)', catEditTitle:'카테고리 편집',
       catDeleteWarn:'이 카테고리와 안의 장비가 모두 삭제됩니다.', itemPhotoLabel:'장비 사진 (생략 가능)',
       pickPhoto:'📷 사진 선택', pickImage:'📷 이미지 선택 (생략 가능)', pickImageChange:'📷 이미지 변경',
-      photoTransparentHint:'※배경을 투명하게 한 사진을 권장합니다',
+      photoTransparentHint:'※배경을 투명하게 한 정사각형 사진(PNG)을 권장합니다. 크기는 자동으로 조정됩니다',
     },
     de: {
       edit:'Bearbeiten', del:'Löschen', catEdit:'✏️ Bearbeiten', catDel:'🗑 Löschen',
@@ -407,7 +407,7 @@
       emojiIconLabel:'Emoji-Symbol (falls kein Bild)', catEditTitle:'Kategorie bearbeiten',
       catDeleteWarn:'Diese Kategorie und ihr gesamtes Equipment werden gelöscht.', itemPhotoLabel:'Equipment-Foto (optional)',
       pickPhoto:'📷 Foto wählen', pickImage:'📷 Bild wählen (optional)', pickImageChange:'📷 Bild ändern',
-      photoTransparentHint:'Tipp: Fotos mit transparentem Hintergrund sind ideal',
+      photoTransparentHint:'Tipp: Ein quadratisches Foto mit transparentem Hintergrund (PNG) ist ideal. Die Größe wird automatisch angepasst.',
     },
     fr: {
       edit:'Modifier', del:'Supprimer', catEdit:'✏️ Modifier', catDel:'🗑 Supprimer',
@@ -416,7 +416,7 @@
       emojiIconLabel:'Icône emoji (si aucune image)', catEditTitle:'Modifier la catégorie',
       catDeleteWarn:'Cette catégorie et tout son matériel seront supprimés.', itemPhotoLabel:'Photo du matériel (facultatif)',
       pickPhoto:'📷 Choisir une photo', pickImage:'📷 Choisir une image (facultatif)', pickImageChange:'📷 Changer l’image',
-      photoTransparentHint:'Astuce : les photos à fond transparent sont idéales',
+      photoTransparentHint:'Astuce : une photo carrée à fond transparent (PNG) est idéale. La taille est ajustée automatiquement.',
     },
     it: {
       edit:'Modifica', del:'Elimina', catEdit:'✏️ Modifica', catDel:'🗑 Elimina',
@@ -425,7 +425,7 @@
       emojiIconLabel:'Icona emoji (se nessuna immagine)', catEditTitle:'Modifica categoria',
       catDeleteWarn:'Questa categoria e tutta la sua attrezzatura verranno eliminate.', itemPhotoLabel:'Foto attrezzatura (facoltativo)',
       pickPhoto:'📷 Scegli foto', pickImage:'📷 Scegli immagine (facoltativo)', pickImageChange:'📷 Cambia immagine',
-      photoTransparentHint:'Suggerimento: le foto con sfondo trasparente sono ideali',
+      photoTransparentHint:'Suggerimento: una foto quadrata con sfondo trasparente (PNG) è ideale. Le dimensioni vengono regolate automaticamente.',
     },
     es: {
       edit:'Editar', del:'Eliminar', catEdit:'✏️ Editar', catDel:'🗑 Eliminar',
@@ -434,7 +434,7 @@
       emojiIconLabel:'Icono emoji (si no hay imagen)', catEditTitle:'Editar categoría',
       catDeleteWarn:'Esta categoría y todo su equipo se eliminarán.', itemPhotoLabel:'Foto del equipo (opcional)',
       pickPhoto:'📷 Elegir foto', pickImage:'📷 Elegir imagen (opcional)', pickImageChange:'📷 Cambiar imagen',
-      photoTransparentHint:'Consejo: las fotos con fondo transparente funcionan mejor',
+      photoTransparentHint:'Consejo: una foto cuadrada con fondo transparente (PNG) funciona mejor. El tamaño se ajusta automáticamente.',
     },
   };
   for (const k in EXTRA2) { if (I18N[k]) Object.assign(I18N[k], EXTRA2[k]); }
