@@ -866,6 +866,19 @@
   };
   for (const k in EXTRA23) { if (I18N[k]) Object.assign(I18N[k], EXTRA23[k]); }
 
+  // ── 追加辞書24（出力モーダル：SNSでの縦長画像トリミング注意書き 2026-08-24）─────
+  const EXTRA24 = {
+    ja: { snsTallHint:'※ X（Twitter）等では縦長画像はタップするまで一部しか表示されません。SNSには「写真オフの図だけ出力」＋元写真の2枚投稿がおすすめです' },
+    en: { snsTallHint:'Tip: On X (Twitter), tall images are cropped until tapped. For SNS, export the diagram only (photo off) and post it together with your photo as 2 images.' },
+    zh: { snsTallHint:'提示：在 X（Twitter）等平台，竖长图片在点开前只显示一部分。发布到社交媒体时，建议关闭照片、仅导出布光图，再与原照片一起发布两张图。' },
+    ko: { snsTallHint:'※ X(Twitter) 등에서는 세로로 긴 이미지가 탭하기 전까지 일부만 표시됩니다. SNS에는 사진을 끄고 도면만 출력해 원본 사진과 2장으로 올리는 것을 추천합니다.' },
+    de: { snsTallHint:'Hinweis: Auf X (Twitter) werden hohe Bilder bis zum Antippen beschnitten. Für Social Media: nur das Diagramm exportieren (Foto aus) und zusammen mit dem Foto als 2 Bilder posten.' },
+    fr: { snsTallHint:'Astuce : sur X (Twitter), les images hautes sont rognées avant d\'être ouvertes. Pour les réseaux, exportez le schéma seul (photo désactivée) et publiez-le avec votre photo en 2 images.' },
+    it: { snsTallHint:'Nota: su X (Twitter) le immagini verticali vengono ritagliate finché non si toccano. Per i social, esporta solo lo schema (foto off) e pubblicalo insieme alla foto come 2 immagini.' },
+    es: { snsTallHint:'Consejo: en X (Twitter) las imágenes altas se recortan hasta que se tocan. Para redes, exporta solo el esquema (foto desactivada) y publícalo junto a tu foto como 2 imágenes.' },
+  };
+  for (const k in EXTRA24) { if (I18N[k]) Object.assign(I18N[k], EXTRA24[k]); }
+
   // ── 追加辞書7（ライトへの機材追加トースト：どの枠A-Jに追加したか明示）─────
   const EXTRA7 = {
     ja: { addedToLight:(name,slot)=>`${name} を ライト${slot} に追加しました`, addedToDiagram:(name)=>`${name} をライティング図に追加しました` },
