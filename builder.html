@@ -97,6 +97,9 @@ body{-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%;font-
 
 /* ── ライトカード列 ── */
 .lightRow{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px}
+/* プレミアム枠の案内（無料ユーザーのみ表示・タップでサブスク案内） */
+.upsell-note{font-size:11px;color:#c8a96e;opacity:.8;margin:6px 2px 0;cursor:pointer;user-select:none}
+.upsell-note:active{opacity:1}
 .lightCard{width:110px;flex-shrink:0;overflow:hidden;border:2px solid #2e2e2e;border-radius:12px;padding:8px;background:#141414;cursor:pointer;transition:border-color .15s}
 .lightCard.active{border-color:#c8a96e;background:#1e1a10}
 .lc-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
@@ -202,12 +205,14 @@ body{-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%;font-
       <button class="btn-reset-lights" onclick="resetAllLights()" data-i18n="resetLights">↺ 一括リセット</button>
     </div>
     <div class="lightRow" id="lightRow"></div>
+    <div class="upsell-note" data-i18n="upsellLights" onclick="alert(T.subInfo)">🔒 プレミアムでライト枠 F〜J を解放（全10枠）</div>
   </div>
 
   <!-- マイセット -->
   <div class="card">
     <h3 id="mySetTitle">マイセット</h3>
     <div class="myset-row" id="mySetRow"></div>
+    <div class="upsell-note" data-i18n="upsellMyset" onclick="alert(T.subInfo)">🔒 プレミアムでマイセット10枠（無料は5枠）</div>
   </div>
 
   <!-- 保存 -->
@@ -1778,6 +1783,12 @@ function applyI18n(){
   s('builderTitle',   T.builderTitle);
   s('saveBtn',        T.saveBtn);
   s('mySetTitle',     T.mySetTitle);
+  // プレミアム枠の案内はサブスク中は非表示
+  try{
+    if(typeof isSubscribed==='function' && isSubscribed()){
+      document.querySelectorAll('.upsell-note').forEach(el=>{ el.style.display='none'; });
+    }
+  }catch(e){}
 }
 
 applyI18n();

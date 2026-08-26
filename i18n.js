@@ -879,6 +879,19 @@
   };
   for (const k in EXTRA24) { if (I18N[k]) Object.assign(I18N[k], EXTRA24[k]); }
 
+  // ── 追加辞書25（機材倉庫：プレミアム枠の小さな案内。無料ユーザーのみ表示・タップでサブスク案内 2026-08-27）─────
+  const EXTRA25 = {
+    ja: { upsellLights:'🔒 プレミアムでライト枠 F〜J を解放（全10枠）', upsellMyset:'🔒 プレミアムでマイセット10枠（無料は5枠）' },
+    en: { upsellLights:'🔒 Unlock light slots F–J with Premium (10 total)', upsellMyset:'🔒 10 My Set slots with Premium (free: 5)' },
+    zh: { upsellLights:'🔒 高级版解锁灯位 F〜J（共10个）', upsellMyset:'🔒 高级版可用10个我的套装（免费版5个）' },
+    ko: { upsellLights:'🔒 프리미엄으로 라이트 슬롯 F〜J 해제(총 10칸)', upsellMyset:'🔒 프리미엄으로 마이 세트 10칸(무료 5칸)' },
+    de: { upsellLights:'🔒 Mit Premium Licht-Slots F–J freischalten (insgesamt 10)', upsellMyset:'🔒 10 My-Set-Plätze mit Premium (gratis: 5)' },
+    fr: { upsellLights:'🔒 Débloquez les emplacements F–J avec Premium (10 au total)', upsellMyset:'🔒 10 emplacements My Set avec Premium (gratuit : 5)' },
+    it: { upsellLights:'🔒 Sblocca gli slot luce F–J con Premium (10 in totale)', upsellMyset:'🔒 10 slot My Set con Premium (gratis: 5)' },
+    es: { upsellLights:'🔒 Desbloquea los huecos F–J con Premium (10 en total)', upsellMyset:'🔒 10 huecos de Mi Set con Premium (gratis: 5)' },
+  };
+  for (const k in EXTRA25) { if (I18N[k]) Object.assign(I18N[k], EXTRA25[k]); }
+
   // ── 追加辞書7（ライトへの機材追加トースト：どの枠A-Jに追加したか明示）─────
   const EXTRA7 = {
     ja: { addedToLight:(name,slot)=>`${name} を ライト${slot} に追加しました`, addedToDiagram:(name)=>`${name} をライティング図に追加しました` },
