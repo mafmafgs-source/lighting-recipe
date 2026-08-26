@@ -75,6 +75,7 @@ footer{margin-top:40px;padding-top:16px;border-top:1px solid #2e2e2e;font-size:1
       <li><b>取得する情報：</b>Apple アカウントによるサインイン時に Apple から提供されるメールアドレス（「メールを非公開」を選択した場合は Apple のリレーアドレス）と、認証用の匿名ユーザーID。氏名やパスワードは取得しません。</li>
       <li><b>保存されるデータ：</b>利用者が「今すぐバックアップ」を実行した時点の、第2項に記載したアプリ内データ一式（写真を含む）。暗号化された通信（HTTPS）で、Google LLC が提供する Firebase（Cloud Firestore）に保存されます。</li>
       <li><b>利用目的：</b>利用者自身によるバックアップと復元（端末の変更・再インストール時のデータ引き継ぎ）のためにのみ使用します。広告・分析・第三者への提供には一切使用せず、開発者がバックアップの内容を閲覧することもありません。</li>
+      <li><b>自動バックアップ：</b>サインイン中は、アプリ起動時に1日1回、自動でバックアップが保存されます（初期設定はオン。設定画面からいつでもオフにできます）。</li>
       <li><b>保管期間：</b>利用者がアカウントを削除するまで保管します。バックアップは常に最新の1世代のみを保持し、新しいバックアップで上書きされます。</li>
       <li><b>削除：</b>設定画面の「アカウントとクラウドデータを削除」操作により、クラウド上のバックアップデータと認証アカウントを即時に完全削除できます。「サインアウト」はこの端末との接続を解除するだけで、クラウド上のデータは保持されます。</li>
     </ul>
@@ -151,6 +152,7 @@ footer{margin-top:40px;padding-top:16px;border-top:1px solid #2e2e2e;font-size:1
       <li><b>Information collected:</b> the email address provided by Apple when you sign in with your Apple Account (if you choose "Hide My Email", this is Apple's relay address) and an anonymous user ID used for authentication. We do not collect your name or password.</li>
       <li><b>Data stored:</b> the App data described in Section 2 (including photos) as of the moment you tap "Back up now". It is transmitted over an encrypted connection (HTTPS) and stored in Firebase (Cloud Firestore), a service provided by Google LLC.</li>
       <li><b>Purpose:</b> solely to let you back up and restore your own data (for example when changing devices or reinstalling). It is never used for advertising or analytics, never shared with third parties, and the developer does not view the contents of your backups.</li>
+      <li><b>Auto backup:</b> while signed in, a backup is saved automatically about once a day when you launch the app (on by default; you can turn it off on the Settings screen at any time).</li>
       <li><b>Retention:</b> until you delete your account. Only the most recent backup is kept; each new backup overwrites the previous one.</li>
       <li><b>Deletion:</b> the "Delete account & cloud data" action on the Settings screen immediately and permanently deletes your cloud backup and authentication account. "Sign out" only disconnects this device; your cloud data is retained.</li>
     </ul>
