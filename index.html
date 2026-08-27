@@ -2975,23 +2975,30 @@ async function doExport(){
           const bc=Math.round(255+(180-255)*t);
           const col=`rgb(${rc},${gc},${bc})`;
           const bw=Math.round(1+(dh/HEIGHT_MAX)*3)+1;
+          // 画面表示と同じ描き方：リング（グラデ背景＋枠線）の上に、画像を切り抜きなしで重ねる
+          //（以前は円形にクリップ＋正方形引き伸ばしで、はみ出すデザインの画像が切れていた）
+          const grad=ctx.createRadialGradient(diX,diY,0,diX,diY,RING/2);
+          grad.addColorStop(0,'#ffffff');
+          grad.addColorStop(0.4,'#ffffff');
+          grad.addColorStop(1,`rgba(${rc},${gc},${bc},0.27)`);
+          ctx.fillStyle=grad;
+          ctx.beginPath();ctx.arc(diX,diY,RING/2,0,Math.PI*2);ctx.fill();
+          ctx.strokeStyle=col;ctx.lineWidth=bw;
+          ctx.beginPath();ctx.arc(diX,diY,RING/2,0,Math.PI*2);ctx.stroke();
           const diSrc=directItemImgSrc(di);
           if(diSrc){
             const im=await loadImg(diSrc);
             if(im){
+              // 画面の <img 54px object-fit:contain> と同じ＝縦横比を保って枠に収める
+              const IMG=54*(di.scale??1)*scaleX;
+              const ar=(im.width&&im.height)?im.width/im.height:1;
+              let dw=IMG,dh=IMG;
+              if(ar>1) dh=IMG/ar; else dw=IMG*ar;
               ctx.save();
               if(di.flipped){ctx.translate(diX,0);ctx.scale(-1,1);ctx.translate(-diX,0);}
-              ctx.beginPath();ctx.arc(diX,diY,RING/2,0,Math.PI*2);ctx.closePath();
-              ctx.save();ctx.clip();
-              ctx.drawImage(im,diX-RING/2,diY-RING/2,RING,RING);
-              ctx.restore();
-              ctx.strokeStyle=col;ctx.lineWidth=bw;
-              ctx.beginPath();ctx.arc(diX,diY,RING/2,0,Math.PI*2);ctx.stroke();
+              ctx.drawImage(im,diX-dw/2,diY-dh/2,dw,dh);
               ctx.restore();
             }
-          } else {
-            ctx.strokeStyle=col;ctx.lineWidth=bw;
-            ctx.beginPath();ctx.arc(diX,diY,RING/2,0,Math.PI*2);ctx.stroke();
           }
           ctx.font=`600 ${Math.round(10*scaleX)}px -apple-system,sans-serif`;
           ctx.fillStyle='rgba(80,80,80,0.9)';
