@@ -1882,13 +1882,17 @@ function renderDirectItems(canvas){
     const flipped=di.flipped||false;
     const flipStyle=flipped?'transform:scaleX(-1);':'';
 
+    // サイズ（scale・省略時100%）: リングと画像だけ拡縮し、名前ラベルは等倍のまま
+    const dScale=di.scale??1;
+    const ringPx=Math.round(42*dScale);
+    const imgPx=Math.round(54*dScale);
     const diSrc=directItemImgSrc(di);
     const imgHtml=diSrc
-      ?`<img src="${diSrc}" style="${flipStyle}" onerror="this.style.display='none'">`
+      ?`<img src="${diSrc}" style="${flipStyle}width:${imgPx}px;height:${imgPx}px;" onerror="this.style.display='none'">`
       :'';
     el.innerHTML=
       `<button class="direct-item-del" onclick="event.stopPropagation();removeDirectItem(${idx})">×</button>`+
-      `<div class="di-height-ring" style="border:${borderW}px solid ${col};background:radial-gradient(circle,#fff 40%,${col}44 100%)">${imgHtml}</div>`+
+      `<div class="di-height-ring" style="width:${ringPx}px;height:${ringPx}px;border:${borderW}px solid ${col};background:radial-gradient(circle,#fff 40%,${col}44 100%)">${imgHtml}</div>`+
       `<span class="direct-item-name">${di.name}</span>`;
 
     // クリック → 選択してパネル表示
@@ -2085,6 +2089,11 @@ function renderPanel(){
             style="background:linear-gradient(to right,rgb(180,220,255) 0%,rgb(80,160,240) 50%,rgb(10,60,180) 100%)">
           <span class="slider-val" id="hValDi">${h}cm</span>
         </div>
+        <div class="slider-row">
+          <label>${T.sizeLabel}</label>
+          <input type="range" id="sSliderDi" min="50" max="200" value="${Math.round((di.scale??1)*100)}" step="5">
+          <span class="slider-val" id="sValDi">${Math.round((di.scale??1)*100)}%</span>
+        </div>
         <button class="btn-flip${flipped?' flipped':''}" id="btnFlipDi">${T.flipBtn}</button>
       </div>`;
     document.getElementById('hSliderDi').addEventListener('input',e=>{
@@ -2095,6 +2104,17 @@ function renderPanel(){
       panel.querySelector('.panel-card').style.borderColor=col;
       const valEl=document.getElementById('hValDi');
       if(valEl) valEl.textContent=e.target.value+'cm';
+      const savedSel=selectedDirect;
+      renderCanvas();
+      selectedDirect=savedSel;
+      renderBeams();
+    });
+    document.getElementById('sSliderDi').addEventListener('input',e=>{
+      const items=loadDirectItems();
+      items[selectedDirect].scale=Number(e.target.value)/100;
+      saveDirectItems(items);
+      const valEl=document.getElementById('sValDi');
+      if(valEl) valEl.textContent=e.target.value+'%';
       const savedSel=selectedDirect;
       renderCanvas();
       selectedDirect=savedSel;
@@ -2947,7 +2967,7 @@ async function doExport(){
         for(const di of directItems){
           const diX=PADDING+(di.x??50)/100*DIAG_W;
           const diY=y+(di.y??50)/100*DIAG_H;
-          const RING=42*scaleX;
+          const RING=42*(di.scale??1)*scaleX;  // サイズ(scale)を画面表示と一致させる
           const dh=di.height??HEIGHT_DEFAULT;
           const t=dh/HEIGHT_MAX;
           const rc=Math.round(180+(10-180)*t);

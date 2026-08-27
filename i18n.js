@@ -892,6 +892,19 @@
   };
   for (const k in EXTRA25) { if (I18N[k]) Object.assign(I18N[k], EXTRA25[k]); }
 
+  // ── 追加辞書26（ライティング図・撮影小物のサイズ調整スライダー 2026-08-28）─────
+  const EXTRA26 = {
+    ja: { sizeLabel:'サイズ' },
+    en: { sizeLabel:'Size' },
+    zh: { sizeLabel:'大小' },
+    ko: { sizeLabel:'크기' },
+    de: { sizeLabel:'Größe' },
+    fr: { sizeLabel:'Taille' },
+    it: { sizeLabel:'Dimensione' },
+    es: { sizeLabel:'Tamaño' },
+  };
+  for (const k in EXTRA26) { if (I18N[k]) Object.assign(I18N[k], EXTRA26[k]); }
+
   // ── 追加辞書7（ライトへの機材追加トースト：どの枠A-Jに追加したか明示）─────
   const EXTRA7 = {
     ja: { addedToLight:(name,slot)=>`${name} を ライト${slot} に追加しました`, addedToDiagram:(name)=>`${name} をライティング図に追加しました` },
