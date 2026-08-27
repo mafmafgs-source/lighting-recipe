@@ -2908,12 +2908,11 @@ async function doExport(){
     const memoEl=document.getElementById('canvasMemo');
     const memoDisplay=memoEl?memoEl.style.display:'';
     if(memoEl) memoEl.style.display='none';
-    // 表示ズーム（ピンチ縮小）は出力に漏らさない：html2canvas は CSS transform を反映するため、
-    // キャプチャ中だけ等倍に戻し、終わったら元のズームに復帰する（ノードだけ縮小して直接配置・太陽・メモと
-    // スケールが食い違う不具合の修正）
-    const _zoomBackup=diagZoom;
-    const _restoreZoom=()=>{ if(_zoomBackup!==1){ diagZoom=_zoomBackup; renderCanvas(); applyStaticZoom(); } };
-    if(_zoomBackup!==1){ diagZoom=1; renderCanvas(); applyStaticZoom(); }
+    // 表示ズーム（左下の倍率）は出力にもそのまま反映する＝画面の見た目どおりに出力（2026-08-28変更）。
+    // html2canvas が CSS transform ごとキャプチャするので、手描きする直接配置アイテム側にも
+    // _exportZoom を掛けてスケールを一致させる（以前の「等倍に戻す」処理は廃止）
+    const _exportZoom=diagZoom;
+    const _restoreZoom=()=>{};
     // 太陽は画面(.sun-node + SVGビーム)をそのまま html2canvas に描かせる＝色相・位置が画面と一致
     //（以前はこの上から手描きで重ねていたため二重描画＆固定黄色になっていた）
     html2canvas(diagCanvas,{
@@ -2947,7 +2946,7 @@ async function doExport(){
           const diY=y+(di.y??50)/100*DIAG_H;
           // 高さリングは廃止。画面表示と同じく、画像を切り抜きなし・縦横比維持で描く
           //（画像なしの小物のみ薄いグレー円をタップ目標＝画面と同じ見た目で描画）
-          const dScale=di.scale??1;
+          const dScale=(di.scale??1)*_exportZoom;  // 表示ズームも掛けて画面と一致させる
           const IMG=54*dScale*scaleX;
           const CIRC=42*dScale*scaleX;
           const diSrc=directItemImgSrc(di);
@@ -2971,13 +2970,13 @@ async function doExport(){
           if(!drew){
             ctx.fillStyle='#f4f4f4';
             ctx.strokeStyle='#bbbbbb';
-            ctx.lineWidth=Math.max(1,Math.round(scaleX));
+            ctx.lineWidth=Math.max(1,Math.round(scaleX*_exportZoom));
             ctx.beginPath();ctx.arc(diX,diY,CIRC/2,0,Math.PI*2);ctx.fill();ctx.stroke();
           }
-          ctx.font=`600 ${Math.round(10*scaleX)}px -apple-system,sans-serif`;
+          ctx.font=`600 ${Math.max(6,Math.round(10*_exportZoom*scaleX))}px -apple-system,sans-serif`;
           ctx.fillStyle='rgba(80,80,80,0.9)';
           ctx.textAlign='center';
-          ctx.fillText(di.name,diX,diY+visHalf+Math.round(12*scaleX));
+          ctx.fillText(di.name,diX,diY+visHalf+Math.round(12*_exportZoom*scaleX));
           ctx.textAlign='left';
         }
 
