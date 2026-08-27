@@ -1876,23 +1876,21 @@ function renderDirectItems(canvas){
     el.style.top=(di.y??50)+'%';
     el.style.transform='translate(-50%,-50%) scale('+diagZoom+')';
 
-    const h=di.height??HEIGHT_DEFAULT;
-    const col=heightToColor(h);
-    const borderW=Math.round(1+(h/HEIGHT_MAX)*3)+1;
     const flipped=di.flipped||false;
     const flipStyle=flipped?'transform:scaleX(-1);':'';
 
-    // サイズ（scale・省略時100%）: リングと画像だけ拡縮し、名前ラベルは等倍のまま
+    // サイズ（scale・省略時100%）: 画像だけ拡縮し、名前ラベルは等倍のまま
+    // 高さリングは廃止（拡大時にノイズになるため）。画像なしの小物のみ薄いグレー円をタップ目標として表示
     const dScale=di.scale??1;
-    const ringPx=Math.round(42*dScale);
     const imgPx=Math.round(54*dScale);
+    const circPx=Math.round(42*dScale);
     const diSrc=directItemImgSrc(di);
-    const imgHtml=diSrc
+    const visHtml=diSrc
       ?`<img src="${diSrc}" style="${flipStyle}width:${imgPx}px;height:${imgPx}px;" onerror="this.style.display='none'">`
-      :'';
+      :`<div style="width:${circPx}px;height:${circPx}px;border-radius:50%;border:1px solid #bbb;background:#f4f4f4"></div>`;
     el.innerHTML=
       `<button class="direct-item-del" onclick="event.stopPropagation();removeDirectItem(${idx})">×</button>`+
-      `<div class="di-height-ring" style="width:${ringPx}px;height:${ringPx}px;border:${borderW}px solid ${col};background:radial-gradient(circle,#fff 40%,${col}44 100%)">${imgHtml}</div>`+
+      visHtml+
       `<span class="direct-item-name">${di.name}</span>`;
 
     // クリック → 選択してパネル表示
@@ -2077,18 +2075,11 @@ function renderPanel(){
     const items=loadDirectItems();
     const di=items[selectedDirect];
     if(!di){panel.innerHTML='';updateBeamPanel();return;}
-    const h=di.height??HEIGHT_DEFAULT;
-    const color=heightToColor(h);
+    // 撮影小物は高さ（リング・バー）を廃止。サイズと反転のみ
     const flipped=di.flipped||false;
     panel.innerHTML=`
-      <div class="panel-card" style="border-color:${color}">
+      <div class="panel-card" style="border-color:#c8a96e">
         <div class="panel-title">${di.name}</div>
-        <div class="slider-row">
-          <label>${T.heightLabel}</label>
-          <input type="range" id="hSliderDi" min="${HEIGHT_MIN}" max="${HEIGHT_MAX}" value="${h}" step="5"
-            style="background:linear-gradient(to right,rgb(180,220,255) 0%,rgb(80,160,240) 50%,rgb(10,60,180) 100%)">
-          <span class="slider-val" id="hValDi">${h}cm</span>
-        </div>
         <div class="slider-row">
           <label>${T.sizeLabel}</label>
           <input type="range" id="sSliderDi" min="50" max="200" value="${Math.round((di.scale??1)*100)}" step="5">
@@ -2096,19 +2087,6 @@ function renderPanel(){
         </div>
         <button class="btn-flip${flipped?' flipped':''}" id="btnFlipDi">${T.flipBtn}</button>
       </div>`;
-    document.getElementById('hSliderDi').addEventListener('input',e=>{
-      const items=loadDirectItems();
-      items[selectedDirect].height=Number(e.target.value);
-      saveDirectItems(items);
-      const col=heightToColor(items[selectedDirect].height);
-      panel.querySelector('.panel-card').style.borderColor=col;
-      const valEl=document.getElementById('hValDi');
-      if(valEl) valEl.textContent=e.target.value+'cm';
-      const savedSel=selectedDirect;
-      renderCanvas();
-      selectedDirect=savedSel;
-      renderBeams();
-    });
     document.getElementById('sSliderDi').addEventListener('input',e=>{
       const items=loadDirectItems();
       items[selectedDirect].scale=Number(e.target.value)/100;
@@ -2967,43 +2945,39 @@ async function doExport(){
         for(const di of directItems){
           const diX=PADDING+(di.x??50)/100*DIAG_W;
           const diY=y+(di.y??50)/100*DIAG_H;
-          const RING=42*(di.scale??1)*scaleX;  // サイズ(scale)を画面表示と一致させる
-          const dh=di.height??HEIGHT_DEFAULT;
-          const t=dh/HEIGHT_MAX;
-          const rc=Math.round(180+(10-180)*t);
-          const gc=Math.round(220+(60-220)*t);
-          const bc=Math.round(255+(180-255)*t);
-          const col=`rgb(${rc},${gc},${bc})`;
-          const bw=Math.round(1+(dh/HEIGHT_MAX)*3)+1;
-          // 画面表示と同じ描き方：リング（グラデ背景＋枠線）の上に、画像を切り抜きなしで重ねる
-          //（以前は円形にクリップ＋正方形引き伸ばしで、はみ出すデザインの画像が切れていた）
-          const grad=ctx.createRadialGradient(diX,diY,0,diX,diY,RING/2);
-          grad.addColorStop(0,'#ffffff');
-          grad.addColorStop(0.4,'#ffffff');
-          grad.addColorStop(1,`rgba(${rc},${gc},${bc},0.27)`);
-          ctx.fillStyle=grad;
-          ctx.beginPath();ctx.arc(diX,diY,RING/2,0,Math.PI*2);ctx.fill();
-          ctx.strokeStyle=col;ctx.lineWidth=bw;
-          ctx.beginPath();ctx.arc(diX,diY,RING/2,0,Math.PI*2);ctx.stroke();
+          // 高さリングは廃止。画面表示と同じく、画像を切り抜きなし・縦横比維持で描く
+          //（画像なしの小物のみ薄いグレー円をタップ目標＝画面と同じ見た目で描画）
+          const dScale=di.scale??1;
+          const IMG=54*dScale*scaleX;
+          const CIRC=42*dScale*scaleX;
           const diSrc=directItemImgSrc(di);
+          let visHalf=CIRC/2;
+          let drew=false;
           if(diSrc){
             const im=await loadImg(diSrc);
             if(im){
-              // 画面の <img 54px object-fit:contain> と同じ＝縦横比を保って枠に収める
-              const IMG=54*(di.scale??1)*scaleX;
+              // 画面の <img object-fit:contain> と同じ＝縦横比を保って枠に収める
               const ar=(im.width&&im.height)?im.width/im.height:1;
-              let dw=IMG,dh=IMG;
-              if(ar>1) dh=IMG/ar; else dw=IMG*ar;
+              let dw=IMG,dh2=IMG;
+              if(ar>1) dh2=IMG/ar; else dw=IMG*ar;
               ctx.save();
               if(di.flipped){ctx.translate(diX,0);ctx.scale(-1,1);ctx.translate(-diX,0);}
-              ctx.drawImage(im,diX-dw/2,diY-dh/2,dw,dh);
+              ctx.drawImage(im,diX-dw/2,diY-dh2/2,dw,dh2);
               ctx.restore();
+              visHalf=IMG/2;
+              drew=true;
             }
+          }
+          if(!drew){
+            ctx.fillStyle='#f4f4f4';
+            ctx.strokeStyle='#bbbbbb';
+            ctx.lineWidth=Math.max(1,Math.round(scaleX));
+            ctx.beginPath();ctx.arc(diX,diY,CIRC/2,0,Math.PI*2);ctx.fill();ctx.stroke();
           }
           ctx.font=`600 ${Math.round(10*scaleX)}px -apple-system,sans-serif`;
           ctx.fillStyle='rgba(80,80,80,0.9)';
           ctx.textAlign='center';
-          ctx.fillText(di.name,diX,diY+RING/2+Math.round(12*scaleX));
+          ctx.fillText(di.name,diX,diY+visHalf+Math.round(12*scaleX));
           ctx.textAlign='left';
         }
 
