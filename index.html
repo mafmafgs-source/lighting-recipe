@@ -1041,8 +1041,12 @@ function resetAll(){
 
   // ライト（位置・高さ・配光・色・反転をリセット、機材設定はBuilderに任せるので保持）
   // 位置は defLight(i) の段配置に戻す（全灯を同一座標に重ねると B〜J が見えなくなる）
-  lights=lights.map((l,i)=>{ const d=defLight(i); return {...l, x:d.x, y:d.y, height:HEIGHT_DEFAULT, beam:40, angle:270, output:null, color:DEFAULT_HUE, flipped:false}; });
+  // ⚠️スプレッドなので3Dモードの追加フィールドは残ってしまう。2Dだけ初期化されて
+  //   3Dが古いフリー照準を向いたままになるため、ここで一緒に落とす。
+  lights=lights.map((l,i)=>{ const d=defLight(i); const {aim3d, height3d, ...rest}=l;
+    return {...rest, x:d.x, y:d.y, height:HEIGHT_DEFAULT, beam:40, angle:270, output:null, color:DEFAULT_HUE, flipped:false}; });
   saveLights();
+  save3dSettings(null);          // 3Dモードのレシピ単位の設定も初期化
 
   // 直接配置アイテム（レフ板・Flag等）も新規写真時にクリア
   saveDirectItems([]);
@@ -1854,6 +1858,21 @@ function renderCanvas(){
 function loadDirectItems(){
   try{ return JSON.parse(localStorage.getItem('lr_direct_items')||'[]'); }catch(e){ return []; }
 }
+// ══ 3Dモード（アプリ専用）のレシピ単位の設定 ══
+//  図の一辺のメートル換算・3Dで立てる被写体・3D専用の小物など、**2Dに置き場が無い値**をまとめて
+//  1つのキーに入れて持ち回る。2D側は中身を一切解釈せず、保存/復元/リセットだけ面倒を見る
+//  ＝3D側に項目が増えてもこのファイルは無変更で済む。
+//  ※ライトごとの3D値は lights[] に、撮影小物ごとの3D値は directItems[] に入っており、
+//    どちらもレシピへ丸ごとコピーされるのでここでは扱わない。
+function load3dSettings(){
+  try{ return JSON.parse(localStorage.getItem('lr_r3d')||'null'); }catch(e){ return null; }
+}
+function save3dSettings(v){
+  try{
+    if(v==null) localStorage.removeItem('lr_r3d');
+    else localStorage.setItem('lr_r3d', JSON.stringify(v));
+  }catch(e){}
+}
 function saveDirectItems(items){
   localStorage.setItem('lr_direct_items', JSON.stringify(items));
 }
@@ -2453,6 +2472,7 @@ async function doSaveRecipe(forceNew){
     id, title, updatedAt:now, photoData, thumbData, itemImgs, itemRoles,
     lights:JSON.parse(JSON.stringify(lights)),
     directItems:loadDirectItems(),
+    r3d:load3dSettings(),          // 3Dモードのレシピ単位の設定（無ければnull）
     session:{
       loc:document.getElementById('locInput')?.value||'',
       memo:getCanvasMemo(),
@@ -2540,6 +2560,9 @@ async function loadRecipeFromURL(){
 
     // ── 直接配置アイテム ──
     if(recipe.directItems) saveDirectItems(recipe.directItems);
+
+    // ── 3Dモードのレシピ単位の設定（旧レシピには無いのでnullで消える＝既定に戻る）──
+    save3dSettings(recipe.r3d || null);
 
     // ── セッション ──
     const s=recipe.session||{};
