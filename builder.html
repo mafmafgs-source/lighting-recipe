@@ -308,6 +308,7 @@ const DEFAULT_CATS = [
       { id:'beauty_dish',  icon:'⬡', imgPath:'icons/beauty_dish.png',  get label(){ return T.cats.beauty_dish; } },
       { id:'snoot',        icon:'⬡', imgPath:'icons/snoot.png',        get label(){ return T.cats.snoot; } },
       { id:'grid',         icon:'⬡', imgPath:'icons/grid.png',         get label(){ return T.cats.grid; } },
+      { id:'fresnel',      icon:'⬡', imgPath:'icons/fresnel.png',      get label(){ return T.cats.fresnel; } },
     ]
   },
   { id:'stand',     icon:'△',  imgPath:'icons/stand.png',    get label(){ return T.cats.stand; } },
@@ -345,6 +346,9 @@ const DEFAULT_DB = {
   grid:      [
     {maker:'', model:'Honeycomb Grid'},
   ],
+  fresnel:   [
+    {maker:'', model:'フレネルレンズ'},
+  ],
   stand:     [
     {maker:'Godox', model:'1052BAC'},
   ],
@@ -352,6 +356,8 @@ const DEFAULT_DB = {
   reflector: [
     {maker:'', model:'白レフ'},
     {maker:'', model:'黒レフ'},
+    {maker:'', model:'カポック（白）'},
+    {maker:'', model:'カポック（黒）'},
   ],
   flag:      [
     {maker:'', model:'Flag Frame S'},
@@ -458,6 +464,39 @@ function saveDefaultAdditions(){
   }catch(e){}
   if(typeof updateVaultTotal==='function') updateVaultTotal();
 }
+// ══════════════════════════════════════════════
+//  プリセット追加の配布（2026-08-31）
+// ══════════════════════════════════════════════
+//  lr_defaultAdditions は「全件スナップショット」なので、コードにプリセットを足しても
+//  既にビルダーを触ったユーザーには届かない（読込時に丸ごと置換されるため）。
+//  そこで **まだ適用していないバージョンの追加分だけ** をスナップショットへ差し込む。
+//  ・ユーザーが消した機材は復活しない（消した時点より後の追加分しか足さないため）
+//  ・スナップショットに無いカテゴリ（＝新カテゴリ）は元々そのまま出るので触らない
+//  ⚠️プリセットを増やしたら PRESET_VER を +1 し、PRESET_ADDED にその分だけ書くこと。
+const PRESET_VER = 1;
+const PRESET_ADDED = {
+  1: { reflector: [{maker:'', model:'カポック（白）'}, {maker:'', model:'カポック（黒）'}] },
+};
+function migratePresets(){
+  try{
+    const seen = +(localStorage.getItem('lr_preset_ver') || 0);
+    if (seen >= PRESET_VER) return;
+    const add = JSON.parse(localStorage.getItem('lr_defaultAdditions') || 'null');
+    if (add){
+      for (let v = seen + 1; v <= PRESET_VER; v++){
+        Object.keys(PRESET_ADDED[v] || {}).forEach(cat => {
+          if (!Array.isArray(add[cat])) return;          // 持っていないカテゴリは触らない
+          PRESET_ADDED[v][cat].forEach(it => {
+            if (!add[cat].some(x => displayName(x) === displayName(it))) add[cat].push(it);
+          });
+        });
+      }
+      localStorage.setItem('lr_defaultAdditions', JSON.stringify(add));
+    }
+    localStorage.setItem('lr_preset_ver', String(PRESET_VER));
+  }catch(e){}
+}
+
 function loadDefaultAdditions(){
   try{
     const additions=JSON.parse(localStorage.getItem('lr_defaultAdditions')||'{}');
@@ -777,7 +816,11 @@ function guessIcon(name) {
 }
 
 // アイテム名ごとの画像上書き（同カテゴリ内で見た目を変えたいもの。例: レフ版の黒レフ）
-const ITEM_IMG_OVERRIDE = { '黒レフ':'icons/blackreflector.png' };
+const ITEM_IMG_OVERRIDE = {
+  '黒レフ':'icons/blackreflector.png',
+  'カポック（白）':'icons/kapok.png',
+  'カポック（黒）':'icons/kapok_black.png',
+};
 
 // 機材名からカテゴリのimgPathを逆引き
 function getCatImgByItemName(name) {
@@ -1559,7 +1602,7 @@ function getItemRole(name) {
     if(items.some(it => displayName(it) === name || (typeof it==='object' && it.model === name))){
       if(['stand','boom'].includes(catId))            return 'base';
       if(['strobe','video','video_stick','panel'].includes(catId)) return 'light';
-      if(['softbox','umbrella','beauty_dish','snoot','grid','flag','reflector'].includes(catId)) return 'modifier';
+      if(['softbox','umbrella','beauty_dish','snoot','grid','fresnel','flag','reflector'].includes(catId)) return 'modifier';
     }
   }
   // カスタム機材：機材ごとの光源フラグ(light)で判定（index.html と挙動・見た目を揃える）。
@@ -1792,6 +1835,7 @@ function applyI18n(){
 }
 
 applyI18n();
+migratePresets();      // 追加プリセットをスナップショットへ差し込んでから読む
 loadDefaultAdditions();
 updateVaultTotal();
 // IDB画像を復元してからレンダリング

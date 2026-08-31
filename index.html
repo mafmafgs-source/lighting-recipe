@@ -54,6 +54,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
 .zoom-ctrl button:active{background:rgba(255,255,255,.15)}
 .zoom-ctrl span{font-size:11px;color:#c8a96e;font-weight:700;min-width:36px;text-align:center;cursor:pointer;-webkit-tap-highlight-color:transparent}
 #canvas{width:100%;aspect-ratio:1/1;border:1px solid #2e2e2e;border-radius:12px;background:#f0f0f0;position:relative;overflow:hidden;touch-action:none}
+/* 3Dモードから戻ったときのスナップショット表示（アプリ専用。Web版は lr_r3d_view が空なので出ない） */
+#diag3dImg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:11px;z-index:3;pointer-events:none}
+/* 触って回せる3Dビュー（アプリのみ）。静止画の上に重ね、出力時だけ隠して静止画を撮る */
+#diag3dFrame{position:absolute;inset:0;width:100%;height:100%;border:0;border-radius:11px;z-index:4;background:transparent}
+/* 図の右上のボタン列。アプリの「3D編集」ボタン(native-bridge)もここに入る＝2Dボタンの隣に並ぶ */
+.diag-btns{position:absolute;right:8px;top:8px;z-index:6;display:flex;gap:6px;align-items:center}
+.diag-btns button{padding:5px 14px;border:1px solid #c8a96e;border-radius:8px;background:rgba(0,0,0,.55);color:#c8a96e;font-size:12px;font-weight:800;cursor:pointer;-webkit-tap-highlight-color:transparent;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);position:static}
+#canvas.diag3d>#lightSvg,#canvas.diag3d>.subject,#canvas.diag3d>.camera-icon,
+#canvas.diag3d .light-node,#canvas.diag3d .direct-item,#canvas.diag3d .sun-node{display:none}
+#canvas.diag3d .canvas-memo{z-index:4}
 .subject{position:absolute;left:50%;top:42%;transform:translate(-50%,-50%);font-size:28px;user-select:none;cursor:pointer;z-index:5;padding:6px;line-height:1}
 .camera-icon{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);font-size:22px;user-select:none;cursor:pointer;z-index:5;padding:4px}
 .camera-icon img{width:22px;height:22px;object-fit:contain;border-radius:5px;display:block}
@@ -246,6 +256,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
       </div>
     </div>
     <div class="lighting-wrap">
+      <div class="diag-btns" id="diagBtns">
+        <button id="view3dBtn" onclick="toggleDiagView()" title="2D／3D" style="display:none">2D</button>
+      </div>
       <div id="canvas">
         <svg id="lightSvg" xmlns="http://www.w3.org/2000/svg"><g id="bgGroup"></g></svg>
         <div class="subject" onclick="openSubjectSheet(event)">👤</div>
@@ -436,7 +449,10 @@ const DEFAULT_HUE=48; // 既存の見た目（#ffcc00相当）を再現するデ
 // 新規ライトのデフォルト（A-Eは1段目、F-J（有料枠）は2段目に配置）
 function defLight(i){
   const lbl=(typeof LIGHT_LABELS!=='undefined')?LIGHT_LABELS[i]:['A','B','C','D','E','F','G','H','I','J'][i];
-  return {id:lbl,items:[],height:HEIGHT_DEFAULT,x:20+(i%5)*15,y:30+Math.floor(i/5)*24,beam:40,angle:270,output:null};
+  // ⭐9/1: 新しいライトの既定色は 0°＝白色光（3Dの既定と揃える）。
+  //   ⚠️DEFAULT_HUE(48) は消さない。**color未設定の既存レシピ**はアンバーのまま保つための
+  //     後方互換フォールバックとして `l.color ?? DEFAULT_HUE` で使い続ける。
+  return {id:lbl,items:[],height:HEIGHT_DEFAULT,x:20+(i%5)*15,y:30+Math.floor(i/5)*24,beam:40,angle:270,output:null,color:0};
 }
 // 初回起動シード：完全新規（キー自体が無い）ときだけ、ライトAとマイセット1枠に
 // 定番の組み合わせ（スタンド1052BAC＋AD100Pro＋白アンブレラ85cm）を入れておく。
@@ -768,6 +784,7 @@ const CAT_IMG_MAP={
   strobe:'icons/strobe.png', video:'icons/video.png', video_stick:'icons/video_stick.png', panel:'icons/ledpanel.png',
   softbox:'icons/softbox.png', umbrella:'icons/umbrella.png',
   beauty_dish:'icons/beauty_dish.png', snoot:'icons/snoot.png', grid:'icons/grid.png',
+  fresnel:'icons/fresnel.png',
   stand:'icons/stand.png', boom:'icons/boom_stand.png',
   reflector:'icons/reflector.png', flag:'icons/flag.png',
 };
@@ -783,9 +800,10 @@ const IDX_DEFAULT_DB={
   beauty_dish:['Beauty Dish 55cm','Beauty Dish 70cm'],
   snoot:['Snoot','Grid Snoot'],
   grid:['Honeycomb Grid'],
+  fresnel:['フレネルレンズ'],
   stand:['1052BAC','Nano Stand','C-Stand','Air-cushioned Stand'],
   boom:['Boom Arm','Mini Boom'],
-  reflector:['白レフ','黒レフ','シルバーレフ','トランスルーセント'],
+  reflector:['白レフ','黒レフ','シルバーレフ','トランスルーセント','カポック（白）','カポック（黒）'],
   flag:['Flag Frame S','Flag Frame M','Flag Frame L'],
 };
 
@@ -809,7 +827,17 @@ function buildRoleIndex(){
 }
 let ROLE_INDEX=buildRoleIndex();
 
+// 機材名ごとの画像上書き（同カテゴリ内で見た目を変えたいもの）。
+// builder.html の ITEM_IMG_OVERRIDE と**同じ内容を保つこと**。
+// ※ここが無かったため、図の上では黒レフも白レフのアイコンで描かれていた（2026-08-31に修正）
+const ITEM_IMG_OVERRIDE={
+  '黒レフ':'icons/blackreflector.png',
+  'カポック（白）':'icons/kapok.png',
+  'カポック（黒）':'icons/kapok_black.png',
+};
+
 function getCatImgByItemName(name){
+  if(ITEM_IMG_OVERRIDE[name]) return ITEM_IMG_OVERRIDE[name];
   // 1) 厳密一致を最優先（name===m ／ name が m を含む）。
   //    緩い末尾語マッチより先に確定させ、例えば "Honeycomb Grid" が snoot の
   //    "Grid Snoot" に末尾語 "Grid" で誤マッチして snoot 画像になるのを防ぐ。
@@ -1047,6 +1075,7 @@ function resetAll(){
     return {...rest, x:d.x, y:d.y, height:HEIGHT_DEFAULT, beam:40, angle:270, output:null, color:DEFAULT_HUE, flipped:false}; });
   saveLights();
   save3dSettings(null);          // 3Dモードのレシピ単位の設定も初期化
+  save3dView(null);              // 3Dのスナップショットも捨てる（図は2Dに戻る）
 
   // 直接配置アイテム（レフ板・Flag等）も新規写真時にクリア
   saveDirectItems([]);
@@ -1635,12 +1664,20 @@ function hasLightSource(items){
 // 色相からビームグラデーションの3色（中心・中間・外周）を生成
 // 既存の暖色ゴールド（#ffe566/#ffcc00/#ffaa00相当）の明度・彩度パターンを保ちつつ色相だけ変更する
 function beamColors(hue){
+  // ⭐9/1: 0°は「白色光」として扱う。3D側の colorFromHue() が hue===0 を setHSL(0,0,0.95)＝白に
+  //   しているのに、2Dは hsl(0,100%,50%)＝**赤**になっていて、同じレシピが2Dと3Dで別の色に見えていた。
+  //   ⚠️図の背景が明るい(#f0f0f0)ので純白だと消えてしまう。無彩色のグレーで「白い光」を表現する。
+  if(hue===0){
+    return { c0:'hsla(0,0%,72%,1.0)', c1:'hsla(0,0%,62%,0.55)', c2:'hsla(0,0%,55%,0.1)' };
+  }
   return {
     c0:`hsla(${hue},100%,75%,1.0)`,
     c1:`hsla(${hue},100%,50%,0.55)`,
     c2:`hsla(${hue},95%,45%,0.1)`,
   };
 }
+// 色見本（パネルの丸）。0°は白で見せる＝3Dの表示と一致させる
+function hueSwatch(hue){ return hue===0 ? '#f2f2f2' : `hsl(${hue},100%,50%)`; }
 
 function renderBeams(){
   const svg=document.getElementById('lightSvg');
@@ -1850,6 +1887,7 @@ function renderCanvas(){
 
   renderBg();
   renderBeams();
+  renderDiag3D(canvas);     // 3Dのスナップショット表示（アプリ専用）は最後に被せる
 }
 
 // ══════════════════════════════════════
@@ -1875,6 +1913,63 @@ function save3dSettings(v){
 }
 function saveDirectItems(items){
   localStorage.setItem('lr_direct_items', JSON.stringify(items));
+}
+// ══ 3Dのスナップショット表示（アプリ専用。2026-08-31 ユーザー方針）══
+//  3Dモードから戻ると、ライティング図の枠に**3D画面のスナップショットをそのまま出す**。
+//  3Dで作った人には平面図より3Dの絵の方が伝わるため。2Dの図に戻したいときは
+//  タイトル横の「2D」ボタンで切り替える（画像は消さないので何度でも往復できる）。
+//  中身は3D側が書く { img: dataURL(JPEG), view: '2d'|'3d' }。**2D側は解釈せず保存/復元だけ**。
+//  ※Web版には3Dモードが無いのでこのキーは常に空＝以下は何もしない
+function load3dView(){
+  try{ return JSON.parse(localStorage.getItem('lr_r3d_view')||'null'); }catch(e){ return null; }
+}
+function save3dView(v){
+  try{
+    if(v==null) localStorage.removeItem('lr_r3d_view');
+    else localStorage.setItem('lr_r3d_view', JSON.stringify(v));
+  }catch(e){}
+}
+function renderDiag3D(canvas){
+  const v=load3dView();
+  const on=!!(v&&v.view==='3d'&&v.img);
+  canvas.classList.toggle('diag3d',on);
+  let img=canvas.querySelector('#diag3dImg');
+  if(on){
+    if(!img){ img=document.createElement('img'); img.id='diag3dImg'; img.alt=''; canvas.appendChild(img); }
+    if(img.getAttribute('src')!==v.img) img.setAttribute('src',v.img);
+  }else if(img){ img.remove(); }
+  // 触って回せる3Dビュー（アプリのみ）。3Dのスナップショットがある＝アプリなので
+  // Web版には出ない。iframe内は ?embed=1 の閲覧モード＝カメラの回り込みだけできる
+  let fr=canvas.querySelector('#diag3dFrame');
+  if(on&&window.Capacitor){
+    if(!fr){
+      fr=document.createElement('iframe');
+      fr.id='diag3dFrame';
+      fr.setAttribute('scrolling','no');
+      fr.onerror=()=>fr.remove();
+      fr.src='3d/index.html?embed=1';
+      canvas.appendChild(fr);
+    }
+  }else if(fr){ fr.remove(); }   // 2D表示に戻したらWebGLごと破棄する（描き続けさせない）
+  const btn=document.getElementById('view3dBtn');
+  if(btn){
+    btn.style.display=(v&&v.img)?'':'none';   // 3Dの絵が無いうちはボタン自体を出さない
+    btn.textContent=on?'2D':'3D';             // ラベル＝押したら切り替わる先
+  }
+  // ズーム・太陽・背景は2Dの図にしか効かないので、3Dの絵を出している間は隠す（9/1ユーザー指摘）
+  const zc=document.querySelector('.zoom-ctrl');
+  if(zc) zc.style.display=on?'none':'';
+  ['sunToggleBtn','bgToggleBtn'].forEach(id=>{
+    const b=document.getElementById(id);
+    if(b) b.style.display=on?'none':'';
+  });
+}
+function toggleDiagView(){
+  const v=load3dView();
+  if(!v||!v.img) return;
+  v.view=(v.view==='3d')?'2d':'3d';
+  save3dView(v);
+  renderCanvas();
 }
 function removeDirectItem(idx){
   const items=loadDirectItems();
@@ -2215,7 +2310,7 @@ function updateBeamPanel(){
     if(hint)hint.style.display='none';
     bs.value=sunBeam; as.value=sunAngle; cs.value=sunHue??DEFAULT_HUE;
     bv.textContent=sunBeam+'%'; av.textContent=sunAngle+'°';
-    cw.style.background=`hsl(${sunHue??DEFAULT_HUE},100%,50%)`;
+    cw.style.background=hueSwatch(sunHue??DEFAULT_HUE);
     bs.oninput=e=>{sunBeam=Number(e.target.value);bv.textContent=e.target.value+'%';renderBeams();saveSession();};
     as.oninput=e=>{sunAngle=Number(e.target.value);av.textContent=e.target.value+'°';renderBeams();saveSession();};
     cs.oninput=e=>{sunHue=Number(e.target.value);cw.style.background=`hsl(${sunHue},100%,50%)`;renderBeams();saveSession();};
@@ -2237,10 +2332,10 @@ function updateBeamPanel(){
   if(hint)hint.style.display='none';
   bs.value=l.beam??40;as.value=l.angle??270;cs.value=l.color??DEFAULT_HUE;
   bv.textContent=(l.beam??40)+'%';av.textContent=(l.angle??270)+'°';
-  cw.style.background=`hsl(${l.color??DEFAULT_HUE},100%,50%)`;
+  cw.style.background=hueSwatch(l.color??DEFAULT_HUE);
   bs.oninput=e=>{lights[selected].beam=Number(e.target.value);bv.textContent=e.target.value+'%';renderBg();renderBeams();saveLights();};
   as.oninput=e=>{lights[selected].angle=Number(e.target.value);av.textContent=e.target.value+'°';renderBg();renderBeams();saveLights();};
-  cs.oninput=e=>{lights[selected].color=Number(e.target.value);cw.style.background=`hsl(${lights[selected].color},100%,50%)`;renderBeams();saveLights();};
+  cs.oninput=e=>{lights[selected].color=Number(e.target.value);cw.style.background=hueSwatch(lights[selected].color);renderBeams();saveLights();};
 }
 
 window.addEventListener('resize',()=>{renderBg();renderBeams();});
@@ -2473,6 +2568,7 @@ async function doSaveRecipe(forceNew){
     lights:JSON.parse(JSON.stringify(lights)),
     directItems:loadDirectItems(),
     r3d:load3dSettings(),          // 3Dモードのレシピ単位の設定（無ければnull）
+    r3dView:load3dView(),          // 3Dのスナップショットと表示中の図（無ければnull）
     session:{
       loc:document.getElementById('locInput')?.value||'',
       memo:getCanvasMemo(),
@@ -2563,6 +2659,7 @@ async function loadRecipeFromURL(){
 
     // ── 3Dモードのレシピ単位の設定（旧レシピには無いのでnullで消える＝既定に戻る）──
     save3dSettings(recipe.r3d || null);
+    save3dView(recipe.r3dView || null);
 
     // ── セッション ──
     const s=recipe.session||{};
@@ -2925,8 +3022,21 @@ async function doExport(){
   }
 
   // ── ライティング図 ──
-  await new Promise(res=>{
+  await new Promise(async res=>{
     const diagCanvas=document.getElementById('canvas');
+    // ⭐9/1: 3Dの絵を出しているときは、2Dの撮影小物を手描きしない。
+    //   （小物は3Dの絵の中に既に写っているので、上から描くと二重になる＝フラッグの映り込み）
+    const _diag3dOn=diagCanvas.classList.contains('diag3d');
+    // iframe（触って回せる3Dビュー）は html2canvas で撮れないので、下に敷いた静止画を撮る。
+    //   回した直後は静止画が古いことがあるので、localStorage の最新を読み込んでから撮る。
+    const _fr=diagCanvas.querySelector('#diag3dFrame');
+    if(_fr) _fr.style.display='none';
+    if(_diag3dOn){
+      const _v=load3dView(), _im=diagCanvas.querySelector('#diag3dImg');
+      if(_im&&_v&&_v.img&&_im.getAttribute('src')!==_v.img){
+        await new Promise(r=>{ _im.onload=_im.onerror=r; _im.setAttribute('src',_v.img); });
+      }
+    }
     // メモをキャプチャから除外（後で直接描画するため一時非表示）
     const memoEl=document.getElementById('canvasMemo');
     const memoDisplay=memoEl?memoEl.style.display:'';
@@ -2944,8 +3054,9 @@ async function doExport(){
       useCORS:true,allowTaint:true,logging:false,
       ignoreElements:el=>el.classList&&el.classList.contains('direct-item'),
     }).then(c=>{
-      // メモ表示・ズームを元に戻す
+      // メモ表示・ズーム・3Dビューを元に戻す
       if(memoEl) memoEl.style.display=memoDisplay;
+      if(_fr) _fr.style.display='';
       _restoreZoom();
       roundRect(ctx,PADDING,y,DIAG_W,DIAG_H,CARD_R);
       ctx.save();ctx.clip();
@@ -2956,7 +3067,7 @@ async function doExport(){
       const diagRect=diagCanvas.getBoundingClientRect();
       const scaleX=DIAG_W/diagRect.width;
       const scaleY=DIAG_H/diagRect.height;
-      const directItems=loadDirectItems();
+      const directItems=_diag3dOn?[]:loadDirectItems();
       const loadImg=(src)=>new Promise(res=>{
         if(!src){res(null);return;}
         const im=new Image();
