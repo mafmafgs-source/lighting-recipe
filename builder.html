@@ -565,6 +565,22 @@ async function deleteItemImg(key){
 // 追加時に長辺maxWまで縮小して保存する。ユーザーがフル解像度の写真を大量に追加すると
 // IDBが肥大化して重くなる（クォータ・追い出しリスク）ため、ここで軽量化しておく。
 // 透過PNG（機材の切り抜き）は透過を保持するためPNGのまま、それ以外はJPEGで圧縮する。
+// ⭐2026-09-01: 「拡張子がPNG」だけで判定していたため、**透明部分が無いただの写真をPNGで
+//   保存したときに可逆圧縮のまま**になっていた（400pxでも200〜400KB。JPEGなら20KB前後）。
+//   機材写真は保存レシピごとに itemImgs として丸ごと複製されるので、ここが効いてくると
+//   IDBもクラウドバックアップ(1人30MB上限)も一気に太る。
+//   → 実際に透明ピクセルがあるときだけPNGを維持し、無ければJPEGへ落とす。
+//   ⚠️見た目は変わらない（不透明画像をJPEG化するだけ）。保存済みの画像には触らない。
+function hasTransparency(canvas){
+  try{
+    const {width:w,height:h}=canvas;
+    const d=canvas.getContext('2d').getImageData(0,0,w,h).data;
+    // アルファは4バイトごと。全画素見ると重いので最大4万画素まで間引いて走査する
+    const step=Math.max(1,Math.floor((w*h)/40000))*4;
+    for(let i=3;i<d.length;i+=step){ if(d[i]<250) return true; }
+    return false;
+  }catch(e){ return true; } // 読めない（汚染canvas等）ときは安全側＝PNG維持
+}
 function shrinkImageDataURL(dataUrl, maxW){
   return new Promise(resolve=>{
     const img=new Image();
@@ -576,7 +592,8 @@ function shrinkImageDataURL(dataUrl, maxW){
         c.height=Math.max(1,Math.round(img.naturalHeight*scale));
         c.getContext('2d').drawImage(img,0,0,c.width,c.height);
         const isPng=/^data:image\/png/i.test(dataUrl);
-        resolve(isPng?c.toDataURL('image/png'):c.toDataURL('image/jpeg',0.8));
+        const keepPng=isPng&&hasTransparency(c);
+        resolve(keepPng?c.toDataURL('image/png'):c.toDataURL('image/jpeg',0.8));
       }catch(e){ resolve(dataUrl); } // 失敗時は元データをそのまま使う
     };
     img.onerror=()=>resolve(dataUrl);
