@@ -459,12 +459,17 @@ function defLight(i){
 // 空のUIだと初見ユーザーが使い方を掴めず離脱するため（2026-08-22ユーザー決定）。
 // ※キーが存在する場合（空配列含む）は何もしない＝既存ユーザーや「意図して空にした」状態は尊重。
 //   機材3点は builder.html の DEFAULT_DB プリセットに実在する名前（displayName形式）と一致させること。
+// ⭐2026-09-01: ライトを**2灯**置くようにした（ユーザー決定）。A=ライトビルダーの定番、
+//   B=マイセットAと同じ構成。図が最初から埋まっていることで使い方が伝わりやすく、
+//   さらに「図が空のまま3Dを開く」経路（3Dが真っ暗になる不具合の発生条件）も踏みにくくなる。
+//   ⚠️発火条件は従来どおり **キー自体が無いとき（＝完全新規）だけ**。既存ユーザーのデータには触らない。
+const SEED_KIT=['Godox 1052BAC','Godox AD100Pro','White Umbrella 85cm'];
 (function seedFirstRun(){
   try{
     if(localStorage.getItem(LS_KEY)===null){
-      const a=defLight(0);
-      a.items=['Godox 1052BAC','Godox AD100Pro','White Umbrella 85cm'];
-      localStorage.setItem(LS_KEY, JSON.stringify([a]));
+      const a=defLight(0); a.items=SEED_KIT.slice();
+      const b=defLight(1); b.items=SEED_KIT.slice();   // マイセットAと同じ構成を2灯目に
+      localStorage.setItem(LS_KEY, JSON.stringify([a,b]));
     }
     if(localStorage.getItem('lr_mySet')===null){
       localStorage.setItem('lr_mySet', JSON.stringify([
