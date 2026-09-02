@@ -677,10 +677,9 @@ function restoreSession(){
     else if(s.bgType!=null) bgLayers=bgLayersFromLegacy(s.bgType);
     if(s.bgPattern) bgPattern=s.bgPattern;
     refreshBgUI();
-    if(s.sunOn){
-      sunOn=true;
-      document.getElementById('sunToggleBtn').classList.add('sun-on');
-    }
+    // ⭐9/2 ONだけでなく**OFFも反映**する。以前は true のときしか立てていなかったので、3Dで太陽を消して戻っても2Dは点いたままだった（2D↔3Dの相互反映・ユーザー指摘）。
+    sunOn=!!s.sunOn;
+    document.getElementById('sunToggleBtn')?.classList.toggle('sun-on',sunOn);
     if(s.sunPos)         sunPos={...s.sunPos};
     if(s.sunBeam!=null)  sunBeam=s.sunBeam;
     if(s.sunAngle!=null) sunAngle=s.sunAngle;
