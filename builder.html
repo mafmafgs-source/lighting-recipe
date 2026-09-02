@@ -699,14 +699,14 @@ function addToMySet(catId, name){
       if(!mySet[idx] || !Array.isArray(mySet[idx].items)) mySet[idx] = { items: [] };
       const exists = mySet[idx].items.some(it => it.name === name && it.catId === catId);
       if(exists){
-        showToast(T.mySetAlready(name));
+        showToast(T.mySetAlready(gearLabel(name)));
       } else if(mySet[idx].items.length >= 5){
         alert(T.mySetFull);
       } else {
         mySet[idx].items.push({ name, catId });
         saveMySet(mySet);
         renderMySet();
-        showToast(T.mySetAdded(name));
+        showToast(T.mySetAdded(gearLabel(name)));
       }
       okBtn.style.display = '';
       closeOverlay();
@@ -732,7 +732,7 @@ function openMySetEditor(i){
     document.getElementById('dlgBody').innerHTML =
       slot.items.map((it,idx)=>
         '<div class="myset-edit-row">' +
-          '<span>' + it.name + '</span>' +
+          '<span>' + gearLabel(it.name) + '</span>' +
           '<button class="myset-edit-del" onclick="removeMySetItem(' + i + ',' + idx + ')">🗑️</button>' +
         '</div>'
       ).join('') +
@@ -790,6 +790,10 @@ function getItems(id) {
   const c = customCats.find(c => c.id === id);
   return c ? c.items : [];
 }
+
+// 内蔵機材の表示名を8言語化（i18n.jsのgearName）。
+// SWに古いi18n.jsが残っていても壊れないようフォールバックを挟む。
+function gearLabel(n){ return (typeof gearName==='function') ? gearName(n) : n; }
 
 // 表示名: "メーカー 型番" or "型番"
 function displayName(item) {
@@ -1056,7 +1060,7 @@ function buildItemPanel(catId){
       row.innerHTML = `
         ${thumbHtml}
         <div class="item-name">
-          ${model}
+          ${gearLabel(model)}
           ${maker ? `<span class="item-sub">${maker}</span>` : ''}
           ${price ? `<span class="item-price-tag">${formatMoney(price)}</span>` : ''}
         </div>
@@ -1218,7 +1222,7 @@ function showEditPendingDialog(pendingId) {
 // ══════════════════════════════════════════════
 function deleteItem(catId, item, name, showAll, rerenderFn) {
   // confirm()の代わりに既存オーバーレイで確認
-  document.getElementById('dlgTitle').textContent = T.deleteConfirm(name);
+  document.getElementById('dlgTitle').textContent = T.deleteConfirm(gearLabel(name));
   document.getElementById('dlgBody').innerHTML = '';
   // OKボタンのラベルを「削除」に
   const okBtn = document.getElementById('dlgOk');

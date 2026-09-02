@@ -1105,6 +1105,43 @@
   global.maxLenses  = function(){ return isSubscribed() ? 50 : 5; };   // 防湿庫・レンズ枠
   global.LIGHT_LABELS = ['A','B','C','D','E','F','G','H','I','J'];
 
+  // ── 内蔵プリセット機材の表示名（8言語）─────────────────────────
+  //  ⚠️**左辺の日本語キーはデータキーそのもの**。保存済みレシピ・ROLE_INDEX・3DのPROP_2Dの
+  //    名前照合に使われるので絶対に変えない。ここで訳すのは**画面に出す表示名だけ**。
+  //  ⚠️機材を新規追加したら、必ずここにも8言語ぶん足すこと（2026-09-02 ユーザー指摘の再発防止）。
+  const GEAR_NAMES = {
+    ja: {},   // 日本語はキーそのものが表示名
+    en: { '白レフ':'Reflector (White)', '黒レフ':'Reflector (Black)', 'シルバーレフ':'Reflector (Silver)',
+          'トランスルーセント':'Translucent Panel', 'カポック（白）':'Foam Board (White)',
+          'カポック（黒）':'Foam Board (Black)', 'フレネルレンズ':'Fresnel Lens' },
+    zh: { '白レフ':'白色反光板', '黒レフ':'黑色反光板', 'シルバーレフ':'银色反光板',
+          'トランスルーセント':'柔光板', 'カポック（白）':'泡沫板（白）',
+          'カポック（黒）':'泡沫板（黑）', 'フレネルレンズ':'菲涅尔透镜' },
+    ko: { '白レフ':'반사판(흰색)', '黒レフ':'반사판(검정)', 'シルバーレフ':'반사판(은색)',
+          'トランスルーセント':'디퓨저 패널', 'カポック（白）':'폼보드(흰색)',
+          'カポック（黒）':'폼보드(검정)', 'フレネルレンズ':'프레넬 렌즈' },
+    de: { '白レフ':'Reflektor (weiß)', '黒レフ':'Reflektor (schwarz)', 'シルバーレフ':'Reflektor (silber)',
+          'トランスルーセント':'Diffusor-Panel', 'カポック（白）':'Styroporplatte (weiß)',
+          'カポック（黒）':'Styroporplatte (schwarz)', 'フレネルレンズ':'Fresnel-Linse' },
+    fr: { '白レフ':'Réflecteur (blanc)', '黒レフ':'Réflecteur (noir)', 'シルバーレフ':'Réflecteur (argent)',
+          'トランスルーセント':'Panneau diffusant', 'カポック（白）':'Panneau polystyrène (blanc)',
+          'カポック（黒）':'Panneau polystyrène (noir)', 'フレネルレンズ':'Lentille Fresnel' },
+    it: { '白レフ':'Riflettore (bianco)', '黒レフ':'Riflettore (nero)', 'シルバーレフ':'Riflettore (argento)',
+          'トランスルーセント':'Pannello diffusore', 'カポック（白）':'Pannello polistirolo (bianco)',
+          'カポック（黒）':'Pannello polistirolo (nero)', 'フレネルレンズ':'Lente Fresnel' },
+    es: { '白レフ':'Reflector (blanco)', '黒レフ':'Reflector (negro)', 'シルバーレフ':'Reflector (plateado)',
+          'トランスルーセント':'Panel difusor', 'カポック（白）':'Panel de poliestireno (blanco)',
+          'カポック（黒）':'Panel de poliestireno (negro)', 'フレネルレンズ':'Lente Fresnel' },
+  };
+  // 表示名を引く。辞書に無い名前（ユーザーが追加した機材）はそのまま返す。
+  function gearName(name){
+    if (!name) return name;
+    const m = GEAR_NAMES[LANG];
+    return (m && m[name]) || name;
+  }
+  global.GEAR_NAMES = GEAR_NAMES;
+  global.gearName = gearName;
+
   // 既存コードとの互換：グローバルに公開（各HTMLの旧定義を置き換える）
   global.I18N = I18N;          // index.html 互換
   global.I18N_DATA = I18N;     // builder.html 互換（同じ辞書を参照）

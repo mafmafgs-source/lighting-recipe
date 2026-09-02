@@ -1089,6 +1089,7 @@ function resetAll(){
   currentRecipeId='';
   localStorage.removeItem('lr_current_recipe_id');
   localStorage.removeItem('lr_recipe_title');
+  localStorage.removeItem('lr_current_recipe_meta');
   if(typeof setExportAutoSavedId==='function') setExportAutoSavedId(null);
 
   // セッションをリセット後の状態で保存し直す。
@@ -2010,7 +2011,7 @@ function renderDirectItems(canvas){
     el.innerHTML=
       `<button class="direct-item-del" onclick="event.stopPropagation();removeDirectItem(${idx})">×</button>`+
       visHtml+
-      `<span class="direct-item-name">${di.name}</span>`;
+      `<span class="direct-item-name">${gearLabel(di.name)}</span>`;
 
     // クリック → 選択してパネル表示
     el.addEventListener('click',e=>{
@@ -2128,27 +2129,31 @@ document.getElementById('canvas').addEventListener('click',()=>{selected=null;se
 // 倉庫データ（追加分・カスタム）を full name → model で逆引きし、プリセットは
 // ROLE_INDEX 内の短い表記（"AD100Pro"等）との末尾一致で判定。どれにも当たらなければ
 // フルネームのまま返す（削除済み機材など）。
+// 内蔵機材の表示名を8言語化（i18n.jsのgearName）。
+// SWに古いi18n.jsが残っていても壊れないようフォールバックを挟む。
+function gearLabel(n){ return (typeof gearName==='function') ? gearName(n) : n; }
+
 function itemModelName(name){
   try{
     const adds=JSON.parse(localStorage.getItem('lr_defaultAdditions')||'{}');
     for(const arr of Object.values(adds)){
       for(const it of arr){
-        if(it&&typeof it==='object'&&(it.maker?it.maker+' '+it.model:it.model)===name) return it.model;
+        if(it&&typeof it==='object'&&(it.maker?it.maker+' '+it.model:it.model)===name) return gearLabel(it.model);
       }
     }
     const customs=JSON.parse(localStorage.getItem('lr_customCats')||'[]');
     for(const c of customs){
       for(const it of (c.items||[])){
-        if(it&&typeof it==='object'&&(it.maker?it.maker+' '+it.model:it.model)===name) return it.model;
+        if(it&&typeof it==='object'&&(it.maker?it.maker+' '+it.model:it.model)===name) return gearLabel(it.model);
       }
     }
     for(const models of Object.values(ROLE_INDEX)){
       for(const m of models){
-        if(m!==name&&name.endsWith(' '+m)) return m;
+        if(m!==name&&name.endsWith(' '+m)) return gearLabel(m);
       }
     }
   }catch(e){}
-  return name;
+  return gearLabel(name);
 }
 
 // 機材タグの折り畳み：1行に収まらない分を隠し、「+N」チップで展開する。
@@ -2467,6 +2472,41 @@ const RDB_VER=1;
 const RSTORE='recipes';
 let currentRecipeId=localStorage.getItem('lr_current_recipe_id')||'';
 
+// ── レシピの内部ID(uid)と作成日時 ──────────────────────────────
+//  uid＝世界で一意な内部識別子。ユーザーには一切表示しない。
+//  将来レシピを共有・参照するとき（SNSからの復元・ランキング）の鍵にするため先に持たせておく。
+//   ・新規保存で1回だけ発行し、上書き保存では引き継ぐ（1レシピ＝1uid）
+//   ・出力時の自動保存は「別レシピとして複製」なので新しいuidが振られる（別物なので正しい）
+//   ・この変更より前に保存された古いレシピには付けない（既存データを書き換えない方針）
+//  ⚠️ id ('r_'+Date.now()) は IndexedDB の keyPath なので触らない。
+//     ミリ秒なので端末内でしか一意でなく、共有の鍵には使えない。
+const CUR_META_KEY='lr_current_recipe_meta';
+// 128bit乱数 → base36(28文字)。BigIntは古いWebViewに無いので32bitずつ変換する。
+function newRecipeUid(){
+  const b=new Uint8Array(16);
+  try{ crypto.getRandomValues(b); }
+  catch(e){ for(let i=0;i<16;i++) b[i]=Math.floor(Math.random()*256); }
+  const dv=new DataView(b.buffer);
+  let s='';
+  for(let i=0;i<4;i++) s+=dv.getUint32(i*4).toString(36).padStart(7,'0');
+  return s;
+}
+// 編集中レシピの uid/createdAt。**id と対で保存し、id が一致するときだけ有効**にする。
+// （uidを知らない旧バージョンが別レシピを開いたあとに新版で上書きしても、
+//   他レシピのuidを持ち込んで重複させないための守り）
+function loadCurrentMeta(id){
+  try{
+    const m=JSON.parse(localStorage.getItem(CUR_META_KEY)||'null');
+    return (m&&m.id===id)?m:null;
+  }catch(e){ return null; }
+}
+function saveCurrentMeta(id,uid,createdAt){
+  try{
+    if(id&&uid) localStorage.setItem(CUR_META_KEY,JSON.stringify({id:id,uid:uid,createdAt:createdAt||''}));
+    else localStorage.removeItem(CUR_META_KEY);
+  }catch(e){}
+}
+
 function openRecipeDB(){
   return new Promise((resolve,reject)=>{
     const req=indexedDB.open(RDB_NAME,RDB_VER);
@@ -2509,6 +2549,10 @@ async function doSaveRecipe(forceNew){
   const id = isNew ? ('r_'+Date.now()) : currentRecipeId;
   const title=document.getElementById('recipeTitleInput').value.trim()||T.untitled;
   const now=new Date().toISOString();
+  // 新規は uid を発行、上書きは引き継ぐ。古いレシピ(uid無し)は無しのまま＝既存データを書き換えない
+  const prevMeta  = isNew ? null : loadCurrentMeta(id);
+  const uid       = isNew ? newRecipeUid() : ((prevMeta&&prevMeta.uid)||'');
+  const createdAt = isNew ? now            : ((prevMeta&&prevMeta.createdAt)||'');
 
   // ── 新規保存時のみ保存上限チェック（無料30件 / 有料は無制限） ──
   const recipeCap=(typeof maxRecipes==='function')?maxRecipes():30;
@@ -2592,6 +2636,9 @@ async function doSaveRecipe(forceNew){
       exFL:document.getElementById('exFL')?.textContent||'',
     }
   };
+  // 値があるときだけ載せる（古いレシピに空文字を書き込まないため）
+  if(uid)       recipe.uid=uid;
+  if(createdAt) recipe.createdAt=createdAt;
 
   try{
     const db=await openRecipeDB();
@@ -2605,6 +2652,7 @@ async function doSaveRecipe(forceNew){
     currentRecipeId=id;
     localStorage.setItem('lr_current_recipe_id',id);
     localStorage.setItem('lr_recipe_title',title);
+    saveCurrentMeta(id,uid,createdAt);
     // このセッションで自分が保存したレシピ＝以後の出力自動保存は上書き（コピー増殖防止）
     if(typeof setExportAutoSavedId==='function') setExportAutoSavedId(id);
     closeSaveDialog();
@@ -2737,6 +2785,8 @@ async function loadRecipeFromURL(){
     currentRecipeId=recipeId;
     localStorage.setItem('lr_current_recipe_id',recipeId);
     localStorage.setItem('lr_recipe_title',recipe.title||'');
+    // 読み込んだレシピの uid/createdAt を保持（無ければキーごと消える＝古いレシピはuid無しのまま）
+    saveCurrentMeta(recipeId,recipe.uid||'',recipe.createdAt||'');
     // マイページから開いたレシピは「既存」扱い＝次の出力は新規コピー（ユーザー決定）。追跡idをクリア
     if(typeof setExportAutoSavedId==='function') setExportAutoSavedId(null);
 
@@ -3186,7 +3236,7 @@ async function doExport(){
         ctx.font=`400 ${fs}px -apple-system,sans-serif`;
         const lineH=fs+4;
         let lines=[];
-        for(const name of l.items){ lines=lines.concat(fitWrap(ctx,name,areaW)); }
+        for(const name of l.items){ lines=lines.concat(fitWrap(ctx,gearLabel(name),areaW)); }
         if(lines.length*lineH<=areaH){ fit={fs,lineH,lines}; break; }
       }
       if(!fit){
@@ -3195,7 +3245,7 @@ async function doExport(){
         const maxLines=Math.max(1,Math.floor(areaH/lineH)-1);
         let lines=[], shown=0;
         for(let k=0;k<l.items.length;k++){
-          const wl=fitWrap(ctx,l.items[k],areaW);
+          const wl=fitWrap(ctx,gearLabel(l.items[k]),areaW);
           if(lines.length+wl.length>maxLines) break;
           lines=lines.concat(wl); shown++;
         }

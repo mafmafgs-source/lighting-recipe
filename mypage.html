@@ -389,6 +389,7 @@ function newRecipe(){
   localStorage.removeItem('lightingRecipeLights'); // 正しいキー
   localStorage.removeItem('lr_direct_items');
   localStorage.removeItem('lr_current_recipe_id');
+  localStorage.removeItem('lr_current_recipe_meta');
   localStorage.removeItem('lr_recipe_title');
   localStorage.removeItem('lr_exif');              // 前の写真の撮影データを持ち越さない
   localStorage.removeItem('lr_export_autosave_id');
@@ -445,6 +446,7 @@ document.getElementById('btnConfirmDel').addEventListener('click',async()=>{
     // 現在編集中のレシピが削除された場合
     if(localStorage.getItem('lr_current_recipe_id')===deleteTargetId){
       localStorage.removeItem('lr_current_recipe_id');
+      localStorage.removeItem('lr_current_recipe_meta');
     }
     closeConfirm();
     renderList();
