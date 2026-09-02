@@ -1947,9 +1947,16 @@ function renderDiag3D(canvas){
   // Web版には出ない。iframe内は ?embed=1 の閲覧モード＝カメラの回り込みだけできる
   let fr=canvas.querySelector('#diag3dFrame');
   if(on&&window.Capacitor){
+    // ⭐9/2 3D編集から戻ったら iframe を**作り直す**。3D側は編集を終えて戻るたびに v.ts（編集終了スタンプ）を
+    //   更新する。従来は「無ければ作る」だけで、戻ってもキャッシュ復元された古いシーンの iframe が
+    //   新しい静止画（z-index下）を覆い隠していた＝「1回目で反映されず2回目で反映」の正体。
+    //   ⚠️埋め込み内で視点を回したときの保存(saveEmbedView)は ts を触らないので、ここでは再読込されない。
+    const stamp=String(v.ts||'');
+    if(fr&&fr.dataset.ts!==stamp){ fr.remove(); fr=null; }   // 古いWebGLごと破棄して作り直す
     if(!fr){
       fr=document.createElement('iframe');
       fr.id='diag3dFrame';
+      fr.dataset.ts=stamp;
       fr.setAttribute('scrolling','no');
       fr.onerror=()=>fr.remove();
       fr.src='3d/index.html?embed=1';
