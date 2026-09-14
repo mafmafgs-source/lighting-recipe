@@ -853,6 +853,32 @@
   };
   for (const k in EXTRA22) { if (I18N[k]) Object.assign(I18N[k], EXTRA22[k]); }
 
+  // ── 追加辞書27（2026-09-13 出力モーダル：3D＋2Dの同時出力・3面ビューの別画像。3Dの絵があるときだけ表示）──
+  const EXTRA27 = {
+    ja: { inclDiag2D:'🗺️ 2Dの図も付ける（3D図の下）', inclViews3:'📐 3面ビュー（真上・側面・正面）を別画像で出力' },
+    en: { inclDiag2D:'🗺️ Add the 2D diagram below the 3D one', inclViews3:'📐 Export top / side / front views as a separate image' },
+    zh: { inclDiag2D:'🗺️ 在3D图下方附加2D图', inclViews3:'📐 将俯视 / 侧视 / 正视图另存为一张图片' },
+    ko: { inclDiag2D:'🗺️ 3D 도면 아래에 2D 도면 추가', inclViews3:'📐 평면·측면·정면 뷰를 별도 이미지로 출력' },
+    de: { inclDiag2D:'🗺️ 2D-Diagramm unter dem 3D-Bild anfügen', inclViews3:'📐 Drauf-/Seiten-/Frontansicht als eigenes Bild exportieren' },
+    fr: { inclDiag2D:'🗺️ Ajouter le schéma 2D sous la vue 3D', inclViews3:'📐 Exporter les vues dessus / côté / face en image séparée' },
+    it: { inclDiag2D:'🗺️ Aggiungi lo schema 2D sotto la vista 3D', inclViews3:'📐 Esporta viste alto / lato / fronte come immagine separata' },
+    es: { inclDiag2D:'🗺️ Añadir el esquema 2D debajo del 3D', inclViews3:'📐 Exportar vistas cenital / lateral / frontal en imagen aparte' },
+  };
+  for (const k in EXTRA27) { if (I18N[k]) Object.assign(I18N[k], EXTRA27[k]); }
+
+  // ── 追加辞書28（2026-09-13 出力中の進行表示。低スペック端末で出力後の無言時間が長いというテスターFB）──
+  const EXTRA28 = {
+    ja: { exporting:'画像を作成しています…' },
+    en: { exporting:'Creating the image…' },
+    zh: { exporting:'正在生成图片…' },
+    ko: { exporting:'이미지를 만드는 중…' },
+    de: { exporting:'Bild wird erstellt…' },
+    fr: { exporting:'Création de l’image…' },
+    it: { exporting:'Creazione dell’immagine…' },
+    es: { exporting:'Creando la imagen…' },
+  };
+  for (const k in EXTRA28) { if (I18N[k]) Object.assign(I18N[k], EXTRA28[k]); }
+
   // ── 追加辞書23（2026-08-23 バグ修正：日本語固定だった出力ラベル・トースト・案内の多言語化）─────
   const EXTRA23 = {
     ja: { savedToast:'保存しました ✓', saveFailedPrefix:'保存失敗: ', iosLongPressHint:'画像を長押しして「写真に保存」を選んでください', savedDownloads:'保存しました（ダウンロードフォルダ）', exportCostTotal:'💰 使用機材費用合計', noLightSourceHint:'光源（ストロボ・ビデオライト）がないため光パーツは使用できません' },

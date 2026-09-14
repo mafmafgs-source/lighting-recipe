@@ -934,8 +934,11 @@ function buildNodeHTML(l){
       const lx=tipX-lightW/2;
       const ly=tipY-lightH+7; // 先端に密着+5px下
       html+=src
-        ?`<img src="${src}" style="position:absolute;left:${lx}px;top:${ly}px;width:${lightW}px;height:${lightH}px;object-fit:contain;">`
-        :`<span style="position:absolute;left:${lx}px;top:${ly}px;font-size:12px">⚡</span>`;
+        ?`<img class="ln-head" src="${src}" style="position:absolute;left:${lx}px;top:${ly}px;width:${lightW}px;height:${lightH}px;object-fit:contain;">`
+        :`<span class="ln-head" style="position:absolute;left:${lx}px;top:${ly}px;font-size:12px">⚡</span>`;
+    }else{
+      // 光源が無いブーム：アーム先端を発光点の基準にする（.ln-head＝座標の基準点マーカー）
+      html+=`<i class="ln-head" style="position:absolute;left:${tipX}px;top:${tipY}px;width:0;height:0"></i>`;
     }
     if(hasMod){
       modifiers.forEach((name,idx)=>{
@@ -947,8 +950,8 @@ function buildNodeHTML(l){
         if(isGrid) mx-=12;
         const my=tipY-mh/2-lightH/2+2;
         html+=src
-          ?`<img src="${src}" style="position:absolute;left:${mx}px;top:${my}px;width:${mw}px;height:${mh}px;object-fit:contain;">`
-          :`<span style="position:absolute;left:${mx}px;top:${my}px;font-size:16px">⬡</span>`;
+          ?`<img class="ln-mod" src="${src}" style="position:absolute;left:${mx}px;top:${my}px;width:${mw}px;height:${mh}px;object-fit:contain;">`
+          :`<span class="ln-mod" style="position:absolute;left:${mx}px;top:${my}px;font-size:16px">⬡</span>`;
       });
     }
     html+='</div>';
@@ -962,8 +965,11 @@ function buildNodeHTML(l){
         const lightSize=hasBase?21:48;
         const overlapStyle=hasBase?'margin-bottom:-21px;':'';
         html+=src
-          ?`<img src="${src}" style="width:${lightSize}px;height:${lightSize}px;object-fit:contain;${overlapStyle}">`
-          :`<span style="font-size:${hasBase?12:28}px">⚡</span>`;
+          ?`<img class="ln-head" src="${src}" style="width:${lightSize}px;height:${lightSize}px;object-fit:contain;${overlapStyle}">`
+          :`<span class="ln-head" style="font-size:${hasBase?12:28}px">⚡</span>`;
+      }else{
+        // 土台だけ：スタンド上端（ヘッドが載る位置）を基準点にする。高さ0なので見た目は変わらない
+        html+=`<i class="ln-head" style="width:0;height:0"></i>`;
       }
       if(baseImgSrc){
         html+=`<img src="${baseImgSrc}" style="width:${baseW}px;height:${baseH}px;object-fit:contain;">`;
@@ -984,19 +990,20 @@ function buildNodeHTML(l){
         if(isGrid) ml-=20;
         html+=`<div style="margin-bottom:${mb}px;margin-left:${ml}px;">`;
         html+=src
-          ?`<img src="${src}" style="width:${size}px;height:${size}px;object-fit:contain;">`
-          :`<span style="font-size:16px">⬡</span>`;
+          ?`<img class="ln-mod" src="${src}" style="width:${size}px;height:${size}px;object-fit:contain;">`
+          :`<span class="ln-mod" style="font-size:16px">⬡</span>`;
         html+='</div>';
       });
     }
     if(!hasLight&&!hasBase&&hasMod){
       html=`<div style="display:flex;align-items:center;justify-content:center;gap:2px;width:100%;height:100%;${flipStyle}">`;
-      modifiers.forEach(name=>{
+      modifiers.forEach((name,idx)=>{
         const src=getItemImgSrc(name);
         const size=src==='icons/grid.png'?47:38;   // グリッドは拡大
+        const hc=idx===0?' class="ln-mod ln-head"':' class="ln-mod"';    // 先頭のモディファイアを基準点にする
         html+=src
-          ?`<img src="${src}" style="width:${size}px;height:${size}px;object-fit:contain;">`
-          :`<span style="font-size:18px">⬡</span>`;
+          ?`<img${hc} src="${src}" style="width:${size}px;height:${size}px;object-fit:contain;">`
+          :`<span${hc} style="font-size:18px">⬡</span>`;
       });
     }
     html+='</div>';
@@ -1696,54 +1703,18 @@ function renderBeams(){
   defs.innerHTML='';
   svg.querySelectorAll('.beam-group').forEach(el=>el.remove());
 
-  // 光源のy位置オフセット（ノード上端の光源画像中心）
-  const LIGHT_OFFSET_RATIO=40/H;
+  // ⭐9/13 ビームの原点＝ライトの座標そのもの（ノードは anchorNodeAtHead で発光点を座標に合わせてある）。
+  //   以前は「ヘッド画像は中心の40px上」「モディファイアの幅ぶん横」「ブームは先端」と絵の都合で
+  //   原点をずらしていたが、3Dは座標＝ヘッドなので、2Dだけ被写体から外れた向きに見えていた。
 
   lights.forEach((l,i)=>{
     if(!l.items||!l.items.length)return;
     // 光源がないライトはスキップ
     if(!hasLightSource(l.items))return;
 
-    const hasBoomLight=l.items.some(n=>getItemRole(n)==='base'&&(n.includes('Boom')||n.includes('boom')||n==='Boom Arm'||n==='Mini Boom'));
     const flipped=l.flipped||false;
-    const modifiers=l.items.filter(n=>getItemRole(n)==='modifier');
-    const modCount=modifiers.length;
-
-    let cx,cy;
-    if(hasBoomLight){
-      // ブームあり：ノード座標＋先端オフセット（baseW=90, baseH=113, tip=45%/28%）
-      const nodeX=(l.x??20)/100*W;
-      const nodeY=(l.y??30)/100*H;
-      const baseW=90,baseH=113;
-      // ノードは中心基準なのでbaseの左上を計算
-      const nodeLeft=nodeX-baseW/2;
-      const nodeTop=nodeY-baseH/2;
-      const tipX=nodeLeft+baseW*0.45;
-      const tipY=nodeTop+baseH*0.28;
-      // 光源中心
-      const lightW=21,lightH=21;
-      cx=flipped ? nodeX-(tipX-nodeX)-lightW/2 : tipX+10;
-      cy=tipY-lightH/2+15;
-    } else {
-      // 通常：光源位置から計算
-      let beamOffsetX=0;
-      if(modCount>0){
-        const modWidth=36+(modCount-1)*(36-18);
-        beamOffsetX=(modWidth*0.9)/W*100;
-      }
-      const baseX=(l.x??20)/100*W;
-      cx=flipped ? baseX - beamOffsetX/100*W : baseX + beamOffsetX/100*W;
-      const hasBaseHere=l.items.some(n=>getItemRole(n)==='base');
-      if(hasBaseHere){
-        // 土台あり：光源は土台上部に重なって表示される（従来の位置計算）
-        cy=(l.y??30)/100*H - LIGHT_OFFSET_RATIO*H;
-      } else {
-        // 土台なし（光源単体）：ノード下端に単独表示されるため、その中心に合わせる
-        const LIGHT_ONLY_SIZE=48; // buildNodeHTMLの単独表示サイズと一致させる
-        const nodeHalfH=145/2;
-        cy=(l.y??30)/100*H + (nodeHalfH - LIGHT_ONLY_SIZE/2);
-      }
-    }
+    const cx=(l.x??20)/100*W;
+    const cy=(l.y??30)/100*H;
     const beam=l.beam??40;
     // 反転時は角度をミラー（180° - angle）
     const rawAngle=l.angle??270;
@@ -1838,6 +1809,48 @@ function renderBeams(){
 // ══════════════════════════════════════
 // ノードの可視コンテンツ高さを算出（A-Eラベル・出力表示の位置計算に使用）
 // 土台（スタンド/ブーム）ありなら従来通り113px、単体表示（光源のみ/モディファイアのみ）ならその実寸
+// ⭐9/13 ライトの座標 (l.x, l.y) は**発光点（ヘッド）の位置**。3Dも同じ点にヘッドを置く
+//   （ブームでも d.x/d.z はヘッド＝アームの先端）。従来はノード枠(80×145)の中心を座標に置き、
+//   絵のヘッドは中心から上へ約40px・モディファイア分だけ横へずれて描かれ、ビームの原点も
+//   別のオフセットで計算していたため、3Dで置いた位置と2Dの光の出どころが0.5〜0.8mずれて見えた
+//   （ピクセル固定なので図が広がるほど拡大）。buildNodeHTML が付ける `.ln-head`（光源画像／
+//   スタンド上端／先頭モディファイア）を実測し、その中心が (l.x%, l.y%) に来るように
+//   transform-origin と translate を決める。ズームはヘッドを中心に掛かる。データは一切変えない。
+//   ⭐9/13(2) 実機FB「光パーツがモディファイアの先端ではなくスタンドの中心から出る」→ 基準点＝**発光面**に変更。
+//   モディファイア（.ln-mod）があれば、ヘッド中心から見て一番遠い縁（光が出る面）を x に、ヘッド中心を y に取る。
+//   反転は inner の scaleX(-1) で rect に反映済みなので、左右どちらでも「ヘッドから遠い縁」で正しく取れる。
+//   モディファイア無しは従来どおり光源画像の中心。ビームは座標点から出るので、絵の先端＝ビームの出どころになる。
+function anchorNodeAtHead(node){
+  let hx=40,hy=72.5;                                   // 既定＝従来どおり枠の中心
+  const head=node.querySelector('.ln-head');
+  if(head){
+    // ⭐9/13(3) 3Dの絵を出している間は `#canvas.diag3d .light-node{display:none}` でノードが非表示＝
+    //   getBoundingClientRect が幅0になり、基準点が既定（枠の中心）に落ちていた（実機FB「光パーツが
+    //   スタンドの中心から出る」＝3Dから戻った直後の描画は必ずこの状態）。インライン display で
+    //   一時的にレイアウトさせて測る（visibility:hidden なので描画はされない）。測り終えたら元へ戻す。
+    let nr=node.getBoundingClientRect();
+    let forced=false, prevDisp='', prevVis='';
+    if(nr.width===0){
+      forced=true; prevDisp=node.style.display; prevVis=node.style.visibility;
+      node.style.display='flex'; node.style.visibility='hidden';
+      nr=node.getBoundingClientRect();
+    }
+    const hr=head.getBoundingClientRect();
+    if(nr.width>0){
+      const headCx=hr.left+hr.width/2;
+      hx=headCx-nr.left; hy=hr.top+hr.height/2-nr.top;
+      let best=null;
+      node.querySelectorAll('.ln-mod').forEach(m=>{
+        const r=m.getBoundingClientRect();
+        [r.left,r.right].forEach(x=>{ const d=Math.abs(x-headCx); if(best==null||d>best.d) best={x:x,d:d}; });
+      });
+      if(best) hx=best.x-nr.left;
+    }
+    if(forced){ node.style.display=prevDisp; node.style.visibility=prevVis; }
+  }
+  node.style.transformOrigin=hx+'px '+hy+'px';
+  node.style.transform='translate('+(-hx)+'px,'+(-hy)+'px) scale('+diagZoom+')';
+}
 function getNodeContentHeight(items){
   const hasBase =items.some(n=>getItemRole(n)==='base');
   const hasLight=items.some(n=>getItemRole(n)==='light');
@@ -1862,7 +1875,7 @@ function renderCanvas(){
     node.dataset.idx=i;
     node.style.left=(l.x??20)+'%';
     node.style.top=(l.y??30)+'%';
-    node.style.transform='translate(-50%,-50%) scale('+diagZoom+')';
+    node.style.transform='none';   // 基準点（発光点）は appendChild 後に実測して決める（anchorNodeAtHead）
 
     const h=l.height??HEIGHT_DEFAULT;
     const col=heightToColor(h);
@@ -1884,10 +1897,16 @@ function renderCanvas(){
     node.addEventListener('click',e=>{e.stopPropagation();selectedDirect=null;selectedSun=false;selected=(selected===i)?null:i;renderAll();renderPanel();});
     makeDraggable(node,canvas,i);
     canvas.appendChild(node);
+    anchorNodeAtHead(node);
   });
 
   // 直接配置アイテム（レフ板・Flag等）
   renderDirectItems(canvas);
+  // ⭐9/13 3D由来の被写体（ヴィーナス像・彫像・観葉植物・壁＝catId 'subject'）が図にあるときは、
+  //   2Dの固定👤（.subject・50%,42%）を隠す。ユーザー決定「3Dが正」。両方出ると被写体が二重に見えた
+  //   （3D＋2D同時出力で発覚）。3D由来の被写体を消せば👤が戻る。データは変えない。
+  const subjEl=document.querySelector('.subject');
+  if(subjEl) subjEl.style.display=loadDirectItems().some(di=>di&&di.catId==='subject')?'none':'';
   renderSun(canvas);
 
   renderBg();
@@ -2832,6 +2851,12 @@ function openExportModal(){
       costRow.style.display='none';
     }
   }
+  // ⭐9/13 3Dの絵があるときだけ「2Dの図も付ける」「3面ビュー」を出す（Web版は3Dが無いので常に非表示）
+  const _v3=load3dView();
+  const bothRow=document.getElementById('exportBothRow');
+  if(bothRow) bothRow.style.display=(_v3&&_v3.img)?'flex':'none';
+  const viewsRow=document.getElementById('exportViewsRow');
+  if(viewsRow) viewsRow.style.display=(_v3&&_v3.views&&_v3.views.img)?'flex':'none';
   document.getElementById('exportModal').classList.add('open');
 }
 function closeExportModal(){
@@ -2896,8 +2921,30 @@ async function autoSaveRecipeOnExport(){
   }catch(e){ console.warn('auto-save on export failed:',e); }
 }
 
+// ⭐9/13 出力中の進行表示（テスターFB「低スペック端末だと出力後の無言時間が長い」）。
+//   html2canvas → PNG化 → base64 → フォト保存 → 共有シート、の間ずっと画面に反応が無かった。
+//   オーバーレイを先に描いてから重い処理に入り、共有シートが出る直前（shareExportFiles）か終了時に消す。
+function showExportBusy(on){
+  let el=document.getElementById('exportBusy');
+  if(on){
+    if(!el){
+      el=document.createElement('div'); el.id='exportBusy';
+      el.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:998;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;color:#e8e8e8;font-size:14px;font-weight:600';
+      el.innerHTML='<div style="width:34px;height:34px;border:3px solid #c8a96e;border-top-color:transparent;border-radius:50%;animation:lrspin .9s linear infinite"></div><div id="exportBusyText"></div><style>@keyframes lrspin{to{transform:rotate(360deg)}}</style>';
+      document.body.appendChild(el);
+    }
+    const t=el.querySelector('#exportBusyText'); if(t) t.textContent=(typeof T!=='undefined'&&T.exporting)||'画像を作成しています…';
+    el.style.display='flex';
+  }else if(el){ el.style.display='none'; }
+}
 async function doExport(){
   closeExportModal();
+  showExportBusy(true);
+  await new Promise(r=>setTimeout(r,40));   // オーバーレイを描画させてから重い処理へ
+  try{ await doExportInner(); }
+  finally{ showExportBusy(false); }
+}
+async function doExportInner(){
   await autoSaveRecipeOnExport();
   const showLoc =document.getElementById('exportLoc').checked;
   const showDate=document.getElementById('exportDate').checked;
@@ -2907,6 +2954,13 @@ async function doExport(){
   const showPhoto=document.getElementById('exportPhoto')?.checked!==false;
   const showGear=document.getElementById('exportGear')?.checked!==false;
   const totalCost=computeTotalGearCost();
+  // ⭐9/13 3D＋2Dの同時出力（3D図の下に2D図）と、3面ビューの別画像（テスター要望・ユーザー仕様）。
+  //   どちらも3Dの絵（lr_r3d_view）があるときだけ有効。Web版には無いので従来どおり1枠。
+  const _v3=load3dView();
+  const has3d=!!(_v3&&_v3.img);
+  const showBoth=has3d&&document.getElementById('exportBothRow')?.style.display!=='none'&&document.getElementById('exportBoth')?.checked===true;
+  const showViews=!!(_v3&&_v3.views&&_v3.views.img)&&document.getElementById('exportViewsRow')?.style.display!=='none'&&document.getElementById('exportViews')?.checked===true;
+  const diagSlots=showBoth?['3d','2d']:[document.getElementById('canvas').classList.contains('diag3d')?'3d':'2d'];
 
   // ── オフスクリーンキャンバスで描画 ──
   const W=800;
@@ -2957,7 +3011,7 @@ async function doExport(){
   if(hasPhoto) totalH+=PHOTO_H+16;
   if(EXIF_H) totalH+=EXIF_H+16;
   if(COST_H) totalH+=COST_H+16;
-  totalH+=DIAG_H+16;
+  totalH+=(DIAG_H+16)*diagSlots.length;   // 3D＋2D なら2枠
   if(activeLights.length>0) totalH+=CARD_ROWS*CARD_H+(CARD_ROWS-1)*CARD_ROWGAP+16;
   totalH+=PADDING;
 
@@ -3083,11 +3137,31 @@ async function doExport(){
   }
 
   // ── ライティング図 ──
+  //  ⭐9/13 diagSlots の順に枠を描く（['3d','2d'] なら3D図の下に2D図）。表示中と違う図を撮るときは
+  //   一時的に .diag3d と静止画を付け外しし、撮り終えたら _restoreView で元へ戻す。
+  for(let _si=0;_si<diagSlots.length;_si++){
+  const _mode=diagSlots[_si];
   await new Promise(async res=>{
     const diagCanvas=document.getElementById('canvas');
     // ⭐9/1: 3Dの絵を出しているときは、2Dの撮影小物を手描きしない。
     //   （小物は3Dの絵の中に既に写っているので、上から描くと二重になる＝フラッグの映り込み）
-    const _diag3dOn=diagCanvas.classList.contains('diag3d');
+    const _wasOn=diagCanvas.classList.contains('diag3d');
+    const _diag3dOn=(_mode==='3d');
+    let _tmpImg=null, _hidImg=null;
+    if(_diag3dOn&&!_wasOn){
+      diagCanvas.classList.add('diag3d');
+      _tmpImg=document.createElement('img'); _tmpImg.id='diag3dImg'; _tmpImg.alt='';
+      await new Promise(r=>{ _tmpImg.onload=_tmpImg.onerror=r; _tmpImg.src=_v3.img; });
+      diagCanvas.appendChild(_tmpImg);
+    }else if(!_diag3dOn&&_wasOn){
+      diagCanvas.classList.remove('diag3d');
+      _hidImg=diagCanvas.querySelector('#diag3dImg'); if(_hidImg) _hidImg.style.display='none';
+    }
+    const _restoreView=()=>{
+      if(_tmpImg){ _tmpImg.remove(); diagCanvas.classList.remove('diag3d'); }
+      if(_hidImg){ _hidImg.style.display=''; }
+      if(!_diag3dOn&&_wasOn) diagCanvas.classList.add('diag3d');
+    };
     // iframe（触って回せる3Dビュー）は html2canvas で撮れないので、下に敷いた静止画を撮る。
     //   回した直後は静止画が古いことがあるので、localStorage の最新を読み込んでから撮る。
     const _fr=diagCanvas.querySelector('#diag3dFrame');
@@ -3118,7 +3192,7 @@ async function doExport(){
       // メモ表示・ズーム・3Dビューを元に戻す
       if(memoEl) memoEl.style.display=memoDisplay;
       if(_fr) _fr.style.display='';
-      _restoreZoom();
+      _restoreZoom(); _restoreView();
       roundRect(ctx,PADDING,y,DIAG_W,DIAG_H,CARD_R);
       ctx.save();ctx.clip();
       ctx.drawImage(c,PADDING,y,DIAG_W,DIAG_H);
@@ -3176,8 +3250,8 @@ async function doExport(){
         }
 
         // （太陽は html2canvas のキャプチャに含まれる。手描きの二重描画は廃止）
-        // ── メモをライティング図右下に描画 ──
-        const memo=getCanvasMemo();
+        // ── メモをライティング図右下に描画（2枠あるときは最初の枠だけ） ──
+        const memo=(_si===0)?getCanvasMemo():'';
         if(memo){
           const memoFontSize=18,memoPad=14,memoLineH=memoFontSize*1.6;
           const memoMaxW=Math.min(DIAG_W*0.55,460);
@@ -3209,11 +3283,12 @@ async function doExport(){
       })().catch(e=>{ console.warn('diagram overlay draw error:',e); try{ctx.restore();}catch(_){} res(); });
     }).catch(()=>{
       if(memoEl) memoEl.style.display=memoDisplay;
-      _restoreZoom();
+      _restoreZoom(); _restoreView();
       res();
     });
   });
   y+=DIAG_H+16;
+  }   // diagSlots ループ終わり
 
   // ── ライトカード ──
   if(activeLights.length>0){
@@ -3278,30 +3353,72 @@ async function doExport(){
   // ── ウォーターマーク（マイページで設定。テキスト／ロゴのどちらか・両方） ──
   await drawWatermark(ctx,wmRect);
 
-  // ── 写真アプリへの保存（Android / iPhone 両対応） ──
-  canvas.toBlob(async blob=>{
-    const fname=buildExportFilename();
-    const file=new File([blob],fname,{type:'image/png'});
-    const isIOS=/iP(hone|od|ad)/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+  // ── ⭐9/13 3面ビュー（真上・側面・正面）は別画像：ヘッダー＋図だけを縦に3枚（ユーザー仕様） ──
+  let viewsCanvas=null;
+  if(showViews){
+    try{ viewsCanvas=await buildViewsCard(_v3.views,{W,PADDING,CARD_R,HEADER_H,BORDER,GOLD,BG}); }
+    catch(e){ console.warn('views card error:',e); }
+  }
+  const toBlob=(cv)=>new Promise(r=>cv.toBlob(r,'image/png'));
+  const fname=buildExportFilename();
+  const files=[new File([await toBlob(canvas)],fname,{type:'image/png'})];
+  if(viewsCanvas) files.push(new File([await toBlob(viewsCanvas)],fname.replace(/\.png$/,'_views.png'),{type:'image/png'}));
+  await shareExportFiles(files);
+}
 
-    // 販促用：アプリ名ハッシュタグを共有テキストに付与（X/LINE等は投稿欄にプリフィルされる）。
-    // Instagram等は共有テキストを無視するため、クリップボードにもコピーしてキャプションに貼れるようにする。
-    const shareText='#LightingRecipe';
-    try{ if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(shareText).catch(()=>{}); }catch(e){}
+// 3面ビューの別画像。views={img:縦長JPEG(真上→側面→正面), w, h:[各段の高さ]}（3D側 captureViews3D が作る）
+async function buildViewsCard(views,S){
+  const img=await new Promise((res,rej)=>{ const im=new Image(); im.onload=()=>res(im); im.onerror=rej; im.src=views.img; });
+  const w=views.w||img.naturalWidth;
+  const hs=(views.h&&views.h.length)?views.h:[img.naturalHeight];
+  const DIAG_W=S.W-S.PADDING*2;
+  const slotH=hs.map(h=>Math.round(DIAG_W*h/w));
+  const totalH=S.HEADER_H+S.PADDING+slotH.reduce((a,b)=>a+b+16,0)-16+S.PADDING;
+  const cv=document.createElement('canvas'); cv.width=S.W; cv.height=totalH;
+  const ctx=cv.getContext('2d');
+  ctx.fillStyle=S.BG; ctx.fillRect(0,0,S.W,totalH);
+  ctx.fillStyle='#141414'; ctx.fillRect(0,0,S.W,S.HEADER_H);
+  ctx.strokeStyle=S.BORDER; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(0,S.HEADER_H); ctx.lineTo(S.W,S.HEADER_H); ctx.stroke();
+  ctx.font=`700 18px -apple-system,sans-serif`; ctx.fillStyle=S.GOLD;
+  ctx.fillText('Lighting Recipe',S.PADDING,S.HEADER_H/2+7);
+  let y=S.HEADER_H+S.PADDING, sy=0, wm=null;
+  hs.forEach((h,i)=>{
+    roundRect(ctx,S.PADDING,y,DIAG_W,slotH[i],S.CARD_R);
+    ctx.save(); ctx.clip();
+    ctx.fillStyle='#f8f8f8'; ctx.fillRect(S.PADDING,y,DIAG_W,slotH[i]);
+    ctx.drawImage(img,0,sy,w,h,S.PADDING,y,DIAG_W,slotH[i]);
+    ctx.restore();
+    if(!wm) wm={x:S.PADDING,y:y,w:DIAG_W,h:slotH[i]};
+    sy+=h; y+=slotH[i]+16;
+  });
+  await drawWatermark(ctx,wm);
+  return cv;
+}
 
-    // ① Web Share API：共有シートの「画像を保存」で写真アプリに直接保存できる（iOS/Android共通で最も確実）
-    if(navigator.canShare&&navigator.canShare({files:[file]})){
-      try{
-        await navigator.share({files:[file],title:'Lighting Recipe',text:shareText});
-        return;
-      }catch(e){
-        if(e.name==='AbortError') return; // ユーザーが共有をキャンセル→そのまま終了
-        // それ以外のエラーはフォールバックへ
-      }
+// ── 写真アプリへの保存（Android / iPhone 両対応）。⭐9/13 複数ファイル（3面ビューの別画像）に対応 ──
+async function shareExportFiles(files){
+  const isIOS=/iP(hone|od|ad)/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+
+  // 販促用：アプリ名ハッシュタグを共有テキストに付与（X/LINE等は投稿欄にプリフィルされる）。
+  // Instagram等は共有テキストを無視するため、クリップボードにもコピーしてキャプションに貼れるようにする。
+  const shareText='#LightingRecipe';
+  try{ if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(shareText).catch(()=>{}); }catch(e){}
+
+  // ① Web Share API：共有シートの「画像を保存」で写真アプリに直接保存できる（iOS/Android共通で最も確実）
+  if(navigator.canShare&&navigator.canShare({files})){
+    try{
+      await navigator.share({files,title:'Lighting Recipe',text:shareText});
+      return;
+    }catch(e){
+      if(e.name==='AbortError') return; // ユーザーが共有をキャンセル→そのまま終了
+      // それ以外のエラーはフォールバックへ
     }
+  }
 
-    // ② フォールバック
-    const url=URL.createObjectURL(blob);
+  // ② フォールバック（ファイルごと）
+  for(const file of files){
+    const url=URL.createObjectURL(file);
     if(isIOS){
       // iOSは<a download>が効かないため、新しいタブで画像を開いて長押し保存を案内
       window.open(url,'_blank');
@@ -3309,12 +3426,12 @@ async function doExport(){
     }else{
       // Androidはdownloadリンクでダウンロードフォルダに保存される
       const link=document.createElement('a');
-      link.download=fname;
+      link.download=file.name;
       link.href=url;
       link.click();
       showSaveToast(T.savedDownloads);
     }
-  },'image/png');
+  }
 }
 
 // PNG出力のファイル名を組み立てる。撮影日を先頭に置き、端末で日付順に並べ替え・管理しやすくする。
@@ -3398,6 +3515,15 @@ function roundRect(ctx,x,y,w,h,r){
       <label class="export-check-row">
         <input type="checkbox" id="exportGear" checked>
         <span data-i18n="inclGear">💡 機材カードを含める</span>
+      </label>
+      <!-- ⭐9/13 3Dの絵があるレシピだけ表示（openExportModal で切替）。テスター要望「3Dと2Dの図を同時出力」＋3面ビュー -->
+      <label class="export-check-row" id="exportBothRow" style="display:none">
+        <input type="checkbox" id="exportBoth" checked>
+        <span data-i18n="inclDiag2D">🗺️ 2Dの図も付ける（3D図の下）</span>
+      </label>
+      <label class="export-check-row" id="exportViewsRow" style="display:none">
+        <input type="checkbox" id="exportViews">
+        <span data-i18n="inclViews3">📐 3面ビュー（真上・側面・正面）を別画像で出力</span>
       </label>
       <label class="export-check-row" id="exportCostRow" style="display:none">
         <input type="checkbox" id="exportCost">
