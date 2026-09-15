@@ -2963,7 +2963,10 @@ async function loadRecipeFromURL(){
 //  ・写真・機材写真・3D静止画・uid/id は入れない。
 //  ・受け手は「共有レシピ」として保存（枠を1つ使う）。readOnly+shared の追加フィールドだけ＝既存レシピと旧版に影響なし。
 // ══════════════════════════════════════
-const SHARE_BASE='https://mafmafgs-source.github.io/lighting-recipe/s/?d=';   // ⭐9/15 # ではなく ?d=（# は X 等で落ちることがある）
+// ⭐9/15 深夜 共有リンクの配信先＝ロリポップ（jyounetsu.site・ユーザー決定）。App Links / Universal Links の検証ファイルも同ドメイン。
+//   短縮リンク: POST /lr/s/ に本体を預けて 8 文字 ID を受け取る（DB不要の PHP）。失敗（オフライン等）なら本体入りの長いリンク。
+const SHARE_API='https://jyounetsu.site/lr/s/';
+const SHARE_BASE=SHARE_API+'?d=';
 function _b64u(bytes){ let b=''; for(let i=0;i<bytes.length;i++) b+=String.fromCharCode(bytes[i]); return btoa(b).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,''); }
 function _unb64u(str){ str=String(str||'').replace(/-/g,'+').replace(/_/g,'/'); while(str.length%4) str+='='; const bin=atob(str); const out=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) out[i]=bin.charCodeAt(i); return out; }
 async function _streamBytes(bytes,ctor){ const cs=new ctor('deflate-raw'); const w=cs.writable.getWriter(); w.write(bytes); w.close(); return new Uint8Array(await new Response(cs.readable).arrayBuffer()); }
@@ -3019,7 +3022,17 @@ function buildShareCapsule(opt){
   cap.incl=incl;
   return cap;
 }
-async function buildShareLink(opt){ return SHARE_BASE+await encodeCapsule(buildShareCapsule(opt)); }
+async function buildShareLink(opt){
+  const cap=await encodeCapsule(buildShareCapsule(opt));
+  // 短縮リンクを試す（5秒でタイムアウト）。だめなら本体入りリンク（受け手側はどちらでも読める）
+  try{
+    const ctrl=new AbortController(); const tm=setTimeout(()=>ctrl.abort(),5000);
+    const r=await fetch(SHARE_API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({d:cap}),signal:ctrl.signal});
+    clearTimeout(tm);
+    if(r.ok){ const j=await r.json(); if(j&&j.url&&/^https:\/\/jyounetsu\.site\/lr\/s\/[A-Za-z0-9]{8,12}$/.test(j.url)) return j.url; }
+  }catch(e){ console.warn('short link:',e); }
+  return SHARE_BASE+cap;
+}
 // 「リンクだけ共有」＝画像なしで共有シート（無ければクリップボード）
 async function shareRecipeLinkOnly(){
   let url='';
