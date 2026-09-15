@@ -257,6 +257,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
     </div>
     <div class="lighting-wrap">
       <div class="diag-btns" id="diagBtns">
+        <button id="lead3dChip" onclick="openLead3dSheet(event)" title="3D" style="display:none" data-i18n="lead3dChip">🔗 3D</button>
         <button id="view3dBtn" onclick="toggleDiagView()" title="2D／3D" style="display:none">2D</button>
       </div>
       <div id="canvas">
@@ -905,7 +906,7 @@ function directItemImgSrc(di){
 
 // ライトノードの内部HTMLを生成（builder.htmlと同じ縦積みシルエット）
 function buildNodeHTML(l){
-  const flipped=l.flipped||false;
+  const flipped=effFlip(l);
   const bases    =l.items.filter(n=>getItemRole(n)==='base');
   const lights_  =l.items.filter(n=>getItemRole(n)==='light');
   const modifiers=l.items.filter(n=>getItemRole(n)==='modifier');
@@ -1712,12 +1713,13 @@ function renderBeams(){
     // 光源がないライトはスキップ
     if(!hasLightSource(l.items))return;
 
-    const flipped=l.flipped||false;
-    const cx=(l.x??20)/100*W;
-    const cy=(l.y??30)/100*H;
+    const flipped=effFlip(l);
+    const _bp=effPos(l,20,30);
+    const cx=_bp.x/100*W;
+    const cy=_bp.y/100*H;
     const beam=l.beam??40;
     // 反転時は角度をミラー（180° - angle）
-    const rawAngle=l.angle??270;
+    const rawAngle=effAngle(l);
     const angleDeg=flipped ? 180 - rawAngle : rawAngle;
     const spreadDeg=beam/100*360;
     const R=Math.min(W,H)*0.22;
@@ -1740,7 +1742,7 @@ function renderBeams(){
     grp.setAttribute('class','beam-group');
     // ズーム反映：ノード中心を基点にビームを縮小（ノードのscaleと整合させる）
     if(diagZoom!==1){
-      const ncx=(l.x??20)/100*W, ncy=(l.y??30)/100*H;
+      const _np=effPos(l,20,30); const ncx=_np.x/100*W, ncy=_np.y/100*H;   // ⭐9/15 基準値＋2Dの調整
       grp.setAttribute('transform',`translate(${ncx} ${ncy}) scale(${diagZoom}) translate(${-ncx} ${-ncy})`);
     }
     if(spreadDeg>=359.9){
@@ -1873,8 +1875,9 @@ function renderCanvas(){
     const node=document.createElement('div');
     node.className='light-node'+(i===selected?' selected':'');
     node.dataset.idx=i;
-    node.style.left=(l.x??20)+'%';
-    node.style.top=(l.y??30)+'%';
+    const _ep=effPos(l,20,30);     // ⭐9/15 基準値＋2Dの調整（ui2d）
+    node.style.left=_ep.x+'%';
+    node.style.top=_ep.y+'%';
     node.style.transform='none';   // 基準点（発光点）は appendChild 後に実測して決める（anchorNodeAtHead）
 
     const h=l.height??HEIGHT_DEFAULT;
@@ -1938,6 +1941,65 @@ function save3dSettings(v){
 function saveDirectItems(items){
   localStorage.setItem('lr_direct_items', JSON.stringify(items));
 }
+// ══ ⭐9/15 「3Dが正」モード（ユーザー決定）══
+//  3Dで一度でも配置したレシピ（lr_r3d.scene3d あり）では、2Dでの移動・角度・反転は**図の見た目の調整**として
+//  ライト／小物ごとの追加フィールド `ui2d = {dx, dy, da, flipped}` に入れ、基準値（x/y/angle/flipped＝3Dが書く値）は
+//  触らない。3Dは基準値だけを読むので、2Dを触っても3Dは動かない。3Dで動かすと基準値が更新され、調整量はそのまま乗る。
+//  3Dで配置していないレシピ（Web版を含む）は従来どおり基準値を直接編集する。
+//  ⚠️データ互換: ui2d は追加フィールドのみ。旧バージョンは無視して基準値で描く。
+function is3dLed(){ const r=load3dSettings(); return !!(r&&r.scene3d); }
+function _u2(o){ return (o&&o.ui2d)||{}; }
+function effPos(o,defX,defY){ const u=_u2(o); return { x:(o.x??defX)+(u.dx||0), y:(o.y??defY)+(u.dy||0) }; }
+function effAngle(l){ const a=(l.angle??270)+(_u2(l).da||0); return ((a%360)+360)%360; }
+function effFlip(o){ const u=_u2(o); return (u.flipped!=null)?!!u.flipped:!!o.flipped; }
+function setPos2D(o,defX,defY,x,y){
+  if(is3dLed()){ o.ui2d=o.ui2d||{}; o.ui2d.dx=Math.round((x-(o.x??defX))*100)/100; o.ui2d.dy=Math.round((y-(o.y??defY))*100)/100; }
+  else { o.x=x; o.y=y; }
+}
+function setAngle2D(l,a){
+  if(is3dLed()){ l.ui2d=l.ui2d||{}; l.ui2d.da=Math.round(a-(l.angle??270)); }
+  else { l.angle=a; }
+}
+function setFlip2D(o,f){
+  if(is3dLed()){ o.ui2d=o.ui2d||{}; o.ui2d.flipped=!!f; }
+  else { o.flipped=!!f; }
+}
+// 2Dの調整（ui2d）を全部消す＝3Dの配置そのままの図に戻す
+function resetUi2d(){
+  lights.forEach(l=>{ if(l) delete l.ui2d; });
+  const items=loadDirectItems(); items.forEach(di=>{ if(di) delete di.ui2d; }); saveDirectItems(items);
+  saveLights(); renderCanvas(); renderPanel();
+  showSaveToast(T.lead3dDone);
+}
+// 今の2Dの見た目（基準値＋調整）を基準値に畳み込み、3Dの配置(scene3d)を捨てる＝次に3Dを開くと2Dから作り直す
+function rebuild3dFrom2d(){
+  if(!confirm(T.lead3dRebuildConfirm)) return;
+  const cl=v=>Math.max(0,Math.min(100,Math.round(v*100)/100));
+  lights.forEach(l=>{ if(!l) return; const p=effPos(l,20,30); l.x=cl(p.x); l.y=cl(p.y); l.angle=effAngle(l); l.flipped=effFlip(l); delete l.ui2d; delete l.aim3d; });
+  const items=loadDirectItems(); items.forEach(di=>{ if(!di) return; const p=effPos(di,50,50); di.x=cl(p.x); di.y=cl(p.y); di.flipped=effFlip(di); delete di.ui2d; }); saveDirectItems(items);
+  const r3=load3dSettings(); if(r3){ delete r3.scene3d; save3dSettings(r3); }
+  const v=load3dView(); if(v){ v.view='2d'; save3dView(v); }
+  saveLights(); renderCanvas(); renderPanel();
+  showSaveToast(T.lead3dDone);
+}
+function openLead3dSheet(e){
+  if(e) e.stopPropagation();
+  let el=document.getElementById('lead3dSheet');
+  if(!el){
+    el=document.createElement('div'); el.id='lead3dSheet';
+    el.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:400;display:flex;align-items:center;justify-content:center;padding:20px';
+    el.addEventListener('click',ev=>{ if(ev.target===el) el.style.display='none'; });
+    document.body.appendChild(el);
+  }
+  el.innerHTML=`<div style="background:#1a1a1a;border:1px solid #c8a96e;border-radius:14px;padding:18px 20px;max-width:360px;width:100%;color:#e8e8e8">
+      <div style="font-weight:800;color:#c8a96e;margin-bottom:8px">${T.lead3dTitle}</div>
+      <div style="font-size:12.5px;line-height:1.6;color:#bbb;margin-bottom:14px">${T.lead3dHint}</div>
+      <button class="btn-save-ok" style="width:100%;margin-bottom:8px" onclick="document.getElementById('lead3dSheet').style.display='none';resetUi2d()">${T.lead3dResetUi}</button>
+      <button class="btn-save-ok" style="width:100%;margin-bottom:8px" onclick="document.getElementById('lead3dSheet').style.display='none';rebuild3dFrom2d()">${T.lead3dRebuild}</button>
+      <button class="btn-export-cancel" style="width:100%" onclick="document.getElementById('lead3dSheet').style.display='none'">${T.cancel}</button>
+    </div>`;
+  el.style.display='flex';
+}
 // ══ 3Dのスナップショット表示（アプリ専用。2026-08-31 ユーザー方針）══
 //  3Dモードから戻ると、ライティング図の枠に**3D画面のスナップショットをそのまま出す**。
 //  3Dで作った人には平面図より3Dの絵の方が伝わるため。2Dの図に戻したいときは
@@ -1987,6 +2049,9 @@ function renderDiag3D(canvas){
     btn.style.display=(v&&v.img)?'':'none';   // 3Dの絵が無いうちはボタン自体を出さない
     btn.textContent=on?'2D':'3D';             // ラベル＝押したら切り替わる先
   }
+  // ⭐9/15 「3Dが正」モードの表示（2Dの図を出しているときだけ）。タップで説明とリセット操作
+  const chip=document.getElementById('lead3dChip');
+  if(chip) chip.style.display=(is3dLed()&&!on)?'':'none';
   // ズーム・太陽・背景は2Dの図にしか効かないので、3Dの絵を出している間は隠す（9/1ユーザー指摘）
   const zc=document.querySelector('.zoom-ctrl');
   if(zc) zc.style.display=on?'none':'';
@@ -2017,11 +2082,12 @@ function renderDirectItems(canvas){
   items.forEach((di,idx)=>{
     const el=document.createElement('div');
     el.className='direct-item'+(selectedDirect===idx?' selected':'');
-    el.style.left=(di.x??50)+'%';
-    el.style.top=(di.y??50)+'%';
+    const _dp=effPos(di,50,50);   // ⭐9/15 基準値＋2Dの調整（ui2d）
+    el.style.left=_dp.x+'%';
+    el.style.top=_dp.y+'%';
     el.style.transform='translate(-50%,-50%) scale('+diagZoom+')';
 
-    const flipped=di.flipped||false;
+    const flipped=effFlip(di);
     const flipStyle=flipped?'transform:scaleX(-1);':'';
 
     // サイズ（scale・省略時100%）: 画像だけ拡縮し、名前ラベルは等倍のまま
@@ -2058,16 +2124,17 @@ function makeDraggableDirect(node,canvas,idx){
   const mv=(ex,ey)=>{
     const rect=canvas.getBoundingClientRect();
     const items=loadDirectItems();
-    items[idx].x=Math.max(0,Math.min(100,sl+(ex-sx)/rect.width*100));
-    items[idx].y=Math.max(0,Math.min(100,st+(ey-sy)/rect.height*100));
-    node.style.left=items[idx].x+'%';node.style.top=items[idx].y+'%';
+    const nx=Math.max(0,Math.min(100,sl+(ex-sx)/rect.width*100));
+    const ny=Math.max(0,Math.min(100,st+(ey-sy)/rect.height*100));
+    setPos2D(items[idx],50,50,nx,ny);   // ⭐9/15 3Dで配置済みなら ui2d（見た目の調整）に入る
+    node.style.left=nx+'%';node.style.top=ny+'%';
     saveDirectItems(items);
   };
   node.addEventListener('mousedown',e=>{
     if(e.target.closest('.direct-item-del'))return;
     e.preventDefault();
     const items=loadDirectItems();
-    sx=e.clientX;sy=e.clientY;sl=items[idx].x??50;st=items[idx].y??50;
+    sx=e.clientX;sy=e.clientY;{const _p=effPos(items[idx],50,50);sl=_p.x;st=_p.y;}
     const up=()=>{document.removeEventListener('mousemove',mvM);document.removeEventListener('mouseup',up);};
     const mvM=e=>mv(e.clientX,e.clientY);
     document.addEventListener('mousemove',mvM);document.addEventListener('mouseup',up);
@@ -2075,7 +2142,7 @@ function makeDraggableDirect(node,canvas,idx){
   node.addEventListener('touchstart',e=>{
     if(e.target.closest('.direct-item-del'))return;
     const items=loadDirectItems();
-    const t=e.touches[0];sx=t.clientX;sy=t.clientY;sl=items[idx].x??50;st=items[idx].y??50;
+    const t=e.touches[0];sx=t.clientX;sy=t.clientY;{const _p=effPos(items[idx],50,50);sl=_p.x;st=_p.y;}
     const mvT=e=>{if(e.touches.length>1)return;const t=e.touches[0];mv(t.clientX,t.clientY);};
     const up=()=>{document.removeEventListener('touchmove',mvT);document.removeEventListener('touchend',up);};
     document.addEventListener('touchmove',mvT,{passive:true});document.addEventListener('touchend',up);
@@ -2125,20 +2192,21 @@ function makeDraggable(node,canvas,idx){
   let sx,sy,sl,st;
   const mv=(ex,ey)=>{
     const rect=canvas.getBoundingClientRect();
-    lights[idx].x=Math.max(0,Math.min(100,sl+(ex-sx)/rect.width*100));
-    lights[idx].y=Math.max(0,Math.min(100,st+(ey-sy)/rect.height*100));
-    node.style.left=lights[idx].x+'%';node.style.top=lights[idx].y+'%';
+    const nx=Math.max(0,Math.min(100,sl+(ex-sx)/rect.width*100));
+    const ny=Math.max(0,Math.min(100,st+(ey-sy)/rect.height*100));
+    setPos2D(lights[idx],20,30,nx,ny);   // ⭐9/15 3Dで配置済みなら ui2d（見た目の調整）に入る
+    node.style.left=nx+'%';node.style.top=ny+'%';
     renderBg();renderBeams();
     saveLights(); // ドラッグ中も即座に保存（画面遷移で位置が消えないように）
   };
   node.addEventListener('mousedown',e=>{
-    e.preventDefault();sx=e.clientX;sy=e.clientY;sl=lights[idx].x??20;st=lights[idx].y??30;
+    e.preventDefault();sx=e.clientX;sy=e.clientY;{const _p=effPos(lights[idx],20,30);sl=_p.x;st=_p.y;}
     const up=()=>{document.removeEventListener('mousemove',mvM);document.removeEventListener('mouseup',up);};
     const mvM=e=>mv(e.clientX,e.clientY);
     document.addEventListener('mousemove',mvM);document.addEventListener('mouseup',up);
   });
   node.addEventListener('touchstart',e=>{
-    const t=e.touches[0];sx=t.clientX;sy=t.clientY;sl=lights[idx].x??20;st=lights[idx].y??30;
+    const t=e.touches[0];sx=t.clientX;sy=t.clientY;{const _p=effPos(lights[idx],20,30);sl=_p.x;st=_p.y;}
     const mvT=e=>{if(e.touches.length>1)return;const t=e.touches[0];mv(t.clientX,t.clientY);};
     const up=()=>{document.removeEventListener('touchmove',mvT);document.removeEventListener('touchend',up);};
     document.addEventListener('touchmove',mvT,{passive:true});document.addEventListener('touchend',up);
@@ -2225,7 +2293,7 @@ function renderPanel(){
     const di=items[selectedDirect];
     if(!di){panel.innerHTML='';updateBeamPanel();return;}
     // 撮影小物は高さ（リング・バー）を廃止。サイズと反転のみ
-    const flipped=di.flipped||false;
+    const flipped=effFlip(di);
     panel.innerHTML=`
       <div class="panel-card" style="border-color:#c8a96e">
         <div class="panel-title">${di.name}</div>
@@ -2250,11 +2318,11 @@ function renderPanel(){
     document.getElementById('btnFlipDi').addEventListener('click',e=>{
       e.stopPropagation();
       const items=loadDirectItems();
-      items[selectedDirect].flipped=!items[selectedDirect].flipped;
+      setFlip2D(items[selectedDirect],!effFlip(items[selectedDirect]));   // ⭐9/15
       saveDirectItems(items);
       renderCanvas();
       const btn=document.getElementById('btnFlipDi');
-      if(btn) btn.classList.toggle('flipped',items[selectedDirect].flipped);
+      if(btn) btn.classList.toggle('flipped',effFlip(items[selectedDirect]));
     });
     updateBeamPanel();
     return;
@@ -2264,7 +2332,7 @@ function renderPanel(){
   const strobe=isStrobe(l.items);
   const hasLight=hasLightSource(l.items);
   const outVal=l.output!=null?l.output:(strobe?8:100);
-  const flipped=l.flipped||false;
+  const flipped=effFlip(l);
   panel.innerHTML=`
     <div class="panel-card" style="border-color:${color}">
       <div class="panel-title">${T.panelTitle((typeof LIGHT_LABELS!=='undefined'?LIGHT_LABELS:['A','B','C','D','E','F','G','H','I','J'])[selected])}</div>
@@ -2322,13 +2390,13 @@ function renderPanel(){
   }
   document.getElementById('btnFlip').addEventListener('click',e=>{
     e.stopPropagation();
-    lights[selected].flipped=!lights[selected].flipped;
+    setFlip2D(lights[selected],!effFlip(lights[selected]));   // ⭐9/15
     saveLights();
     renderCanvas();
     renderBeams();
     // ボタンの見た目を切り替え
     const btn=document.getElementById('btnFlip');
-    if(btn) btn.classList.toggle('flipped', lights[selected].flipped);
+    if(btn) btn.classList.toggle('flipped', effFlip(lights[selected]));
   });
   updateBeamPanel();
 }
@@ -2365,11 +2433,11 @@ function updateBeamPanel(){
   bs.disabled=false;as.disabled=false;cs.disabled=false;
   bs.style.opacity='1';as.style.opacity='1';cs.style.opacity='1';
   if(hint)hint.style.display='none';
-  bs.value=l.beam??40;as.value=l.angle??270;cs.value=l.color??DEFAULT_HUE;
-  bv.textContent=(l.beam??40)+'%';av.textContent=(l.angle??270)+'°';
+  bs.value=l.beam??40;as.value=effAngle(l);cs.value=l.color??DEFAULT_HUE;
+  bv.textContent=(l.beam??40)+'%';av.textContent=effAngle(l)+'°';
   cw.style.background=hueSwatch(l.color??DEFAULT_HUE);
   bs.oninput=e=>{lights[selected].beam=Number(e.target.value);bv.textContent=e.target.value+'%';renderBg();renderBeams();saveLights();};
-  as.oninput=e=>{lights[selected].angle=Number(e.target.value);av.textContent=e.target.value+'°';renderBg();renderBeams();saveLights();};
+  as.oninput=e=>{setAngle2D(lights[selected],Number(e.target.value));av.textContent=e.target.value+'°';renderBg();renderBeams();saveLights();};
   cs.oninput=e=>{lights[selected].color=Number(e.target.value);cw.style.background=hueSwatch(lights[selected].color);renderBeams();saveLights();};
 }
 
@@ -3211,8 +3279,9 @@ async function doExportInner(){
       });
       (async()=>{
         for(const di of directItems){
-          const diX=PADDING+(di.x??50)/100*DIAG_W;
-          const diY=y+(di.y??50)/100*DIAG_H;
+          const _xp=effPos(di,50,50);   // ⭐9/15 基準値＋2Dの調整
+          const diX=PADDING+_xp.x/100*DIAG_W;
+          const diY=y+_xp.y/100*DIAG_H;
           // 高さリングは廃止。画面表示と同じく、画像を切り抜きなし・縦横比維持で描く
           //（画像なしの小物のみ薄いグレー円をタップ目標＝画面と同じ見た目で描画）
           const dScale=(di.scale??1)*_exportZoom;  // 表示ズームも掛けて画面と一致させる
@@ -3229,7 +3298,7 @@ async function doExportInner(){
               let dw=IMG,dh2=IMG;
               if(ar>1) dh2=IMG/ar; else dw=IMG*ar;
               ctx.save();
-              if(di.flipped){ctx.translate(diX,0);ctx.scale(-1,1);ctx.translate(-diX,0);}
+              if(effFlip(di)){ctx.translate(diX,0);ctx.scale(-1,1);ctx.translate(-diX,0);}
               ctx.drawImage(im,diX-dw/2,diY-dh2/2,dw,dh2);
               ctx.restore();
               visHalf=IMG/2;

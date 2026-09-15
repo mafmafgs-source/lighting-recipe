@@ -879,6 +879,19 @@
   };
   for (const k in EXTRA28) { if (I18N[k]) Object.assign(I18N[k], EXTRA28[k]); }
 
+  // ── 追加辞書29（2026-09-15 「3Dが正」モード：3Dで配置済みのレシピでは2Dの移動・角度・反転は見た目の調整だけ）──
+  const EXTRA29 = {
+    ja: { lead3dChip:'🔗 3D', lead3dTitle:'3Dの配置に連動中', lead3dHint:'このレシピは3Dで配置済みです。ここでの移動・角度・反転は図の見た目だけを変え、3Dの配置は変わりません。3Dで動かすと2Dの位置も追従します。', lead3dResetUi:'2Dの調整をリセット', lead3dRebuild:'この2Dの配置で3Dを作り直す', lead3dRebuildConfirm:'3Dの配置を捨てて、今の2Dの配置から3Dを作り直します。よろしいですか？', lead3dDone:'完了しました' },
+    en: { lead3dChip:'🔗 3D', lead3dTitle:'Following the 3D layout', lead3dHint:'This recipe was arranged in 3D. Moving, rotating or flipping lights here only changes how the diagram looks; the 3D layout stays as it is. Moving things in 3D updates the 2D positions.', lead3dResetUi:'Reset 2D adjustments', lead3dRebuild:'Rebuild 3D from this 2D layout', lead3dRebuildConfirm:'Discard the 3D layout and rebuild it from the current 2D layout?', lead3dDone:'Done' },
+    zh: { lead3dChip:'🔗 3D', lead3dTitle:'跟随3D布局', lead3dHint:'此配方已在3D中布置。在这里移动、旋转或翻转只改变图的外观，3D布局不变。在3D中移动会同步更新2D位置。', lead3dResetUi:'重置2D调整', lead3dRebuild:'按当前2D布局重建3D', lead3dRebuildConfirm:'放弃3D布局，并根据当前2D布局重建？', lead3dDone:'已完成' },
+    ko: { lead3dChip:'🔗 3D', lead3dTitle:'3D 배치에 연동 중', lead3dHint:'이 레시피는 3D에서 배치되었습니다. 여기서의 이동·각도·반전은 도면의 보기만 바꾸며 3D 배치는 변하지 않습니다. 3D에서 움직이면 2D 위치도 따라갑니다.', lead3dResetUi:'2D 조정 초기화', lead3dRebuild:'이 2D 배치로 3D 다시 만들기', lead3dRebuildConfirm:'3D 배치를 버리고 현재 2D 배치로 다시 만들까요?', lead3dDone:'완료' },
+    de: { lead3dChip:'🔗 3D', lead3dTitle:'Folgt dem 3D-Aufbau', lead3dHint:'Dieses Rezept wurde in 3D aufgebaut. Verschieben, Drehen oder Spiegeln hier ändert nur das Aussehen des Diagramms; der 3D-Aufbau bleibt. Änderungen in 3D aktualisieren die 2D-Positionen.', lead3dResetUi:'2D-Anpassungen zurücksetzen', lead3dRebuild:'3D aus diesem 2D-Aufbau neu erstellen', lead3dRebuildConfirm:'3D-Aufbau verwerfen und aus dem aktuellen 2D-Aufbau neu erstellen?', lead3dDone:'Fertig' },
+    fr: { lead3dChip:'🔗 3D', lead3dTitle:'Suit la disposition 3D', lead3dHint:'Cette recette a été disposée en 3D. Déplacer, tourner ou retourner ici ne change que l’apparence du schéma ; la disposition 3D reste. Un déplacement en 3D met à jour les positions 2D.', lead3dResetUi:'Réinitialiser les ajustements 2D', lead3dRebuild:'Reconstruire la 3D depuis cette disposition 2D', lead3dRebuildConfirm:'Abandonner la disposition 3D et la reconstruire depuis la disposition 2D actuelle ?', lead3dDone:'Terminé' },
+    it: { lead3dChip:'🔗 3D', lead3dTitle:'Segue la disposizione 3D', lead3dHint:'Questa ricetta è stata disposta in 3D. Spostare, ruotare o specchiare qui cambia solo l’aspetto dello schema; la disposizione 3D resta. Spostando in 3D si aggiornano le posizioni 2D.', lead3dResetUi:'Azzera le regolazioni 2D', lead3dRebuild:'Ricostruisci il 3D da questa disposizione 2D', lead3dRebuildConfirm:'Scartare la disposizione 3D e ricostruirla dalla disposizione 2D attuale?', lead3dDone:'Fatto' },
+    es: { lead3dChip:'🔗 3D', lead3dTitle:'Sigue la disposición 3D', lead3dHint:'Esta receta se dispuso en 3D. Mover, girar o voltear aquí solo cambia el aspecto del esquema; la disposición 3D no cambia. Al mover en 3D se actualizan las posiciones 2D.', lead3dResetUi:'Restablecer ajustes 2D', lead3dRebuild:'Reconstruir el 3D desde esta disposición 2D', lead3dRebuildConfirm:'¿Descartar la disposición 3D y reconstruirla desde la disposición 2D actual?', lead3dDone:'Hecho' },
+  };
+  for (const k in EXTRA29) { if (I18N[k]) Object.assign(I18N[k], EXTRA29[k]); }
+
   // ── 追加辞書23（2026-08-23 バグ修正：日本語固定だった出力ラベル・トースト・案内の多言語化）─────
   const EXTRA23 = {
     ja: { savedToast:'保存しました ✓', saveFailedPrefix:'保存失敗: ', iosLongPressHint:'画像を長押しして「写真に保存」を選んでください', savedDownloads:'保存しました（ダウンロードフォルダ）', exportCostTotal:'💰 使用機材費用合計', noLightSourceHint:'光源（ストロボ・ビデオライト）がないため光パーツは使用できません' },
