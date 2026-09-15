@@ -40,14 +40,14 @@
 <script>
 (function(){
   var L={
-    ja:{sub:'共有されたライティングレシピを開きます',app:'📱 アプリで開く',web:'🌐 ブラウザで開く',note:'アプリが入っていれば自動で開きます。開かない場合は「アプリで開く」を押してください。',bad:'このリンクにはレシピが入っていません'},
-    en:{sub:'Open the shared lighting recipe',app:'📱 Open in the app',web:'🌐 Open in browser',note:'If the app is installed it opens automatically. Otherwise tap "Open in the app".',bad:'This link does not contain a recipe'},
-    zh:{sub:'打开共享的布光配方',app:'📱 在应用中打开',web:'🌐 在浏览器中打开',note:'已安装应用时会自动打开。若未打开，请点击“在应用中打开”。',bad:'此链接不包含配方'},
-    ko:{sub:'공유된 라이팅 레시피를 엽니다',app:'📱 앱에서 열기',web:'🌐 브라우저에서 열기',note:'앱이 설치되어 있으면 자동으로 열립니다. 열리지 않으면 "앱에서 열기"를 누르세요.',bad:'이 링크에는 레시피가 없습니다'},
-    de:{sub:'Geteiltes Lichtrezept öffnen',app:'📱 In der App öffnen',web:'🌐 Im Browser öffnen',note:'Ist die App installiert, öffnet sie sich automatisch. Sonst „In der App öffnen“ antippen.',bad:'Dieser Link enthält kein Rezept'},
-    fr:{sub:'Ouvrir la recette d’éclairage partagée',app:'📱 Ouvrir dans l’app',web:'🌐 Ouvrir dans le navigateur',note:'Si l’app est installée, elle s’ouvre automatiquement. Sinon, touchez « Ouvrir dans l’app ».',bad:'Ce lien ne contient pas de recette'},
-    it:{sub:'Apri la ricetta di illuminazione condivisa',app:'📱 Apri nell’app',web:'🌐 Apri nel browser',note:'Se l’app è installata si apre automaticamente. Altrimenti tocca “Apri nell’app”.',bad:'Questo link non contiene una ricetta'},
-    es:{sub:'Abrir la receta de iluminación compartida',app:'📱 Abrir en la app',web:'🌐 Abrir en el navegador',note:'Si la app está instalada se abre automáticamente. Si no, toca «Abrir en la app».',bad:'Este enlace no contiene una receta'}
+    ja:{sub:'共有されたライティングレシピを開きます',app:'📱 アプリで開く',web:'🌐 ブラウザで開く',note:'アプリが入っていれば自動で開きます。開かない場合は「アプリで開く」を押してください。',bad:'このリンクにはレシピが入っていません',inapp:'アプリ内ブラウザではアプリを起動できないことがあります。開かない場合は、右上のメニューから「ブラウザで開く」を選んでからもう一度お試しください'},
+    en:{sub:'Open the shared lighting recipe',app:'📱 Open in the app',web:'🌐 Open in browser',note:'If the app is installed it opens automatically. Otherwise tap "Open in the app".',bad:'This link does not contain a recipe',inapp:'In-app browsers may not be able to launch the app. If nothing happens, choose "Open in browser" from the menu and try again'},
+    zh:{sub:'打开共享的布光配方',app:'📱 在应用中打开',web:'🌐 在浏览器中打开',note:'已安装应用时会自动打开。若未打开，请点击“在应用中打开”。',bad:'此链接不包含配方',inapp:'应用内浏览器可能无法启动应用。若没有反应，请从右上角菜单选择“在浏览器中打开”后再试'},
+    ko:{sub:'공유된 라이팅 레시피를 엽니다',app:'📱 앱에서 열기',web:'🌐 브라우저에서 열기',note:'앱이 설치되어 있으면 자동으로 열립니다. 열리지 않으면 "앱에서 열기"를 누르세요.',bad:'이 링크에는 레시피가 없습니다',inapp:'앱 내 브라우저에서는 앱을 열 수 없을 수 있습니다. 반응이 없으면 메뉴에서 "브라우저에서 열기"를 선택한 뒤 다시 시도하세요'},
+    de:{sub:'Geteiltes Lichtrezept öffnen',app:'📱 In der App öffnen',web:'🌐 Im Browser öffnen',note:'Ist die App installiert, öffnet sie sich automatisch. Sonst „In der App öffnen“ antippen.',bad:'Dieser Link enthält kein Rezept',inapp:'In-App-Browser können die App oft nicht starten. Passiert nichts, wähle im Menü „Im Browser öffnen“ und versuche es erneut'},
+    fr:{sub:'Ouvrir la recette d’éclairage partagée',app:'📱 Ouvrir dans l’app',web:'🌐 Ouvrir dans le navigateur',note:'Si l’app est installée, elle s’ouvre automatiquement. Sinon, touchez « Ouvrir dans l’app ».',bad:'Ce lien ne contient pas de recette',inapp:'Les navigateurs intégrés aux apps ne peuvent pas toujours lancer l’app. Si rien ne se passe, choisissez « Ouvrir dans le navigateur » dans le menu et réessayez'},
+    it:{sub:'Apri la ricetta di illuminazione condivisa',app:'📱 Apri nell’app',web:'🌐 Apri nel browser',note:'Se l’app è installata si apre automaticamente. Altrimenti tocca “Apri nell’app”.',bad:'Questo link non contiene una ricetta',inapp:'I browser interni alle app potrebbero non avviare l’app. Se non succede nulla, scegli “Apri nel browser” dal menu e riprova'},
+    es:{sub:'Abrir la receta de iluminación compartida',app:'📱 Abrir en la app',web:'🌐 Abrir en el navegador',note:'Si la app está instalada se abre automáticamente. Si no, toca «Abrir en la app».',bad:'Este enlace no contiene una receta',inapp:'Los navegadores integrados en apps pueden no abrir la app. Si no ocurre nada, elige «Abrir en el navegador» en el menú y vuelve a intentarlo'}
   };
   var lang=(navigator.language||'en').slice(0,2); if(!L[lang]) lang='en';
   var t=L[lang]; document.documentElement.lang=lang;
@@ -56,23 +56,34 @@
   document.getElementById('btnWeb').textContent=t.web;
   document.getElementById('note').textContent=t.note;
 
-  var cap=(location.hash||'').replace(/^#/,'').trim();
+  // カプセルは ?d= を優先し、# でも受ける（X など一部のサービスは # 以降を落とすことがあるため ?d= を正とする）
+  var cap='';
+  try{ cap=(new URLSearchParams(location.search).get('d')||'').trim(); }catch(e){}
+  if(!cap) cap=(location.hash||'').replace(/^#/,'').trim();
   if(!/^[01][A-Za-z0-9_-]+$/.test(cap)){
     document.getElementById('sub').textContent=t.bad; document.getElementById('sub').className='err';
     document.getElementById('btnApp').style.display='none'; document.getElementById('btnWeb').style.display='none';
     return;
   }
-  var appUrl='lightingrecipe://share?d='+cap;
-  var webUrl='../index.html?share='+encodeURIComponent(cap);
-  document.getElementById('btnApp').href=appUrl;
-  document.getElementById('btnWeb').href=webUrl;
   var ua=navigator.userAgent||'';
   var isIOS=/iP(hone|od|ad)/.test(ua)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
   var isAndroid=/Android/i.test(ua);
+  var schemeUrl='lightingrecipe://share?d='+cap;
+  // Android は intent:// が最も確実（Chrome / Chrome Custom Tabs。未インストールならこのページに戻る）
+  var selfUrl=location.href.split('#')[0];
+  var intentUrl='intent://share?d='+cap+'#Intent;scheme=lightingrecipe;package=app.lightingrecipe;S.browser_fallback_url='+encodeURIComponent(selfUrl)+';end';
+  var appUrl=isAndroid?intentUrl:schemeUrl;
+  var webUrl='../index.html?share='+encodeURIComponent(cap);
+  document.getElementById('btnApp').href=appUrl;
+  document.getElementById('btnWeb').href=webUrl;
   if(isIOS) document.getElementById('btnPlay').style.display='none';
   if(isAndroid) document.getElementById('btnIos').style.display='none';
-  // 開いた瞬間にアプリを呼ぶ（入っていなければ何も起きない＝ボタンが残る）
+  // 開いた瞬間にアプリを呼ぶ（入っていなければ何も起きない＝ボタンが残る）。
+  // ⚠️X などのアプリ内ブラウザは「操作なしの起動」を止めることがある→その場合は「アプリで開く」のタップで起動する
   if(isIOS||isAndroid){ setTimeout(function(){ try{ location.href=appUrl; }catch(e){} },250); }
+  // アプリ内ブラウザ（X / Instagram / LINE 等）ではボタンも効かないことがある→端末のブラウザで開く案内
+  var inApp=/FBAN|FBAV|Instagram|Line\/|Twitter|X\/|TwitterAndroid|wv\)/i.test(ua);
+  if(inApp){ var n=document.getElementById('note'); n.textContent=t.inapp; n.style.color='#c8a96e'; }
 })();
 </script>
 </body>
