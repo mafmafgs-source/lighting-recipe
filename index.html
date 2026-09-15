@@ -3027,7 +3027,9 @@ async function buildShareLink(opt){
   // 短縮リンクを試す（5秒でタイムアウト）。だめなら本体入りリンク（受け手側はどちらでも読める）
   try{
     const ctrl=new AbortController(); const tm=setTimeout(()=>ctrl.abort(),5000);
-    const r=await fetch(SHARE_API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({d:cap}),signal:ctrl.signal});
+    // ⚠️プリフライト（OPTIONS）を発生させない「単純リクエスト」にする（form-urlencoded・独自ヘッダ無し）。
+    //   ロリポップでは OPTIONS が PHP まで届かず CORS で落ちた。
+    const r=await fetch(SHARE_API,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'d='+encodeURIComponent(cap),signal:ctrl.signal});
     clearTimeout(tm);
     if(r.ok){ const j=await r.json(); if(j&&j.url&&/^https:\/\/jyounetsu\.site\/lr\/s\/[A-Za-z0-9]{8,12}$/.test(j.url)) return j.url; }
   }catch(e){ console.warn('short link:',e); }
