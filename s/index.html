@@ -32,6 +32,7 @@
   <div class="logo">Lighting Recipe</div>
   <div class="sub" id="sub">共有されたライティングレシピを開きます</div>
   <a class="btn btn-app" id="btnApp" href="#">📱 アプリで開く</a>
+  <a class="btn btn-store" id="btnCopy" href="#" style="display:none">🔗 リンクをコピー</a>
   <a class="btn btn-store" id="btnIos" href="https://apps.apple.com/app/id6794828630" target="_blank" rel="noopener">App Store</a>
   <a class="btn btn-store" id="btnPlay" href="https://play.google.com/store/apps/details?id=app.lightingrecipe" target="_blank" rel="noopener">Google Play</a>
   <a class="btn btn-web" id="btnWeb" href="#">🌐 ブラウザで開く</a>
@@ -40,14 +41,14 @@
 <script>
 (function(){
   var L={
-    ja:{sub:'共有されたライティングレシピを開きます',app:'📱 アプリで開く',web:'🌐 ブラウザで開く',note:'アプリが入っていれば自動で開きます。開かない場合は「アプリで開く」を押してください。',bad:'このリンクにはレシピが入っていません',inapp:'アプリ内ブラウザではアプリを起動できないことがあります。開かない場合は、右上のメニューから「ブラウザで開く」を選んでからもう一度お試しください'},
-    en:{sub:'Open the shared lighting recipe',app:'📱 Open in the app',web:'🌐 Open in browser',note:'If the app is installed it opens automatically. Otherwise tap "Open in the app".',bad:'This link does not contain a recipe',inapp:'In-app browsers may not be able to launch the app. If nothing happens, choose "Open in browser" from the menu and try again'},
-    zh:{sub:'打开共享的布光配方',app:'📱 在应用中打开',web:'🌐 在浏览器中打开',note:'已安装应用时会自动打开。若未打开，请点击“在应用中打开”。',bad:'此链接不包含配方',inapp:'应用内浏览器可能无法启动应用。若没有反应，请从右上角菜单选择“在浏览器中打开”后再试'},
-    ko:{sub:'공유된 라이팅 레시피를 엽니다',app:'📱 앱에서 열기',web:'🌐 브라우저에서 열기',note:'앱이 설치되어 있으면 자동으로 열립니다. 열리지 않으면 "앱에서 열기"를 누르세요.',bad:'이 링크에는 레시피가 없습니다',inapp:'앱 내 브라우저에서는 앱을 열 수 없을 수 있습니다. 반응이 없으면 메뉴에서 "브라우저에서 열기"를 선택한 뒤 다시 시도하세요'},
-    de:{sub:'Geteiltes Lichtrezept öffnen',app:'📱 In der App öffnen',web:'🌐 Im Browser öffnen',note:'Ist die App installiert, öffnet sie sich automatisch. Sonst „In der App öffnen“ antippen.',bad:'Dieser Link enthält kein Rezept',inapp:'In-App-Browser können die App oft nicht starten. Passiert nichts, wähle im Menü „Im Browser öffnen“ und versuche es erneut'},
-    fr:{sub:'Ouvrir la recette d’éclairage partagée',app:'📱 Ouvrir dans l’app',web:'🌐 Ouvrir dans le navigateur',note:'Si l’app est installée, elle s’ouvre automatiquement. Sinon, touchez « Ouvrir dans l’app ».',bad:'Ce lien ne contient pas de recette',inapp:'Les navigateurs intégrés aux apps ne peuvent pas toujours lancer l’app. Si rien ne se passe, choisissez « Ouvrir dans le navigateur » dans le menu et réessayez'},
-    it:{sub:'Apri la ricetta di illuminazione condivisa',app:'📱 Apri nell’app',web:'🌐 Apri nel browser',note:'Se l’app è installata si apre automaticamente. Altrimenti tocca “Apri nell’app”.',bad:'Questo link non contiene una ricetta',inapp:'I browser interni alle app potrebbero non avviare l’app. Se non succede nulla, scegli “Apri nel browser” dal menu e riprova'},
-    es:{sub:'Abrir la receta de iluminación compartida',app:'📱 Abrir en la app',web:'🌐 Abrir en el navegador',note:'Si la app está instalada se abre automáticamente. Si no, toca «Abrir en la app».',bad:'Este enlace no contiene una receta',inapp:'Los navegadores integrados en apps pueden no abrir la app. Si no ocurre nada, elige «Abrir en el navegador» en el menú y vuelve a intentarlo'}
+    ja:{sub:'共有されたライティングレシピを開きます',app:'📱 アプリで開く',web:'🌐 ブラウザで開く',note:'アプリが入っていれば自動で開きます。開かない場合は「アプリで開く」を押してください。',bad:'このリンクにはレシピが入っていません',inapp:'アプリ内ブラウザではアプリを起動できないことがあります。開かない場合は、このリンクをコピーして Safari や Chrome などのブラウザで開いてからもう一度お試しください。iPhone はアプリの最新版が必要です',copy:'🔗 リンクをコピー',copied:'リンクをコピーしました'},
+    en:{sub:'Open the shared lighting recipe',app:'📱 Open in the app',web:'🌐 Open in browser',note:'If the app is installed it opens automatically. Otherwise tap "Open in the app".',bad:'This link does not contain a recipe',inapp:'In-app browsers may not be able to launch the app. If nothing happens, copy this link and open it in Safari or Chrome, then try again. On iPhone the latest app version is required',copy:'🔗 Copy link',copied:'Link copied'},
+    zh:{sub:'打开共享的布光配方',app:'📱 在应用中打开',web:'🌐 在浏览器中打开',note:'已安装应用时会自动打开。若未打开，请点击“在应用中打开”。',bad:'此链接不包含配方',inapp:'应用内浏览器可能无法启动应用。若没有反应，请复制此链接，在 Safari 或 Chrome 中打开后再试。iPhone 需要最新版应用',copy:'🔗 复制链接',copied:'已复制链接'},
+    ko:{sub:'공유된 라이팅 레시피를 엽니다',app:'📱 앱에서 열기',web:'🌐 브라우저에서 열기',note:'앱이 설치되어 있으면 자동으로 열립니다. 열리지 않으면 "앱에서 열기"를 누르세요.',bad:'이 링크에는 레시피가 없습니다',inapp:'앱 내 브라우저에서는 앱을 열 수 없을 수 있습니다. 반응이 없으면 이 링크를 복사해 Safari나 Chrome에서 연 뒤 다시 시도하세요. iPhone은 최신 앱 버전이 필요합니다',copy:'🔗 링크 복사',copied:'링크를 복사했습니다'},
+    de:{sub:'Geteiltes Lichtrezept öffnen',app:'📱 In der App öffnen',web:'🌐 Im Browser öffnen',note:'Ist die App installiert, öffnet sie sich automatisch. Sonst „In der App öffnen“ antippen.',bad:'Dieser Link enthält kein Rezept',inapp:'In-App-Browser können die App oft nicht starten. Passiert nichts, kopiere diesen Link, öffne ihn in Safari oder Chrome und versuche es erneut. Auf dem iPhone ist die neueste App-Version nötig',copy:'🔗 Link kopieren',copied:'Link kopiert'},
+    fr:{sub:'Ouvrir la recette d’éclairage partagée',app:'📱 Ouvrir dans l’app',web:'🌐 Ouvrir dans le navigateur',note:'Si l’app est installée, elle s’ouvre automatiquement. Sinon, touchez « Ouvrir dans l’app ».',bad:'Ce lien ne contient pas de recette',inapp:'Les navigateurs intégrés aux apps ne peuvent pas toujours lancer l’app. Si rien ne se passe, copiez ce lien, ouvrez-le dans Safari ou Chrome, puis réessayez. Sur iPhone, la dernière version de l’app est requise',copy:'🔗 Copier le lien',copied:'Lien copié'},
+    it:{sub:'Apri la ricetta di illuminazione condivisa',app:'📱 Apri nell’app',web:'🌐 Apri nel browser',note:'Se l’app è installata si apre automaticamente. Altrimenti tocca “Apri nell’app”.',bad:'Questo link non contiene una ricetta',inapp:'I browser interni alle app potrebbero non avviare l’app. Se non succede nulla, copia questo link, aprilo in Safari o Chrome e riprova. Su iPhone serve l’ultima versione dell’app',copy:'🔗 Copia link',copied:'Link copiato'},
+    es:{sub:'Abrir la receta de iluminación compartida',app:'📱 Abrir en la app',web:'🌐 Abrir en el navegador',note:'Si la app está instalada se abre automáticamente. Si no, toca «Abrir en la app».',bad:'Este enlace no contiene una receta',inapp:'Los navegadores integrados en apps pueden no abrir la app. Si no ocurre nada, copia este enlace, ábrelo en Safari o Chrome y vuelve a intentarlo. En iPhone se necesita la última versión de la app',copy:'🔗 Copiar enlace',copied:'Enlace copiado'}
   };
   var lang=(navigator.language||'en').slice(0,2); if(!L[lang]) lang='en';
   var t=L[lang]; document.documentElement.lang=lang;
@@ -83,7 +84,10 @@
   if(isIOS||isAndroid){ setTimeout(function(){ try{ location.href=appUrl; }catch(e){} },250); }
   // アプリ内ブラウザ（X / Instagram / LINE 等）ではボタンも効かないことがある→端末のブラウザで開く案内
   var inApp=/FBAN|FBAV|Instagram|Line\/|Twitter|X\/|TwitterAndroid|wv\)/i.test(ua);
-  if(inApp){ var n=document.getElementById('note'); n.textContent=t.inapp; n.style.color='#c8a96e'; }
+  if(inApp){ var n=document.getElementById('note'); n.textContent=t.inapp; n.style.color='#c8a96e';
+    var cb=document.getElementById('btnCopy'); cb.textContent=t.copy; cb.style.display='block';
+    cb.onclick=function(e){ e.preventDefault(); var u=location.href; var done=function(){ cb.textContent='✓ '+t.copied; };
+      if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(u).then(done,function(){ window.prompt('URL',u); }); } else { window.prompt('URL',u); } }; }
 })();
 </script>
 </body>
