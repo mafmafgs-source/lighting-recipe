@@ -3041,12 +3041,14 @@ async function shareRecipeLinkOnly(){
   try{ url=await buildShareLink(shareOptsFromExportModal()); }catch(e){ console.warn(e); showSaveToast(T.shareLinkFailed); return; }
   closeExportModal();
   const title=localStorage.getItem('lr_recipe_title')||T.untitled;
-  const text=T.shareLinkText.replace('{t}',title)+'\n'+url+'\n#LightingRecipe';
+  // ⚠️9/16 URL は必ず**末尾**に置き、直後に改行やタグを付けない。iOS の X などは URL 直後の改行を %0A として
+  //   URL に取り込み（…/Cy2dVNPV%0A%23LightingRecipe）、404/403 になった（実機FB）。共有シートには text と url を分けて渡す。
+  const text=T.shareLinkText.replace('{t}',title)+' #LightingRecipe';
   if(navigator.share){
     try{ await navigator.share({title:'Lighting Recipe',text,url}); return; }
     catch(e){ if(e&&e.name==='AbortError') return; }
   }
-  try{ await navigator.clipboard.writeText(text); showSaveToast(T.shareLinkCopied); return; }catch(e){}
+  try{ await navigator.clipboard.writeText(text+'\n'+url); showSaveToast(T.shareLinkCopied); return; }catch(e){}
   try{ window.prompt('URL',url); }catch(e){ showSaveToast(url); }
 }
 // カプセル → 共有レシピとして保存（枠を使う）。上限なら limitOverlay を出して null
@@ -3691,7 +3693,7 @@ async function shareExportFiles(files,linkText){
   // 販促用：アプリ名ハッシュタグを共有テキストに付与（X/LINE等は投稿欄にプリフィルされる）。
   // Instagram等は共有テキストを無視するため、クリップボードにもコピーしてキャプションに貼れるようにする。
   // ⭐9/15 レシピのリンクがあれば先頭に添える（受け手はリンクからレシピを取り込める）
-  const shareText=(linkText?linkText+'\n':'')+'#LightingRecipe';
+  const shareText='#LightingRecipe'+(linkText?' '+linkText:'');   // ⚠️9/16 URL は末尾（直後に改行を置かない）
   try{ if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(shareText).catch(()=>{}); }catch(e){}
 
   // ① Web Share API：共有シートの「画像を保存」で写真アプリに直接保存できる（iOS/Android共通で最も確実）
