@@ -51,6 +51,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
 /* レシピカード */
 .recipe-list{display:flex;flex-direction:column;gap:10px}
 .recipe-card{display:flex;gap:12px;background:#1a1a1a;border:1px solid #2e2e2e;border-radius:12px;padding:10px;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:background .15s}
+/* ⭐9/15 共有レシピ（見るだけ）は枠線の色とバッジで区別 */
+.recipe-card.shared{border-color:#3d6fb8;background:#141a24}
+.shared-badge{display:inline-block;font-size:10px;font-weight:800;color:#7fb0ff;border:1px solid #3d6fb8;border-radius:6px;padding:1px 6px;margin-right:6px;vertical-align:1px}
+.btn-link{padding:8px 12px;border:1px solid #3d6fb8;border-radius:10px;background:transparent;color:#7fb0ff;font-size:12px;font-weight:700;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .recipe-card:active{background:#222}
 .recipe-thumb{width:72px;height:72px;border-radius:8px;background:#111;flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center}
 .recipe-thumb img{width:100%;height:100%;object-fit:cover}
@@ -124,6 +128,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
   <div class="list-controls" id="listControls" style="display:none">
     <input type="search" id="searchInput" class="search-input" data-i18n-ph="searchPlaceholder" placeholder="🔍 タイトル・場所・日付で検索" oninput="applyFilterSort()" autocomplete="off">
     <button class="sort-toggle" id="sortToggle" onclick="toggleSortDir()"></button>
+    <button class="btn-link" id="loadFromLinkBtn" onclick="loadFromLink()" data-i18n="loadFromLink">🔗 リンクから読み込む</button>
   </div>
   <div class="recipe-list" id="recipeList"></div>
 </div>
@@ -350,12 +355,12 @@ function recipeCardHTML(r){
   const safeId=encodeURIComponent(r.id);
 
   return `
-    <div class="recipe-card" data-id="${safeId}" onclick="handleCardClick(this)">
+    <div class="recipe-card${r.shared?' shared':''}" data-id="${safeId}" onclick="handleCardClick(this)">
       <div class="recipe-thumb">
-        ${thumbSrc?`<img src="${thumbSrc}">`:'<span class="recipe-thumb-empty">📷</span>'}
+        ${thumbSrc?`<img src="${thumbSrc}">`:(r.shared?'<span class="recipe-thumb-empty">🔗</span>':'<span class="recipe-thumb-empty">📷</span>')}
       </div>
       <div class="recipe-info">
-        <div class="recipe-title">${title.replace(/</g,'&lt;')}</div>
+        <div class="recipe-title">${r.shared?`<span class="shared-badge">${T.sharedBadge}</span>`:''}${title.replace(/</g,'&lt;')}</div>
         <div class="recipe-meta">
           ${date?`<span>📅 ${date}</span>`:''}
           ${loc?`<span>📍 ${loc.replace(/</g,'&lt;')}</span>`:''}
@@ -412,6 +417,14 @@ function newRecipe(){
   }catch(e){ go(); }
 }
 
+// ⭐9/15 共有リンクを貼り付けて取り込む（アプリ直起動が効かない環境の保険）
+function loadFromLink(){
+  const v=window.prompt(T.loadFromLinkPh,'');
+  if(!v) return;
+  const m=String(v).trim().match(/(?:#|share=|[?&]d=)([A-Za-z0-9_-]+)\s*$/);
+  const cap=m?m[1]:String(v).trim();
+  window.location.href='index.html?share='+encodeURIComponent(cap);
+}
 function loadRecipe(id){
   localStorage.setItem('lr_current_recipe_id',id);
   window.location.href='index.html?recipe='+id;

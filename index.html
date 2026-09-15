@@ -199,6 +199,29 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
 /* ── PC・タブレット横（広い画面）：写真とライティング図をゆったり大きく表示 ──
    末尾に置くことで、上の基本ルール(.photo-box height等)を確実に上書きする。
    図はノード位置が%指定なので幅が広がれば自動でスケールする。 */
+/* ── ⭐9/15 共有レシピ（見るだけ）: 写真なし・図は2D/3Dビューのみ・操作ロック ── */
+.shared-view .photo-box, .shared-view #btnReset, .shared-view #btnSave, .shared-view #panel,
+.shared-view #beamPanelCard, .shared-view #lead3dChip, .shared-view .bg-toggle-btn, .shared-view #editBtnLink { display:none !important }
+.shared-view .light-node, .shared-view .direct-item, .shared-view .subject, .shared-view .camera-icon,
+.shared-view .exif-names .cell, .shared-view #canvasMemo, .shared-view #locInput { pointer-events:none }
+.shared-view #locClearBtn, .shared-view #firstHint { display:none !important }
+#sharedHead { display:none; padding:12px 14px; border:1px solid #3d6fb8; border-radius:12px; background:#101826; margin-bottom:10px }
+.shared-view #sharedHead { display:block }
+#sharedHead .sh-title { font-size:13px; font-weight:800; color:#7fb0ff }
+#sharedHead .sh-name { font-size:16px; font-weight:800; color:#e8e8e8; margin-top:4px; word-break:break-all }
+#sharedHead .sh-hint { font-size:11px; color:#888; margin-top:4px; line-height:1.5 }
+#sharedBar { display:none }
+.shared-view #sharedBar { display:block }
+#sharedBar .btn-close-shared { width:100%; padding:14px; border:1px solid #3d6fb8; border-radius:12px; background:#101826; color:#7fb0ff; font-size:14px; font-weight:800; cursor:pointer; -webkit-tap-highlight-color:transparent }
+#sharedImportDlg { display:none; position:fixed; inset:0; background:rgba(0,0,0,.8); z-index:900; align-items:center; justify-content:center; padding:20px }
+#sharedImportDlg.open { display:flex }
+#sharedImportDlg .sid { background:#1e1e1e; border:1px solid #333; border-radius:16px; max-width:360px; width:100%; padding:22px }
+#sharedImportDlg h3 { margin:0 0 10px; font-size:16px; color:#7fb0ff }
+#sharedImportDlg p { font-size:13px; color:#ccc; line-height:1.6; margin:0 0 8px }
+#sharedImportDlg .sid-incl { font-size:11px; color:#888; margin-bottom:14px }
+#sharedImportDlg button { width:100%; padding:12px; border:none; border-radius:10px; font-size:14px; font-weight:800; cursor:pointer; margin-top:8px }
+#sharedImportDlg .sid-yes { background:#c8a96e; color:#0f0f0f }
+#sharedImportDlg .sid-no { background:#2a2a2a; color:#aaa }
 @media (min-width:820px){
   .wrap{max-width:720px;padding:16px}
   .photo-box{height:360px}
@@ -208,6 +231,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
 <body>
 <div class="wrap">
   <div class="card">
+    <!-- ⭐9/15 共有レシピ（見るだけ）の見出し。写真枠の代わりに出す -->
+    <div id="sharedHead">
+      <div class="sh-title" data-i18n="sharedViewTitle">🔗 共有レシピ（見るだけ）</div>
+      <div class="sh-name" id="sharedHeadName"></div>
+      <div class="sh-hint" data-i18n="sharedViewHint">図は動かせません。3Dでは動かして確認できます（保存はされません）</div>
+    </div>
     <!-- 写真エリア（リセットボタン付き） -->
     <div style="position:relative">
       <button class="btn-reset" id="btnReset" type="button" onclick="resetAll()" data-i18n="btnReset">🔄 新規</button>
@@ -252,7 +281,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
       <div style="display:flex;align-items:center;gap:6px">
         <button class="bg-toggle-btn" id="sunToggleBtn" onclick="toggleSun()" title="太陽" data-i18n="sunToggle" data-i18n-title="sunToggle">☀️ 太陽</button>
         <button class="bg-toggle-btn" id="bgToggleBtn" onclick="openBgSheet()" title="背景" data-i18n-title="bgToggle"><span data-i18n="bgToggle">🖼 背景</span><span id="bgToggleSub" style="font-size:10px;margin-left:3px;opacity:.7"></span></button>
-        <a class="btn-builder" href="builder.html" style="width:auto;padding:6px 14px;font-size:13px"><span id="editBtnText">＋ 機材編集</span></a>
+        <a class="btn-builder" id="editBtnLink" href="builder.html" style="width:auto;padding:6px 14px;font-size:13px"><span id="editBtnText">＋ 機材編集</span></a>
       </div>
     </div>
     <div class="lighting-wrap">
@@ -297,6 +326,21 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
       <div style="font-size:11px;color:#888;margin-top:4px" id="beamHint">ライトを選択すると光パーツが表示されます</div>
     </div>
     <button class="btn-builder" onclick="openExportModal()" data-i18n="exportBtn">↑ 出力</button>
+  </div>
+  <!-- ⭐9/15 共有レシピでは出力ボタンの位置に「共有レシピを閉じる」 -->
+  <div class="card" id="sharedBar">
+    <button class="btn-close-shared" onclick="closeSharedRecipe()" data-i18n="closeShared">✕ 共有レシピを閉じる</button>
+  </div>
+</div>
+
+<!-- ⭐9/15 共有リンクからの取り込み確認 -->
+<div id="sharedImportDlg">
+  <div class="sid">
+    <h3 data-i18n="sharedImportTitle">🔗 レシピを読み込みますか？</h3>
+    <p id="sharedImportBody"></p>
+    <div class="sid-incl" id="sharedImportIncl"></div>
+    <button class="sid-yes" id="sharedImportYes" data-i18n="sharedImportYes">読み込む</button>
+    <button class="sid-no" id="sharedImportNo" data-i18n="sharedImportNo">やめる</button>
   </div>
 </div>
 
@@ -2774,6 +2818,8 @@ function showSubscribeInfo(){
 
 async function loadRecipeFromURL(){
   const params=new URLSearchParams(window.location.search);
+  // ⭐9/15 共有リンク（?share=<カプセル>）→ 取り込み確認 → 保存 → 開く
+  if(params.get('share')){ await handleSharedLink(params.get('share')); return; }
   const recipeId=params.get('recipe');
   if(!recipeId){ return; }
 
@@ -2882,6 +2928,16 @@ async function loadRecipeFromURL(){
     saveCurrentMeta(recipeId,recipe.uid||'',recipe.createdAt||'');
     // マイページから開いたレシピは「既存」扱い＝次の出力は新規コピー（ユーザー決定）。追跡idをクリア
     if(typeof setExportAutoSavedId==='function') setExportAutoSavedId(null);
+    // ⭐9/15 共有レシピ（見るだけ）なら表示を切り替える。open3d=1（リンクから取り込んだ直後）はアプリなら3Dへ直行
+    if(recipe.readOnly && recipe.shared){
+      applySharedView(recipe);
+      if(params.get('open3d')==='1'){
+        try{ history.replaceState(null,'','index.html?recipe='+encodeURIComponent(recipeId)); }catch(e){}
+        if(window.Capacitor&&typeof window.Capacitor.isNativePlatform==='function'&&window.Capacitor.isNativePlatform()){
+          setTimeout(()=>{ location.href='3d/index.html?ro=1&shared=1'; },150);
+        }
+      }
+    }
 
     // URLをクリーン
     history.replaceState(null,'',window.location.pathname);
@@ -2900,6 +2956,151 @@ async function loadRecipeFromURL(){
     renderPanel();
   }
 }
+// ══════════════════════════════════════
+//  ⭐9/15 レシピ共有＝「レシピカプセル」（共有リンク）
+//  ・カプセル＝レシピの最小限（図・機材名・3D配置・背景・太陽・役割＋共有側がチェックした情報）を
+//    JSON → deflate-raw → base64url にしたもの。先頭1文字＝'1'圧縮／'0'非圧縮（形式バージョン）。
+//  ・写真・機材写真・3D静止画・uid/id は入れない。
+//  ・受け手は「共有レシピ」として保存（枠を1つ使う）。readOnly+shared の追加フィールドだけ＝既存レシピと旧版に影響なし。
+// ══════════════════════════════════════
+const SHARE_BASE='https://mafmafgs-source.github.io/lighting-recipe/s/#';
+function _b64u(bytes){ let b=''; for(let i=0;i<bytes.length;i++) b+=String.fromCharCode(bytes[i]); return btoa(b).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,''); }
+function _unb64u(str){ str=String(str||'').replace(/-/g,'+').replace(/_/g,'/'); while(str.length%4) str+='='; const bin=atob(str); const out=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) out[i]=bin.charCodeAt(i); return out; }
+async function _streamBytes(bytes,ctor){ const cs=new ctor('deflate-raw'); const w=cs.writable.getWriter(); w.write(bytes); w.close(); return new Uint8Array(await new Response(cs.readable).arrayBuffer()); }
+async function encodeCapsule(obj){
+  const bytes=new TextEncoder().encode(JSON.stringify(obj));
+  if(typeof CompressionStream!=='undefined'){ try{ return '1'+_b64u(await _streamBytes(bytes,CompressionStream)); }catch(e){} }
+  return '0'+_b64u(bytes);
+}
+async function decodeCapsule(str){
+  str=String(str||'').trim();
+  // URL・スキームごと貼られても中身だけ取り出す
+  const m=str.match(/(?:#|share=|[?&]d=)([A-Za-z0-9_-]+)$/); if(m) str=m[1];
+  const kind=str[0], bytes=_unb64u(str.slice(1));
+  const raw=(kind==='1')?await _streamBytes(bytes,DecompressionStream):bytes;
+  const obj=JSON.parse(new TextDecoder().decode(raw));
+  if(!obj||obj.app!=='LR'||!Array.isArray(obj.lights)) throw new Error('bad capsule');
+  return obj;
+}
+function shareOptsFromExportModal(){
+  const c=id=>!!document.getElementById(id)?.checked;
+  const costRow=document.getElementById('exportCostRow');
+  return { loc:c('exportLoc'), date:c('exportDate'), exif:c('exportExif'), prices:(costRow&&costRow.style.display!=='none')&&c('exportCost') };
+}
+// 現在の図から共有用カプセルを組む。opt={loc,date,exif,prices}＝共有側がチェックした情報だけ入れる
+function buildShareCapsule(opt){
+  opt=opt||{};
+  const ex=id=>{ const v=document.getElementById(id)?.textContent||''; return (v&&v!=='–')?v:''; };
+  const cap={ app:'LR', v:1,
+    title:localStorage.getItem('lr_recipe_title')||'',
+    memo:getCanvasMemo() };
+  const incl=[];
+  if(opt.date){ cap.exDate=ex('exDate'); if(cap.exDate) incl.push('date'); }
+  if(opt.loc){ cap.loc=document.getElementById('locInput')?.value||''; if(cap.loc) incl.push('loc'); }
+  if(opt.exif){ cap.exCamera=ex('exCamera'); cap.exLens=ex('exLens'); cap.exF=ex('exF'); cap.exSS=ex('exSS'); cap.exISO=ex('exISO'); cap.exFL=ex('exFL');
+    if(cap.exCamera||cap.exLens||cap.exF||cap.exSS||cap.exISO||cap.exFL) incl.push('exif'); }
+  cap.lights=JSON.parse(JSON.stringify(lights));
+  cap.directItems=loadDirectItems().map(di=>{ const o={...di}; if(typeof o.imgPath==='string'&&o.imgPath.startsWith('data:')) delete o.imgPath; return o; });
+  const r3=load3dSettings(); if(r3) cap.r3d=r3;
+  cap.session={ bgLayers:{...bgLayers}, bgPattern,
+    bgPaperColor:document.getElementById('bgPaperColor')?.value||'#ffffff',
+    bgTableColor:document.getElementById('bgTableColor')?.value||'#ffffff',
+    sunOn, sunPos:{...sunPos}, sunBeam, sunAngle, sunHue, subjectId };
+  const names=new Set();
+  lights.forEach(l=>l&&(l.items||[]).forEach(n=>names.add(n)));
+  loadDirectItems().forEach(di=>{ if(di&&di.name) names.add(di.name); });
+  const roles={}; names.forEach(n=>{ if(isNameInWarehouse(n)||recipeItemRoles[n]) roles[n]=getItemRole(n); }); cap.itemRoles=roles;
+  if(opt.prices){
+    const map=loadGearPriceMap(), pr={};
+    names.forEach(n=>{ const v=getGearPrice(n); if(v) pr[n]=v; });
+    ['exCamera','exLens'].forEach(id=>{ const n=ex(id); if(n&&map[n]) pr[n]=Number(map[n]); });
+    if(Object.keys(pr).length){ cap.prices=pr; incl.push('prices'); }
+  }
+  cap.incl=incl;
+  return cap;
+}
+async function buildShareLink(opt){ return SHARE_BASE+await encodeCapsule(buildShareCapsule(opt)); }
+// 「リンクだけ共有」＝画像なしで共有シート（無ければクリップボード）
+async function shareRecipeLinkOnly(){
+  let url='';
+  try{ url=await buildShareLink(shareOptsFromExportModal()); }catch(e){ console.warn(e); showSaveToast(T.shareLinkFailed); return; }
+  closeExportModal();
+  const title=localStorage.getItem('lr_recipe_title')||T.untitled;
+  const text=T.shareLinkText.replace('{t}',title)+'\n'+url+'\n#LightingRecipe';
+  if(navigator.share){
+    try{ await navigator.share({title:'Lighting Recipe',text,url}); return; }
+    catch(e){ if(e&&e.name==='AbortError') return; }
+  }
+  try{ await navigator.clipboard.writeText(text); showSaveToast(T.shareLinkCopied); return; }catch(e){}
+  try{ window.prompt('URL',url); }catch(e){ showSaveToast(url); }
+}
+// カプセル → 共有レシピとして保存（枠を使う）。上限なら limitOverlay を出して null
+async function importSharedCapsule(obj){
+  const recipeCap=(typeof maxRecipes==='function')?maxRecipes():30;
+  const db=await openRecipeDB();
+  if(recipeCap!==Infinity){
+    const count=await new Promise((res,rej)=>{ const req=db.transaction(RSTORE,'readonly').objectStore(RSTORE).count(); req.onsuccess=()=>res(req.result); req.onerror=e=>rej(e.target.error); });
+    if(count>=recipeCap){ document.getElementById('limitOverlay').classList.add('open'); return null; }
+  }
+  const now=new Date().toISOString(), id='r_'+Date.now();
+  const ses={ ...(obj.session||{}), loc:obj.loc||'', memo:obj.memo||'',
+    exDate:obj.exDate||'', exCamera:obj.exCamera||'', exLens:obj.exLens||'', exF:obj.exF||'', exSS:obj.exSS||'', exISO:obj.exISO||'', exFL:obj.exFL||'' };
+  const recipe={ id, uid:newRecipeUid(), createdAt:now, updatedAt:now,
+    title:obj.title||T.untitled, photoData:'', thumbData:'', itemImgs:{}, itemRoles:obj.itemRoles||{},
+    lights:Array.isArray(obj.lights)?obj.lights:[], directItems:Array.isArray(obj.directItems)?obj.directItems:[],
+    r3d:obj.r3d||null, r3dView:null, session:ses,
+    shared:{ v:obj.v||1, from:'link', importedAt:now, includes:obj.incl||[] }, readOnly:true };
+  if(obj.prices&&typeof obj.prices==='object') recipe.prices=obj.prices;
+  await new Promise((res,rej)=>{ const tx=db.transaction(RSTORE,'readwrite'); tx.objectStore(RSTORE).put(recipe); tx.oncomplete=()=>res(); tx.onerror=e=>rej(e.target.error); });
+  return id;
+}
+async function handleSharedLink(capStr){
+  let obj=null;
+  try{ obj=await decodeCapsule(capStr); }catch(e){ console.warn('capsule:',e); }
+  if(!obj){ alert(T.sharedInvalid); location.replace('index.html'); return; }
+  const dlg=document.getElementById('sharedImportDlg');
+  const n=(obj.lights||[]).filter(l=>l&&l.items&&l.items.length).length;
+  const inclNames={loc:T.sInclLoc,date:T.sInclDate,exif:T.sInclExif,prices:T.sInclPrices};
+  const list=(obj.incl||[]).map(k=>inclNames[k]).filter(Boolean);
+  document.getElementById('sharedImportBody').textContent=T.sharedImportBody.replace('{t}',obj.title||T.untitled).replace('{n}',n);
+  document.getElementById('sharedImportIncl').textContent=T.sharedImportIncl.replace('{list}',list.length?list.join(' / '):T.sInclNone);
+  dlg.classList.add('open');
+  document.getElementById('sharedImportNo').onclick=()=>{ dlg.classList.remove('open'); location.replace('mypage.html'); };
+  document.getElementById('sharedImportYes').onclick=async()=>{
+    dlg.classList.remove('open');
+    let id=null;
+    try{ id=await importSharedCapsule(obj); }catch(e){ console.warn(e); alert(T.sharedInvalid); }
+    if(!id) return;                                   // 上限ダイアログが出ている（またはエラー）
+    localStorage.setItem('lr_current_recipe_id',id);
+    showSaveToast(T.sharedSaved);
+    location.replace('index.html?recipe='+encodeURIComponent(id)+'&open3d=1');
+  };
+}
+// 共有レシピ（見るだけ）の表示。編集・保存・出力の入口を隠し、図の操作をロックする
+let sharedPrices=null;
+function applySharedView(recipe){
+  document.body.classList.add('shared-view');
+  window.LR_SHARED_VIEW=true;                        // ブリッジ（3Dボタン）が参照
+  const nm=document.getElementById('sharedHeadName'); if(nm) nm.textContent=recipe.title||T.untitled;
+  const memo=document.getElementById('canvasMemo'); if(memo) memo.contentEditable='false';
+  const loc=document.getElementById('locInput'); if(loc) loc.readOnly=true;
+  sharedPrices=(recipe.prices&&typeof recipe.prices==='object')?recipe.prices:null;
+  renderGearPriceDisplay();
+}
+// 共有レシピの機材費用は「共有側がチェックして入れた金額」で表示する（自分の価格表には書き込まない）
+{
+  const _gp=getGearPrice, _lm=loadGearPriceMap;
+  getGearPrice=function(name){ if(sharedPrices&&sharedPrices[name]!=null) return Number(sharedPrices[name])||0; return _gp(name); };
+  loadGearPriceMap=function(){ const m=_lm(); return sharedPrices?{...m,...sharedPrices}:m; };
+}
+function closeSharedRecipe(){
+  // 通常モードに戻る＝セッションを空にしてマイページへ（共有レシピ自体は一覧に残る）
+  ['lr_session','lightingRecipeLights','lr_direct_items','lr_current_recipe_id','lr_current_recipe_meta','lr_recipe_title','lr_exif','lr_export_autosave_id','lr_r3d','lr_r3d_view']
+    .forEach(k=>{ try{ localStorage.removeItem(k); }catch(e){} });
+  try{ sessionStorage.removeItem('lr_recipe_item_imgs'); }catch(e){}
+  location.href='mypage.html';
+}
+
 loadRecipeFromURL();
 </script>
 <script src="html2canvas.min.js"></script>
@@ -3432,7 +3633,10 @@ async function doExportInner(){
   const fname=buildExportFilename();
   const files=[new File([await toBlob(canvas)],fname,{type:'image/png'})];
   if(viewsCanvas) files.push(new File([await toBlob(viewsCanvas)],fname.replace(/\.png$/,'_views.png'),{type:'image/png'}));
-  await shareExportFiles(files);
+  // ⭐9/15 レシピのリンク（カプセル）を共有本文に添える（チェック時のみ・失敗しても出力は止めない）
+  let _linkText='';
+  try{ if(document.getElementById('exportLink')?.checked){ const u=await buildShareLink(shareOptsFromExportModal()); if(u) _linkText=u; } }catch(e){ console.warn('share link:',e); }
+  await shareExportFiles(files,_linkText);
 }
 
 // 3面ビューの別画像。views={img:縦長JPEG(真上→側面→正面), w, h:[各段の高さ]}（3D側 captureViews3D が作る）
@@ -3466,12 +3670,13 @@ async function buildViewsCard(views,S){
 }
 
 // ── 写真アプリへの保存（Android / iPhone 両対応）。⭐9/13 複数ファイル（3面ビューの別画像）に対応 ──
-async function shareExportFiles(files){
+async function shareExportFiles(files,linkText){
   const isIOS=/iP(hone|od|ad)/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
 
   // 販促用：アプリ名ハッシュタグを共有テキストに付与（X/LINE等は投稿欄にプリフィルされる）。
   // Instagram等は共有テキストを無視するため、クリップボードにもコピーしてキャプションに貼れるようにする。
-  const shareText='#LightingRecipe';
+  // ⭐9/15 レシピのリンクがあれば先頭に添える（受け手はリンクからレシピを取り込める）
+  const shareText=(linkText?linkText+'\n':'')+'#LightingRecipe';
   try{ if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(shareText).catch(()=>{}); }catch(e){}
 
   // ① Web Share API：共有シートの「画像を保存」で写真アプリに直接保存できる（iOS/Android共通で最も確実）
@@ -3599,7 +3804,16 @@ function roundRect(ctx,x,y,w,h,r){
         <span><span data-i18n="inclCostPre">💰 機材費用を含める（</span><span id="exportCostPreview" style="color:#c8a96e;font-weight:700"></span><span data-i18n="inclCostPost">）</span></span>
       </label>
     </div>
+    <!-- ⭐9/15 レシピ共有リンク（カプセル）。含める情報は上のロケーション/撮影日/EXIF/機材費用のチェックと共通 -->
+    <div class="export-checks" style="margin-top:2px">
+      <label class="export-check-row">
+        <input type="checkbox" id="exportLink" checked>
+        <span data-i18n="inclLink">🔗 レシピのリンクを本文に含める</span>
+      </label>
+      <div style="font-size:10px;color:#777;line-height:1.5;margin:-2px 0 6px 2px" data-i18n="shareLinkNotice">※ リンクには図・機材名・3Dの配置と、上でチェックした情報が入ります。写真は入りません。リンクを受け取った人は誰でも開けます</div>
+    </div>
     <button class="btn-export-go" onclick="doExport()" data-i18n="exportGo">📸 カメラロールに保存</button>
+    <button class="btn-export-go" style="background:#1e2a3d;color:#7fb0ff;border:1px solid #3d6fb8;margin-top:8px" onclick="shareRecipeLinkOnly()" data-i18n="shareLinkBtn">🔗 リンクだけ共有</button>
     <button class="btn-export-cancel" onclick="closeExportModal()" data-i18n="cancel">キャンセル</button>
   </div>
 </div>
