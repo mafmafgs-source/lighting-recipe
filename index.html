@@ -2821,7 +2821,9 @@ async function loadRecipeFromURL(){
   // ⭐9/15 共有リンク（?share=<カプセル>）→ 取り込み確認 → 保存 → 開く
   if(params.get('share')){ await handleSharedLink(params.get('share')); return; }
   const recipeId=params.get('recipe');
-  if(!recipeId){ return; }
+  // ⭐9/16 ?recipe= 無しの起動（3Dから「戻る」・アプリ再起動＝Android は再読み込みされる）でも、
+  //   現在レシピが共有レシピなら「見るだけ」を復元する（これが無いと通常の編集画面として復元され、編集・出力ができてしまう）
+  if(!recipeId){ await restoreSharedViewIfCurrent(); return; }
 
   try{
     const db=await openRecipeDB();
@@ -2921,6 +2923,7 @@ async function loadRecipeFromURL(){
     }
 
     // 現在レシピIDを確定
+    let keepRecipeUrl=false;
     currentRecipeId=recipeId;
     localStorage.setItem('lr_current_recipe_id',recipeId);
     localStorage.setItem('lr_recipe_title',recipe.title||'');
@@ -2934,13 +2937,14 @@ async function loadRecipeFromURL(){
       if(params.get('open3d')==='1'){
         try{ history.replaceState(null,'','index.html?recipe='+encodeURIComponent(recipeId)); }catch(e){}
         if(window.Capacitor&&typeof window.Capacitor.isNativePlatform==='function'&&window.Capacitor.isNativePlatform()){
+          keepRecipeUrl=true;                       // 9/16 3Dから戻ったときに ?recipe= が残るよう、下のURLクリーンを飛ばす
           setTimeout(()=>{ location.href='3d/index.html?ro=1&shared=1'; },150);
         }
       }
     }
 
     // URLをクリーン
-    history.replaceState(null,'',window.location.pathname);
+    if(!keepRecipeUrl) history.replaceState(null,'',window.location.pathname);
     _hasRecipeParam=false; // visibilitychange の guard を解除
 
     // ── 全描画（キャンバスサイズ確定後に実行） ──
@@ -3092,6 +3096,15 @@ async function handleSharedLink(capStr){
     showSaveToast(T.sharedSaved);
     location.replace('index.html?recipe='+encodeURIComponent(id)+'&open3d=1');
   };
+}
+// ⭐9/16 ?recipe= 無しで開いたとき、現在レシピ（lr_current_recipe_id）が共有レシピなら見るだけモードを付け直す
+async function restoreSharedViewIfCurrent(){
+  const id=localStorage.getItem('lr_current_recipe_id')||''; if(!id) return;
+  try{
+    const db=await openRecipeDB();
+    const r=await new Promise((res,rej)=>{ const req=db.transaction(RSTORE,'readonly').objectStore(RSTORE).get(id); req.onsuccess=()=>res(req.result); req.onerror=e=>rej(e.target.error); });
+    if(r&&r.readOnly&&r.shared) applySharedView(r);
+  }catch(e){ console.warn('restoreSharedView:',e); }
 }
 // 共有レシピ（見るだけ）の表示。編集・保存・出力の入口を隠し、図の操作をロックする
 let sharedPrices=null;
