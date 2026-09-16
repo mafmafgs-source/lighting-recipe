@@ -1,5 +1,5 @@
 // Lighting Recipe Service Worker
-const CACHE_NAME = 'lr-cache-v11'; // ※ cache-first 対象（lib/*.js, brands/models.json, exifr, html2canvas, icons）を変えたら必ず番号を上げる
+const CACHE_NAME = 'lr-cache-v12'; // ※ cache-first 対象（lib/*.js, brands/models.json, exifr, html2canvas, icons）を変えたら必ず番号を上げる
 const ASSETS = [
   './',
   './index.html',
@@ -13,6 +13,8 @@ const ASSETS = [
   './exifr.min.js',
   './html2canvas.min.js',
   './lib/brand-select.js',
+  './lib/qrcode.js',
+  './lib/jsQR.js',
   './brands.json',
   './models.json',
 ];

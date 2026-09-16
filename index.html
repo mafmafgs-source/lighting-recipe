@@ -3134,6 +3134,7 @@ function closeSharedRecipe(){
 loadRecipeFromURL();
 </script>
 <script src="html2canvas.min.js"></script>
+<script src="lib/qrcode.js"></script>
 <script>
 // ══════════════════════════════════════
 //  出力機能
@@ -3260,6 +3261,14 @@ async function doExportInner(){
   const showBoth=has3d&&document.getElementById('exportBothRow')?.style.display!=='none'&&document.getElementById('exportBoth')?.checked===true;
   const showViews=!!(_v3&&_v3.views&&_v3.views.img)&&document.getElementById('exportViewsRow')?.style.display!=='none'&&document.getElementById('exportViews')?.checked===true;
   const diagSlots=showBoth?['3d','2d']:[document.getElementById('canvas').classList.contains('diag3d')?'3d':'2d'];
+  // ⭐9/16 共有リンクは先に1回だけ作る（QR と本文の両方で使う）。QR は短縮リンクのときだけ載せる
+  //   （本体入りの長い URL は QR が細かくなり、SNS の再圧縮後に読めないため）。圏外などで作れなければ QR 無しで出力する。
+  const wantQr=document.getElementById('exportQr')?.checked!==false;
+  const wantLink=!!document.getElementById('exportLink')?.checked;
+  let shareUrl='';
+  if(wantQr||wantLink){ try{ shareUrl=await buildShareLink(shareOptsFromExportModal()); }catch(e){ console.warn('share link:',e); } }
+  const qrUrl=(wantQr&&/^https:\/\/jyounetsu\.site\/lr\/s\/[A-Za-z0-9]{8,12}$/.test(shareUrl)&&typeof qrcode==='function')?shareUrl:'';
+  const QR_SIZE=170, QR_FOOTER_H=qrUrl?QR_SIZE:0;
 
   // ── オフスクリーンキャンバスで描画 ──
   const W=800;
@@ -3312,6 +3321,7 @@ async function doExportInner(){
   if(COST_H) totalH+=COST_H+16;
   totalH+=(DIAG_H+16)*diagSlots.length;   // 3D＋2D なら2枠
   if(activeLights.length>0) totalH+=CARD_ROWS*CARD_H+(CARD_ROWS-1)*CARD_ROWGAP+16;
+  if(QR_FOOTER_H) totalH+=QR_FOOTER_H+16;   // 9/16 QR フッター
   totalH+=PADDING;
 
   canvas.width=W;
@@ -3650,6 +3660,12 @@ async function doExportInner(){
     });
   }
 
+  // ── ⭐9/16 QR フッター（右下に短縮リンクの QR・左に案内）。画像から「画像から読み込む」で復元できる ──
+  if(qrUrl){
+    try{ drawQrFooter(ctx,qrUrl,{W,PADDING,y:totalH-PADDING-QR_FOOTER_H,size:QR_SIZE,GOLD,SUB,TEXT,BORDER}); }
+    catch(e){ console.warn('qr:',e); }
+  }
+
   // ── ウォーターマーク（マイページで設定。テキスト／ロゴのどちらか・両方） ──
   await drawWatermark(ctx,wmRect);
 
@@ -3663,10 +3679,36 @@ async function doExportInner(){
   const fname=buildExportFilename();
   const files=[new File([await toBlob(canvas)],fname,{type:'image/png'})];
   if(viewsCanvas) files.push(new File([await toBlob(viewsCanvas)],fname.replace(/\.png$/,'_views.png'),{type:'image/png'}));
-  // ⭐9/15 レシピのリンク（カプセル）を共有本文に添える（チェック時のみ・失敗しても出力は止めない）
-  let _linkText='';
-  try{ if(document.getElementById('exportLink')?.checked){ const u=await buildShareLink(shareOptsFromExportModal()); if(u) _linkText=u; } }catch(e){ console.warn('share link:',e); }
+  // ⭐9/15 レシピのリンク（カプセル）を共有本文に添える（チェック時のみ・失敗しても出力は止めない）。9/16 リンクは上で作った1つを使う
+  const _linkText=wantLink?shareUrl:'';
+  if(wantQr&&!qrUrl) showSaveToast(T.qrSkipped);
   await shareExportFiles(files,_linkText);
+}
+// ⭐9/16 QR フッター。右下に QR（白地・クワイエットゾーン付き・誤り訂正 M）、左に案内文と URL
+function drawQrFooter(ctx,url,S){
+  const q=qrcode(0,'M'); q.addData(url); q.make();
+  const n=q.getModuleCount(), quiet=8;
+  const cell=Math.max(1,Math.floor((S.size-quiet*2)/n)), side=cell*n+quiet*2;
+  const x=S.W-S.PADDING-side, y=S.y+Math.round((S.size-side)/2);
+  ctx.fillStyle='#ffffff'; ctx.fillRect(x,y,side,side);
+  ctx.fillStyle='#000000';
+  for(let r=0;r<n;r++) for(let c=0;c<n;c++) if(q.isDark(r,c)) ctx.fillRect(x+quiet+c*cell,y+quiet+r*cell,cell,cell);
+  const textW=S.W-S.PADDING*2-side-24;
+  ctx.textAlign='left'; ctx.textBaseline='alphabetic';
+  ctx.font='700 15px -apple-system,sans-serif'; ctx.fillStyle=S.GOLD;
+  ctx.fillText(T.qrFooterTitle,S.PADDING,S.y+26);
+  ctx.font='12px -apple-system,sans-serif'; ctx.fillStyle=S.TEXT;
+  // 文字数ベースの簡易折り返し（日本語は1文字ずつ・欧文は単語ごと）
+  const words=/\s/.test(T.qrFooterText)?T.qrFooterText.split(/(\s+)/):Array.from(T.qrFooterText);
+  let line='', ly=S.y+50;
+  for(const w of words){
+    const test=line+w;
+    if(ctx.measureText(test).width>textW&&line){ ctx.fillText(line.trimEnd(),S.PADDING,ly); line=w.trimStart(); ly+=18; if(ly>S.y+S.size-30) break; }
+    else line=test;
+  }
+  if(line&&ly<=S.y+S.size-30) ctx.fillText(line.trimEnd(),S.PADDING,ly);
+  ctx.font='11px -apple-system,sans-serif'; ctx.fillStyle=S.SUB;
+  ctx.fillText(url,S.PADDING,S.y+S.size-8);
 }
 
 // 3面ビューの別画像。views={img:縦長JPEG(真上→側面→正面), w, h:[各段の高さ]}（3D側 captureViews3D が作る）
@@ -3840,6 +3882,12 @@ function roundRect(ctx,x,y,w,h,r){
         <input type="checkbox" id="exportLink" checked>
         <span data-i18n="inclLink">🔗 レシピのリンクを本文に含める</span>
       </label>
+      <!-- ⭐9/16 出力画像に短縮リンクの QR を載せる＝X 等で保存した画像から「画像から読み込む」で復元できる（ユーザー要望） -->
+      <label class="export-check-row">
+        <input type="checkbox" id="exportQr" checked>
+        <span data-i18n="inclQr">🔳 QRコードを画像に載せる</span>
+      </label>
+      <div style="font-size:10px;color:#777;line-height:1.5;margin:-2px 0 6px 2px" data-i18n="qrNotice">※ 保存した画像をマイページの「画像から読み込む」で選ぶと、このレシピを取り込めます</div>
       <div style="font-size:10px;color:#777;line-height:1.5;margin:-2px 0 6px 2px" data-i18n="shareLinkNotice">※ リンクには図・機材名・3Dの配置と、上でチェックした情報が入ります。写真は入りません。リンクを受け取った人は誰でも開けます</div>
     </div>
     <button class="btn-export-go" onclick="doExport()" data-i18n="exportGo">📸 カメラロールに保存</button>

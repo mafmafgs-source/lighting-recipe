@@ -128,7 +128,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
   <div class="list-controls" id="listControls" style="display:none">
     <input type="search" id="searchInput" class="search-input" data-i18n-ph="searchPlaceholder" placeholder="🔍 タイトル・場所・日付で検索" oninput="applyFilterSort()" autocomplete="off">
     <button class="sort-toggle" id="sortToggle" onclick="toggleSortDir()"></button>
+  </div>
+  <!-- ⭐9/16 読み込みボタンはレシピ 0 件でも出す（X で見た画像から最初の 1 件を取り込めるように）。画像から＝QR を読む・カメラは使わない -->
+  <div class="list-controls" id="importControls">
     <button class="btn-link" id="loadFromLinkBtn" onclick="loadFromLink()" data-i18n="loadFromLink">🔗 リンクから読み込む</button>
+    <button class="btn-link" id="loadFromImageBtn" onclick="loadFromImage()" data-i18n="loadFromImage">🖼 画像から読み込む</button>
+    <input type="file" id="qrImageInput" accept="image/*" style="display:none">
   </div>
   <div class="recipe-list" id="recipeList"></div>
 </div>
@@ -421,9 +426,60 @@ function newRecipe(){
 function loadFromLink(){
   const v=window.prompt(T.loadFromLinkPh,'');
   if(!v) return;
-  const m=String(v).trim().match(/(?:#|share=|[?&]d=)([A-Za-z0-9_-]+)\s*$/);
-  const cap=m?m[1]:String(v).trim();
-  window.location.href='index.html?share='+encodeURIComponent(cap);
+  openSharedFromText(v);
+}
+// 共有リンク／ID／カプセルのどれを渡されても取り込み画面へ。短縮リンク（/lr/s/<ID>）はサーバーから本体を取る
+async function openSharedFromText(v){
+  v=String(v).trim();
+  let m=v.match(/^https?:\/\/jyounetsu\.site\/lr\/s\/([A-Za-z0-9]{8,12})/);
+  if(m){
+    try{
+      const r=await fetch('https://jyounetsu.site/lr/s/'+m[1]+'?raw=1',{cache:'no-store'});
+      const j=r.ok?await r.json():null;
+      if(j&&j.d){ window.location.href='index.html?share='+encodeURIComponent(j.d); return; }
+    }catch(e){ console.warn(e); }
+    alert(T.sharedInvalid); return;
+  }
+  m=v.match(/(?:#|share=|[?&]d=)([A-Za-z0-9_-]+)\s*$/);
+  window.location.href='index.html?share='+encodeURIComponent(m?m[1]:v);
+}
+// ⭐9/16 出力画像の QR からレシピを取り込む（X 等で保存した画像を選ぶだけ）
+function loadFromImage(){
+  const inp=document.getElementById('qrImageInput'); if(!inp) return;
+  inp.value='';
+  inp.onchange=()=>{ const f=inp.files&&inp.files[0]; if(f) importFromImageFile(f); };
+  inp.click();
+}
+function loadScriptOnce(src){
+  return new Promise((res,rej)=>{
+    if(document.querySelector('script[src="'+src+'"]')) return res();
+    const sc=document.createElement('script'); sc.src=src; sc.onload=res; sc.onerror=rej; document.head.appendChild(sc);
+  });
+}
+// 画像から QR の文字列を読む。大きさを変えて数回試す（再圧縮された画像でも当たりやすい）
+async function decodeQrFromImage(img){
+  await loadScriptOnce('lib/jsQR.js');
+  const iw=img.naturalWidth||img.width, ih=img.naturalHeight||img.height;
+  const cv=document.createElement('canvas'), ctx=cv.getContext('2d',{willReadFrequently:true});
+  for(const maxW of [1000,1600,700,2400]){
+    const sc=Math.min(1,maxW/Math.max(iw,1));
+    cv.width=Math.max(1,Math.round(iw*sc)); cv.height=Math.max(1,Math.round(ih*sc));
+    ctx.drawImage(img,0,0,cv.width,cv.height);
+    const d=ctx.getImageData(0,0,cv.width,cv.height);
+    const r=jsQR(d.data,d.width,d.height,{inversionAttempts:'dontInvert'});
+    if(r&&r.data) return r.data;
+  }
+  return '';
+}
+async function importFromImageFile(file){
+  const url=URL.createObjectURL(file);
+  try{
+    const img=await new Promise((res,rej)=>{ const im=new Image(); im.onload=()=>res(im); im.onerror=rej; im.src=url; });
+    const text=await decodeQrFromImage(img);
+    if(!text){ alert(T.qrNotFound); return; }
+    await openSharedFromText(text);
+  }catch(e){ console.warn(e); alert(T.qrNotFound); }
+  finally{ URL.revokeObjectURL(url); }
 }
 function loadRecipe(id){
   localStorage.setItem('lr_current_recipe_id',id);
