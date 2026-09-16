@@ -3707,8 +3707,7 @@ function drawQrFooter(ctx,url,S){
     else line=test;
   }
   if(line&&ly<=S.y+S.size-30) ctx.fillText(line.trimEnd(),S.PADDING,ly);
-  ctx.font='11px -apple-system,sans-serif'; ctx.fillStyle=S.SUB;
-  ctx.fillText(url,S.PADDING,S.y+S.size-8);
+  // 9/16 URL の文字は載せない（ユーザー指示「情報が多すぎる」。写真アプリの Live Text が小さな URL 文字を誤読して 404 になった実機FBもある）
 }
 
 // 3面ビューの別画像。views={img:縦長JPEG(真上→側面→正面), w, h:[各段の高さ]}（3D側 captureViews3D が作る）
@@ -3864,7 +3863,7 @@ function roundRect(ctx,x,y,w,h,r){
       </label>
       <!-- ⭐9/13 3Dの絵があるレシピだけ表示（openExportModal で切替）。テスター要望「3Dと2Dの図を同時出力」＋3面ビュー -->
       <label class="export-check-row" id="exportBothRow" style="display:none">
-        <input type="checkbox" id="exportBoth" checked>
+        <input type="checkbox" id="exportBoth">
         <span data-i18n="inclDiag2D">🗺️ 2Dの図も付ける（3D図の下）</span>
       </label>
       <label class="export-check-row" id="exportViewsRow" style="display:none">
@@ -3887,7 +3886,6 @@ function roundRect(ctx,x,y,w,h,r){
         <input type="checkbox" id="exportQr" checked>
         <span data-i18n="inclQr">🔳 QRコードを画像に載せる</span>
       </label>
-      <div style="font-size:10px;color:#777;line-height:1.5;margin:-2px 0 6px 2px" data-i18n="qrNotice">※ 保存した画像をマイページの「画像から読み込む」で選ぶと、このレシピを取り込めます</div>
       <div style="font-size:10px;color:#777;line-height:1.5;margin:-2px 0 6px 2px" data-i18n="shareLinkNotice">※ リンクには図・機材名・3Dの配置と、上でチェックした情報が入ります。写真は入りません。リンクを受け取った人は誰でも開けます</div>
     </div>
     <button class="btn-export-go" onclick="doExport()" data-i18n="exportGo">📸 カメラロールに保存</button>
