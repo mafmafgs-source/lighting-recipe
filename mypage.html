@@ -165,7 +165,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-se
       <div style="font-size:10px;color:#666;line-height:1.5;margin-top:6px" data-i18n="wmHint">出力画像の右下に表示されます。テキスト・ロゴのどちらか一方でも使えます。</div>
     </div>
     <div style="margin-top:16px;padding-top:14px;border-top:1px solid #2e2e2e">
+      <a id="helpLink" href="https://jyounetsu.site/lighting-recipe-guide-en/" target="_blank" rel="noopener" style="font-size:13px;color:#c8a96e;text-decoration:none;display:inline-flex;align-items:center;gap:6px;margin-right:18px">📖 <span data-i18n="helpLink">使い方</span></a>
       <a href="privacy.html" style="font-size:13px;color:#c8a96e;text-decoration:none;display:inline-flex;align-items:center;gap:6px">🔒 <span data-i18n="privacyPolicy">プライバシーポリシー</span></a>
+      <script>
+        // 使い方ページ（jyounetsu.site の WordPress）。日本語のときだけ日本語版、それ以外は英語版。
+        // アプリ内では native-bridge が https リンクを外部ブラウザで開く。
+        document.addEventListener('DOMContentLoaded', function(){ var a=document.getElementById('helpLink'); if(a) a.href = (document.documentElement.lang||'')==='ja' ? 'https://jyounetsu.site/lighting-recipe-guide/' : 'https://jyounetsu.site/lighting-recipe-guide-en/'; });
+      </script>
     </div>
     <div style="margin-top:14px;padding-top:14px;border-top:1px solid #2e2e2e">
       <button class="btn-reset-all" onclick="resetEverything()" data-i18n="resetAll">🗑 すべてリセット（初期化）</button>

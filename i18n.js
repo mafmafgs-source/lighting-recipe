@@ -940,6 +940,18 @@
     es: { inclQr:'🔳 Poner un código QR en la imagen', qrNotice:'Elige la imagen guardada con «Cargar desde imagen» en Mi página para importar esta receta (el QR contiene un enlace corto; se omite si no se puede crear, p. ej. sin conexión)', qrFooterTitle:'Abre esta receta desde la imagen', qrFooterText:'Guarda la imagen y elígela con «Cargar desde imagen» en Mi página de Lighting Recipe. Escanear el QR con la cámara del móvil también funciona.', qrSkipped:'Código QR omitido (no se pudo crear el enlace)', loadFromImage:'🖼 Cargar desde imagen', qrNotFound:'No se encontró ningún código QR' },
   };
   for (const k in EXTRA31) { if (I18N[k]) Object.assign(I18N[k], EXTRA31[k]); }
+  // ⭐9/18 マイページの「使い方」リンク（jyounetsu.site の使い方ページ・ja/en）
+  const EXTRA32 = {
+    ja: { helpLink:'使い方' },
+    en: { helpLink:'How to use' },
+    zh: { helpLink:'使用方法' },
+    ko: { helpLink:'사용 방법' },
+    de: { helpLink:'Anleitung' },
+    fr: { helpLink:'Mode d’emploi' },
+    it: { helpLink:'Guida all’uso' },
+    es: { helpLink:'Cómo usar' },
+  };
+  for (const k in EXTRA32) { if (I18N[k]) Object.assign(I18N[k], EXTRA32[k]); }
 
   // ── 追加辞書23（2026-08-23 バグ修正：日本語固定だった出力ラベル・トースト・案内の多言語化）─────
   const EXTRA23 = {
