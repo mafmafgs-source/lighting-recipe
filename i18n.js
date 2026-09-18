@@ -942,14 +942,14 @@
   for (const k in EXTRA31) { if (I18N[k]) Object.assign(I18N[k], EXTRA31[k]); }
   // ⭐9/18 マイページの「使い方」リンク（jyounetsu.site の使い方ページ・ja/en）
   const EXTRA32 = {
-    ja: { helpLink:'使い方' },
-    en: { helpLink:'How to use' },
-    zh: { helpLink:'使用方法' },
-    ko: { helpLink:'사용 방법' },
-    de: { helpLink:'Anleitung' },
-    fr: { helpLink:'Mode d’emploi' },
-    it: { helpLink:'Guida all’uso' },
-    es: { helpLink:'Cómo usar' },
+    ja: { helpLink:'使い方', sortAddedRecent:'🕒 追加した順' },
+    en: { helpLink:'How to use', sortAddedRecent:'🕒 Recently added' },
+    zh: { helpLink:'使用方法', sortAddedRecent:'🕒 最近添加' },
+    ko: { helpLink:'사용 방법', sortAddedRecent:'🕒 추가한 순' },
+    de: { helpLink:'Anleitung', sortAddedRecent:'🕒 Zuletzt hinzugefügt' },
+    fr: { helpLink:'Mode d’emploi', sortAddedRecent:'🕒 Ajout récent' },
+    it: { helpLink:'Guida all’uso', sortAddedRecent:'🕒 Aggiunte di recente' },
+    es: { helpLink:'Cómo usar', sortAddedRecent:'🕒 Añadidas recientemente' },
   };
   for (const k in EXTRA32) { if (I18N[k]) Object.assign(I18N[k], EXTRA32[k]); }
 
